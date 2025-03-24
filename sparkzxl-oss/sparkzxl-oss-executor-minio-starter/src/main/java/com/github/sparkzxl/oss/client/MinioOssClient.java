@@ -2,8 +2,7 @@ package com.github.sparkzxl.oss.client;
 
 import com.github.sparkzxl.oss.properties.Configuration;
 import com.github.sparkzxl.spi.Join;
-import io.minio.MinioClient;
-import lombok.Getter;
+import io.minio.MinioAsyncClient;
 import lombok.Setter;
 
 /**
@@ -14,25 +13,26 @@ import lombok.Setter;
  */
 @Setter
 @Join
-public class MinioOssClient implements OssClient<MinioClient> {
+public class MinioOssClient implements OssClient<CustomMinioClient> {
 
-    private MinioClient client;
+    private CustomMinioClient client;
     private Configuration configuration;
 
     public MinioOssClient() {
     }
 
     @Override
-    public OssClient<MinioClient> init(Configuration configuration) {
+    public OssClient<CustomMinioClient> init(Configuration configuration) {
         this.configuration = configuration;
-        this.client = MinioClient.builder().endpoint(configuration.getEndpoint())
+        MinioAsyncClient minioAsyncClient = MinioAsyncClient.builder().endpoint(configuration.getEndpoint())
                 .credentials(configuration.getAccessKey(), configuration.getSecretKey())
                 .build();
+        client = new CustomMinioClient(minioAsyncClient);
         return this;
     }
 
     @Override
-    public MinioClient getClient() {
+    public CustomMinioClient getClient() {
         return this.client;
     }
 

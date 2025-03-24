@@ -13,13 +13,17 @@ import com.aliyun.oss.model.*;
 import com.github.sparkzxl.core.util.DateUtils;
 import com.github.sparkzxl.core.util.TimeUtil;
 import com.github.sparkzxl.oss.client.OssClient;
+import com.github.sparkzxl.oss.entity.FileUploadInfo;
 import com.github.sparkzxl.oss.entity.OssObject;
+import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
 import com.github.sparkzxl.oss.support.OssErrorCode;
 import com.github.sparkzxl.oss.support.OssException;
 import com.github.sparkzxl.oss.utils.OssUtils;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -156,7 +160,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             ObjectMetadata objectMetadata = new ObjectMetadata();
             objectMetadata.setContentLength(multipartFile.getSize());
             objectMetadata.setContentType(multipartFile.getContentType());
-            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, multipartFile.getInputStream(),objectMetadata);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, multipartFile.getInputStream(), objectMetadata);
             ossClient.putObject(putObjectRequest);
         } catch (OSSException e) {
             log.error("Caught an OSSException, which means your request made it to OSS, "
@@ -182,7 +186,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             ObjectMetadata objectMetadata = new ObjectMetadata();
             objectMetadata.setContentLength(tempFile.length());
             objectMetadata.setContentType(mimeType);
-            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, FileUtil.getInputStream(tempFile),objectMetadata);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, FileUtil.getInputStream(tempFile), objectMetadata);
             ossClient.putObject(putObjectRequest);
         } catch (OSSException e) {
             log.warn("Caught an OSSException, which means your request made it to OSS, "
@@ -228,7 +232,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                 ObjectMetadata objectMetadata = new ObjectMetadata();
                 objectMetadata.setContentLength(tempFile.length());
                 objectMetadata.setContentType(mimeType);
-                PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, FileUtil.getInputStream(tempFile),objectMetadata);
+                PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, FileUtil.getInputStream(tempFile), objectMetadata);
                 ossClient.putObject(putObjectRequest);
                 executeTime = dbStopwatch.elapsed(TimeUnit.SECONDS);
                 System.out.println("上传耗时：[" + executeTime + "]秒");
@@ -342,7 +346,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             // headers.put("x-oss-complete-all","yes");
             // completeMultipartUploadRequest.setHeaders(headers);
             CompleteMultipartUploadResult completeMultipartUploadResult = ossClient.completeMultipartUpload(completeMultipartUploadRequest);
-            log.info("分片上传结果：{}",completeMultipartUploadResult.getETag());
+            log.info("分片上传结果：{}", completeMultipartUploadResult.getETag());
         } catch (OSSException oe) {
             log.error("Caught an OSSException, which means your request made it to OSS, "
                             + "but was rejected with an error response for some reason.\n"
@@ -365,6 +369,74 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         } catch (IOException e) {
             throw new OssException(OssErrorCode.MULTIPART_UPLOAD_ERROR.getErrorCode(), e.getMessage());
         }
+    }
+
+    @Override
+    public UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName) {
+        OSSClient ossClient = obtainClient();
+        Integer chunkCount = fileUploadInfo.getChunkCount();
+        String contentType = fileUploadInfo.getContentType();
+        String uploadId = fileUploadInfo.getUploadId();
+        log.info("文件<{}> - 分片<{}> 初始化分片上传数据 请求头 {}", objectName, chunkCount, contentType);
+        UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
+        try {
+            HashMultimap<String, String> headers = HashMultimap.create();
+            if (StringUtils.isEmpty(contentType)) {
+                contentType = "application/octet-stream";
+            }
+            headers.put("Content-Type", contentType);
+            // 如果初始化时有 uploadId，说明是断点续传，不能重新生成 uploadId
+            if (StringUtils.isEmpty(fileUploadInfo.getUploadId())) {
+                InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucketName, objectName);
+                ObjectMetadata objectMetadata = new ObjectMetadata();
+                objectMetadata.setContentType(contentType);
+                request.setObjectMetadata(objectMetadata);
+                InitiateMultipartUploadResult initiateMultipartUploadResult = ossClient.initiateMultipartUpload(request);
+                uploadId = initiateMultipartUploadResult.getUploadId();
+            }
+            uploadUrlsInfo.setUploadId(uploadId);
+            List<String> partList = new ArrayList<>();
+            for (int i = 1; i <= chunkCount; i++) {
+                Date expiration = new Date(new Date().getTime() + 3600 * 1000L);
+                GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, objectName, HttpMethod.PUT);
+                // 设置过期时间。
+                request.setExpiration(expiration);
+                request.addQueryParameter("uploadId", uploadId);
+                request.addQueryParameter("partNumber", String.valueOf(i));
+                URL generatePresignedUrl = ossClient.generatePresignedUrl(request);
+                String uploadUrl = generatePresignedUrl.toString();
+                partList.add(uploadUrl);
+            }
+            log.info("文件初始化分片成功");
+            uploadUrlsInfo.setUrls(partList);
+            return uploadUrlsInfo;
+        } catch (Exception e) {
+            log.error("初始化分片上传失败: {}", e.getMessage());
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId) {
+        OSSClient ossClient = obtainClient();
+        try {
+            // 合并分片，与上传分片不在同一个系统。此时，您需要先列举分片，然后再合并分片。
+            ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName, objectName, uploadId);
+            PartListing partListing = ossClient.listParts(listPartsRequest);
+
+            List<PartETag> parteTags = Lists.newArrayList();
+            // 遍历分片，并填充partETags。
+            for (PartSummary part : partListing.getParts()) {
+                parteTags.add(new PartETag(part.getPartNumber(), part.getETag()));
+            }
+            CompleteMultipartUploadRequest completeMultipartUploadRequest =
+                    new CompleteMultipartUploadRequest(bucketName, objectName, uploadId, parteTags);
+            CompleteMultipartUploadResult completeMultipartUploadResult = ossClient.completeMultipartUpload(completeMultipartUploadRequest);
+            log.info("合并分片成功，上传分片完成.uploadId：{}{}", uploadId, completeMultipartUploadResult.getETag());
+        } catch (Exception e) {
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
+        }
+        return true;
     }
 
     @Override

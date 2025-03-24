@@ -1,7 +1,9 @@
 package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.net.url.UrlBuilder;
+import com.github.sparkzxl.oss.entity.FileUploadInfo;
 import com.github.sparkzxl.oss.entity.OssObject;
+import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
 import org.springframework.web.multipart.MultipartFile;
@@ -113,6 +115,25 @@ public interface OssExecutor {
      * @param multipartFile 上传文件
      */
     void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile);
+
+    /**
+     * 初始化文件分片上传
+     *
+     * @param fileUploadInfo 文件上传信息
+     * @param bucketName     bucket名称
+     * @param objectName     文件名称
+     * @return UploadUrlsInfo
+     */
+    UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName);
+
+    /**
+     * 合并文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName 文件名称
+     * @param uploadId   上传标识ID
+     */
+    boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId);
 
     /**
      * 删除文件
