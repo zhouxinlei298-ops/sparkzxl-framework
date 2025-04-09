@@ -27,6 +27,11 @@ public class LogProperties {
      */
     private boolean enableConsole = true;
 
+    /**
+     * 是否开启埋点日志
+     */
+    private boolean enableBizPoint = true;
+
     private FileProperties file = new FileProperties();
 
     private KafkaProperties kafka = new KafkaProperties();

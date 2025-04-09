@@ -1,6 +1,6 @@
 package com.github.sparkzxl.log.event;
 
-import com.github.sparkzxl.log.entity.OptLogRecordDetail;
+import com.github.sparkzxl.log.entity.OptRecordLog;
 import org.springframework.context.ApplicationEvent;
 
 /**
@@ -10,7 +10,7 @@ import org.springframework.context.ApplicationEvent;
  */
 public class OptLogEvent extends ApplicationEvent {
 
-    public OptLogEvent(OptLogRecordDetail source) {
+    public OptLogEvent(OptRecordLog source) {
         super(source);
     }
 }

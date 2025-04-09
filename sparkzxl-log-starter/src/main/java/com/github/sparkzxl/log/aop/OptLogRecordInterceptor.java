@@ -1,5 +1,6 @@
 package com.github.sparkzxl.log.aop;
 
+import cn.hutool.core.util.URLUtil;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.util.AopUtil;
@@ -7,7 +8,7 @@ import com.github.sparkzxl.core.util.ArgumentAssert;
 import com.github.sparkzxl.core.util.HttpRequestUtils;
 import com.github.sparkzxl.core.util.NetworkUtil;
 import com.github.sparkzxl.log.annotation.OptLogRecord;
-import com.github.sparkzxl.log.entity.OptLogRecordDetail;
+import com.github.sparkzxl.log.entity.OptRecordLog;
 import com.github.sparkzxl.log.event.OptLogEvent;
 import com.github.sparkzxl.log.handler.IOptLogVariablesHandler;
 import com.github.sparkzxl.log.store.OperatorService;
@@ -26,6 +27,8 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 
@@ -59,31 +62,42 @@ public class OptLogRecordInterceptor implements MethodInterceptor {
         if (!cls.equals(invocation.getThis().getClass())) {
             return invocation.proceed();
         }
-        Object proceed = invocation.proceed();
         OptLogRecord annotation = invocation.getMethod().getAnnotation(OptLogRecord.class);
         String userId = operatorService.getUserId();
         String name = operatorService.getUserName();
         HttpServletRequest httpServletRequest = HttpRequestUtils.currentHttpServletRequest();
-        String bizNo = "";
-        if (StringUtils.isNotBlank(annotation.bizNo())) {
-            bizNo = AopUtil.parseExpression(invocation, annotation.bizNo());
-        }
-        OptLogRecordDetail optLogRecordDetail = new OptLogRecordDetail()
-                .setIp(NetworkUtil.getIpAddress(httpServletRequest))
-                .setRequestUrl(httpServletRequest.getRequestURI())
-                .setBizNo(bizNo)
+        OptRecordLog optRecordLog = new OptRecordLog();
+        optRecordLog.setIp(NetworkUtil.getIpAddress(httpServletRequest))
+                .setRequestUrl(URLUtil.getPath(httpServletRequest.getRequestURI()))
                 .setCategory(annotation.category())
-                .setUserId(userId)
+                .setOperatorId(userId)
                 .setOperator(name)
+                .setStartTime(LocalDateTime.now())
                 .setTenantId(RequestLocalContextHolder.getTenantId());
-        if (StringUtils.isNotBlank(annotation.template())) {
-            Map<String, Object> alarmParamMap = getVariablesHandler(annotation.variablesBeanName()).getVariables(method, args, annotation);
-            TemplateParserContext parserContext = new TemplateParserContext();
-            EvaluationContext context = new MethodBasedEvaluationContext(alarmParamMap, method, args, NAME_DISCOVERER);
-            String message = PARSER.parseExpression(annotation.template(), parserContext).getValue(context, String.class);
-            optLogRecordDetail.setDetail(message);
+        Object proceed;
+        try {
+            proceed = invocation.proceed();
+        } catch (Throwable e) {
+            optRecordLog.setErrorMsg(e.getMessage());
+            throw new RuntimeException(e);
+        } finally {
+            String bizNo = "";
+            if (StringUtils.isNotBlank(annotation.bizNo())) {
+                bizNo = AopUtil.parseExpression(invocation.getMethod(), invocation.getArguments(), annotation.bizNo());
+            }
+            optRecordLog.setBizNo(bizNo);
+            if (StringUtils.isNotBlank(annotation.template())) {
+                Map<String, Object> alarmParamMap = getVariablesHandler(annotation.variablesBeanName()).getVariables(method, args, annotation);
+                TemplateParserContext parserContext = new TemplateParserContext();
+                EvaluationContext context = new MethodBasedEvaluationContext(alarmParamMap, method, args,
+                        NAME_DISCOVERER);
+                String message = PARSER.parseExpression(annotation.template(), parserContext).getValue(context, String.class);
+                optRecordLog.setDetail(message);
+            }
+            optRecordLog.setFinishTime(LocalDateTime.now());
+            optRecordLog.setConsumeTime(optRecordLog.getStartTime().until(optRecordLog.getFinishTime(), ChronoUnit.MILLIS));
+            SpringContextUtils.publishEvent(new OptLogEvent(optRecordLog));
         }
-        SpringContextUtils.publishEvent(new OptLogEvent(optLogRecordDetail));
         return proceed;
     }
 
