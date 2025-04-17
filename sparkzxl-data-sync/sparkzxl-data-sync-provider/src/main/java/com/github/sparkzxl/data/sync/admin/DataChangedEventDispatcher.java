@@ -31,7 +31,7 @@ public class DataChangedEventDispatcher implements ApplicationListener<DataChang
     @Override
     public void onApplicationEvent(DataChangedEvent event) {
         for (DataChangedListener listener : listeners) {
-            listener.onChanged(event.getGroupKey().getCode().toLowerCase(Locale.ROOT), event.getEventType().name(), event.getSource());
+            listener.onChanged(event.getConfigGroupKey().getCode().toLowerCase(Locale.ROOT), event.getEventType().name(), event.getSource());
         }
     }
 
