@@ -22,6 +22,7 @@ import com.github.sparkzxl.datasource.dynamic.aop.DynamicDataSourceAnnotationAdv
 import com.github.sparkzxl.datasource.dynamic.aop.DynamicDataSourceAnnotationInterceptor;
 import com.github.sparkzxl.datasource.dynamic.aop.DynamicLocalTransactionInterceptor;
 import com.github.sparkzxl.datasource.interceptor.DynamicDataSourceInterceptor;
+import com.github.sparkzxl.datasource.support.DataSourceExceptionHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ClassUtils;
 import org.springframework.aop.Advisor;
@@ -59,7 +60,7 @@ import java.util.Optional;
 @EnableConfigurationProperties({DynamicDataSourceProperties.class, DynamicDataProperties.class})
 @Slf4j
 @AutoConfigureBefore(value = DataSourceAutoConfiguration.class, name = "com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure")
-@Import(value = {DruidDynamicDataSourceConfiguration.class, DynamicDataSourceCreatorAutoConfiguration.class})
+@Import(value = {DruidDynamicDataSourceConfiguration.class, DynamicDataSourceCreatorAutoConfiguration.class, DataSourceExceptionHandler.class})
 @ConditionalOnProperty(prefix = DynamicDataSourceProperties.PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DynamicDataSourceAutoConfig implements WebMvcConfigurer, InitializingBean {
 
