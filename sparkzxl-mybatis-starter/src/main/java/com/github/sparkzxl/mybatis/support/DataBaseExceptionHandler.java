@@ -16,7 +16,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.sql.SQLException;
@@ -30,9 +29,8 @@ import java.util.regex.Pattern;
  *
  * @author zhoux
  */
-@RestControllerAdvice
-@RestController
 @Slf4j
+@RestControllerAdvice
 public class DataBaseExceptionHandler implements Ordered {
 
     private final static String DATABASE_PREFIX = "Unknown database";

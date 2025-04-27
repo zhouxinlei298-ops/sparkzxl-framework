@@ -7,7 +7,6 @@ import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @Slf4j
 @RestControllerAdvice
-@RestController
 public class DataSourceExceptionHandler implements Ordered {
 
     @ExceptionHandler(TenantException.class)
