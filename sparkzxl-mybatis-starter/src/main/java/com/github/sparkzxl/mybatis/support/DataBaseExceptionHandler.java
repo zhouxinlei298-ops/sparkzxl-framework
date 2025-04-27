@@ -6,7 +6,6 @@ import cn.hutool.core.util.ReUtil;
 import com.github.sparkzxl.core.base.result.R;
 import com.github.sparkzxl.core.constant.enums.BeanOrderEnum;
 import com.github.sparkzxl.core.support.BizException;
-import com.github.sparkzxl.core.support.TenantException;
 import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
 import com.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
 import lombok.extern.slf4j.Slf4j;
@@ -139,12 +138,6 @@ public class DataBaseExceptionHandler implements Ordered {
         return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), e.getMessage());
     }
 
-    @ExceptionHandler(TenantException.class)
-    public R<?> handleTenantException(TenantException e) {
-        log.error("租户异常：", e);
-        return R.failDetail(e.getErrorCode(), e.getMessage());
-    }
-
     @ExceptionHandler(DataIntegrityViolationException.class)
     public R<?> handlerDataIntegrityViolationException(DataIntegrityViolationException e) {
         log.error("数据库操作异常:", e);
@@ -167,6 +160,6 @@ public class DataBaseExceptionHandler implements Ordered {
 
     @Override
     public int getOrder() {
-        return BeanOrderEnum.DATASOURCE_EXCEPTION_HANDLER_ORDER.getOrder();
+        return BeanOrderEnum.DATABASE_EXCEPTION_HANDLER_ORDER.getOrder();
     }
 }

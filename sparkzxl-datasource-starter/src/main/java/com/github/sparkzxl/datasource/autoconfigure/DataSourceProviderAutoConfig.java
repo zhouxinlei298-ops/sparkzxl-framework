@@ -5,11 +5,13 @@ import com.github.sparkzxl.datasource.loadbalancer.DataSourceLoadBalancer;
 import com.github.sparkzxl.datasource.loadbalancer.RandomDataSourceLoadBalancer;
 import com.github.sparkzxl.datasource.provider.DataSourceProvider;
 import com.github.sparkzxl.datasource.provider.YamlDataSourceProvider;
+import com.github.sparkzxl.datasource.support.DataSourceExceptionHandler;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 /**
  * description:
@@ -19,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConditionalOnProperty(prefix = DynamicDataSourceProperties.PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
 @ComponentScan(basePackageClasses = DataSourceProvider.class)
+@Import(DataSourceExceptionHandler.class)
 public class DataSourceProviderAutoConfig {
 
 
