@@ -3,6 +3,7 @@ package com.github.sparkzxl.oss.executor;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.net.url.UrlBuilder;
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.URLUtil;
 import com.github.sparkzxl.core.util.TimeUtil;
 import com.github.sparkzxl.oss.client.CustomMinioClient;
@@ -17,7 +18,9 @@ import com.github.sparkzxl.oss.support.OssException;
 import com.github.sparkzxl.oss.utils.OssUtils;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
 import io.minio.*;
+import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.Part;
 import lombok.extern.slf4j.Slf4j;
@@ -25,13 +28,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -381,6 +383,32 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             return UrlBuilder.ofHttp(configInfo.getDomain(), Charset.defaultCharset()).addPath(bucket);
         } else {
             return UrlBuilder.ofHttp(configInfo.getEndpoint(), Charset.defaultCharset()).addPath(bucket);
+        }
+    }
+
+    @Override
+    public String getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
+        // 主要是针对图片，若需要通过浏览器直接查看，而不是下载，需要指定对应的 content-type
+        Map<String, String> headers = Maps.newHashMap();
+        if (contentType == null || contentType.isEmpty()) {
+            contentType = "application/octet-stream";
+        }
+        headers.put("Content-Type", contentType);
+        String uploadId = IdUtil.simpleUUID();
+        Map<String, String> reqParams = new HashMap<>();
+        reqParams.put("uploadId", uploadId);
+        CustomMinioClient minioClient = obtainClient();
+        try {
+            return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+                    .method(Method.PUT)
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .extraHeaders(headers)
+                    .extraQueryParams(reqParams)
+                    .expiry(1, TimeUnit.DAYS)
+                    .build());
+        } catch (Exception e) {
+            throw new OssException(OssErrorCode.PUT_OBJECT_ERROR, e);
         }
     }
 

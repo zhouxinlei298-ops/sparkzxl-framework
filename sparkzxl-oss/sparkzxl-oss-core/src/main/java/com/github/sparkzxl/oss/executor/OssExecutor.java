@@ -155,10 +155,20 @@ public interface OssExecutor {
     /**
      * 文件url前半段
      *
-     * @param bucket bucket名称
+     * @param bucketName bucket名称
      * @return UrlBuilder
      */
-    UrlBuilder getObjectPrefixUrl(String bucket);
+    UrlBuilder getObjectPrefixUrl(String bucketName);
+
+    /**
+     * 获取文件上传地址
+     *
+     * @param bucketName  bucket名称
+     * @param objectName  文件名称
+     * @param contentType contentType
+     * @return String
+     */
+    String getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType);
 
     /**
      * 销毁

@@ -3,7 +3,9 @@ package com.github.sparkzxl.oss.executor;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.net.url.UrlBuilder;
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.URLUtil;
+import cn.hutool.http.Method;
 import com.aliyun.oss.ClientException;
 import com.aliyun.oss.HttpMethod;
 import com.aliyun.oss.OSSClient;
@@ -24,6 +26,7 @@ import com.github.sparkzxl.oss.utils.OssUtils;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,9 +35,7 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -486,6 +487,31 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         } else {
             return UrlBuilder.ofHttp(configInfo.getEndpoint(), Charset.defaultCharset())
                     .addPath(bucket);
+        }
+    }
+
+    @Override
+    public String getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
+        // 主要是针对图片，若需要通过浏览器直接查看，而不是下载，需要指定对应的 content-type
+        Map<String, String> headers = Maps.newHashMap();
+        if (contentType == null || contentType.isEmpty()) {
+            contentType = "application/octet-stream";
+        }
+        headers.put("Content-Type", contentType);
+        String uploadId = IdUtil.simpleUUID();
+        Map<String, String> reqParams = new HashMap<>();
+        reqParams.put("uploadId", uploadId);
+        OSSClient ossClient = obtainClient();
+        GeneratePresignedUrlRequest generatePresignedUrlRequest = new GeneratePresignedUrlRequest(bucketName, objectName, HttpMethod.PUT);
+        generatePresignedUrlRequest.setQueryParameter(reqParams);
+        generatePresignedUrlRequest.setHeaders(headers);
+        // 设置1天有效期
+        DateTime dateTime = DateUtils.offsetDay(new Date(), 1);
+        generatePresignedUrlRequest.setExpiration(dateTime);
+        try {
+            return ossClient.generatePresignedUrl(generatePresignedUrlRequest).toString();
+        } catch (Exception e) {
+            throw new OssException(OssErrorCode.PUT_OBJECT_ERROR, e);
         }
     }
 
