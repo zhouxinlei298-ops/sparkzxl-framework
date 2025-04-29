@@ -2,6 +2,7 @@ package com.github.sparkzxl.oss;
 
 import com.github.sparkzxl.oss.context.OssClientContextHolder;
 import com.github.sparkzxl.oss.entity.OssObject;
+import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
 import com.github.sparkzxl.oss.executor.OssExecutor;
 import com.github.sparkzxl.oss.executor.OssExecutorFactoryContext;
 import com.github.sparkzxl.oss.properties.OssProperties;
@@ -164,6 +165,19 @@ public class OssTemplate implements InitializingBean {
     public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
         OssExecutor ossExecutor = obtainExecutor();
         ossExecutor.downloadFile(bucketName, objectName, consumer);
+    }
+
+    /**
+     * 获取文件上传地址
+     *
+     * @param bucketName  bucket名称
+     * @param objectName  文件名称
+     * @param contentType contentType
+     * @return UploadUrlsInfo
+     */
+    public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType){
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.getPresignedObjectUploadUrl(bucketName, objectName, contentType);
     }
 
     public OssExecutor obtainExecutor() {

@@ -1,6 +1,7 @@
 package com.github.sparkzxl.oss.entity;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import javax.validation.constraints.NotBlank;
@@ -15,11 +16,11 @@ import java.util.List;
  * @since 2025-03-08 20:16:59
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
-public class FileUploadInfo implements Serializable {
+public class FileUploadInfo extends FileObjectInfo implements Serializable {
 
-
-    private static final long serialVersionUID = -3517960658875619906L;
+    private static final long serialVersionUID = 7518715936973555392L;
     @NotBlank(message = "md5 不能为空")
     private String md5;
 
@@ -42,13 +43,10 @@ public class FileUploadInfo implements Serializable {
      * 仅秒传会有值
      */
     private String url;
+
     /**
-     * 后端使用
+     * 文件类型
      */
-    private String object;
-
-    private String type;
-
     private String contentType;
 
     /**

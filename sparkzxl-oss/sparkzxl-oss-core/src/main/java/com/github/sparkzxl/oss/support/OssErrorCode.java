@@ -30,6 +30,8 @@ public enum OssErrorCode implements IErrorCode {
     DELETE_OBJECT_ERROR("A0712", "删除OSS文件失败"),
     DOWNLOAD_OBJECT_ERROR("A0713", "下载OSS文件失败"),
     SET_BUCKET_POLICY_ERROR("A0714", "设置桶策略失败"),
+    GET_PRESIGNED_OBJECT_URL_ERROR("A0715", "生成上传地址失败"),
+    MERGE_MULTIPART_UPLOAD_FAILED("A0716", "文件合并分片上传失败");
     ;
 
     final String errorCode;

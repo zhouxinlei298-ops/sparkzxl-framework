@@ -166,9 +166,9 @@ public interface OssExecutor {
      * @param bucketName  bucket名称
      * @param objectName  文件名称
      * @param contentType contentType
-     * @return String
+     * @return UploadUrlsInfo
      */
-    String getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType);
+    UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType);
 
     /**
      * 销毁

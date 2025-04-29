@@ -387,7 +387,9 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     }
 
     @Override
-    public String getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
+    public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
+        UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
+        List<String> urlList = new ArrayList<>();
         // 主要是针对图片，若需要通过浏览器直接查看，而不是下载，需要指定对应的 content-type
         Map<String, String> headers = Maps.newHashMap();
         if (contentType == null || contentType.isEmpty()) {
@@ -399,7 +401,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
         reqParams.put("uploadId", uploadId);
         CustomMinioClient minioClient = obtainClient();
         try {
-            return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+            String url = minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.PUT)
                     .bucket(bucketName)
                     .object(objectName)
@@ -407,8 +409,11 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                     .extraQueryParams(reqParams)
                     .expiry(1, TimeUnit.DAYS)
                     .build());
+            urlList.add(url);
+            uploadUrlsInfo.setUploadId(uploadId).setUrls(urlList);
+            return uploadUrlsInfo;
         } catch (Exception e) {
-            throw new OssException(OssErrorCode.PUT_OBJECT_ERROR, e);
+            throw new OssException(OssErrorCode.GET_PRESIGNED_OBJECT_URL_ERROR, e);
         }
     }
 
