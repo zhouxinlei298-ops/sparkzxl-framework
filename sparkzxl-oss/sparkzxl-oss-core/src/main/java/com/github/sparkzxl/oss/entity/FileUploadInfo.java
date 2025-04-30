@@ -20,7 +20,7 @@ import java.util.List;
 @Accessors(chain = true)
 public class FileUploadInfo extends FileObjectInfo implements Serializable {
 
-    private static final long serialVersionUID = 7518715936973555392L;
+    private static final long serialVersionUID = -7535060694696918090L;
     @NotBlank(message = "md5 不能为空")
     private String md5;
 
@@ -53,5 +53,10 @@ public class FileUploadInfo extends FileObjectInfo implements Serializable {
      * listParts 从 1 开始，前端需要上传的分片索引+1
      */
     private List<Integer> listParts;
+
+    /**
+     * 上传进度 2001:上传成功,2002:上传中,2003:未上传
+     */
+    private Integer progress;
 
 }
