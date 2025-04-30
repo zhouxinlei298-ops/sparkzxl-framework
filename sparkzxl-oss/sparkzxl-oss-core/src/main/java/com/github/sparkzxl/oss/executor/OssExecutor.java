@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.net.URL;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -46,7 +47,7 @@ public interface OssExecutor {
      * 获取文件外链
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param expires    过期时间 <=7
      * @return url
      */
@@ -57,7 +58,7 @@ public interface OssExecutor {
      * 获取文件访问路径
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @return String
      */
     String getObjectUrl(String bucketName, String objectName);
@@ -66,7 +67,7 @@ public interface OssExecutor {
      * 获取文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @return OssObject 二进制流
      */
     OssObject getObjectInfo(String bucketName, String objectName);
@@ -75,7 +76,7 @@ public interface OssExecutor {
      * 判断文件是否存在
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @return boolean
      */
     boolean exists(String bucketName, String objectName);
@@ -93,7 +94,7 @@ public interface OssExecutor {
      * 上传文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param filePath   文件路径
      */
     void putObject(String bucketName, String objectName, String filePath);
@@ -102,7 +103,7 @@ public interface OssExecutor {
      * 上传文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param url        文件地址
      */
     void putObject(String bucketName, String objectName, URL url);
@@ -127,10 +128,20 @@ public interface OssExecutor {
     UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName);
 
     /**
+     * 获取OSS中已经上传的分片文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param uploadId   上传ID
+     * @return List<Integer>
+     */
+    List<Integer> getListParts(String bucketName, String objectName, String uploadId);
+
+    /**
      * 合并文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param uploadId   上传标识ID
      */
     boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId);
@@ -139,7 +150,7 @@ public interface OssExecutor {
      * 删除文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      */
     void removeObject(String bucketName, String objectName);
 
@@ -147,7 +158,7 @@ public interface OssExecutor {
      * 下载文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param consumer   消费
      */
     void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer);
@@ -178,4 +189,5 @@ public interface OssExecutor {
     default Configuration obtainConfigInfo() {
         return null;
     }
+
 }

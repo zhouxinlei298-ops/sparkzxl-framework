@@ -34,13 +34,11 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * description: minio 执行器
@@ -311,6 +309,19 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             log.error("初始化分片上传失败: {}", e.getMessage());
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
+    }
+
+    @Override
+    public List<Integer> getListParts(String bucketName, String objectName, String uploadId) {
+        List<Part> parts;
+        try {
+            parts = getParts(bucketName, objectName, uploadId);
+        } catch (Exception e) {
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
+        }
+        return parts.stream()
+                .map(Part::partNumber)
+                .collect(Collectors.toList());
     }
 
     @Override

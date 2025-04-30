@@ -299,7 +299,7 @@ public class OssTemplate implements InitializingBean {
      * 获取文件外链
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param expires    过期时间 <=7
      * @return url
      * @see AmazonS3#generatePresignedUrl(String bucketName, String key, Date expiration)
@@ -341,7 +341,7 @@ public class OssTemplate implements InitializingBean {
      * 获取文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @return 二进制流
      * @see <a href="http://docs.aws.amazon.com/goto/WebAPI/s3-2006-03-01/GetObject">AWS
      * API Documentation</a>
@@ -355,7 +355,7 @@ public class OssTemplate implements InitializingBean {
      * 上传文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param stream     文件流
      * @return PutObjectResult
      * @throws Exception 异常
@@ -516,7 +516,7 @@ public class OssTemplate implements InitializingBean {
      * 获取文件信息
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @see <a href="http://docs.aws.amazon.com/goto/WebAPI/s3-2006-03-01/GetObject">AWS
      * API Documentation</a>
      */
@@ -528,7 +528,7 @@ public class OssTemplate implements InitializingBean {
      * 删除文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @see <a href=
      * "http://docs.aws.amazon.com/goto/WebAPI/s3-2006-03-01/DeleteObject">AWS API
      * Documentation</a>

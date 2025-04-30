@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.net.URL;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -57,7 +58,7 @@ public class OssTemplate implements InitializingBean {
      * 获取文件外链
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param expires    过期时间 <=7
      * @return url
      */
@@ -70,7 +71,7 @@ public class OssTemplate implements InitializingBean {
      * 获取文件外链
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @return url
      */
     public String getObjectUrl(String bucketName, String objectName) {
@@ -82,7 +83,7 @@ public class OssTemplate implements InitializingBean {
      * 获取文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @return 二进制流
      * @see <a href="http://docs.aws.amazon.com/goto/WebAPI/s3-2006-03-01/GetObject">API Documentation</a>
      */
@@ -95,7 +96,7 @@ public class OssTemplate implements InitializingBean {
      * 文件是否存在
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @return boolean
      */
     public boolean exists(String bucketName, String objectName) {
@@ -119,7 +120,7 @@ public class OssTemplate implements InitializingBean {
      * 上传文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param filePath   文件地址
      */
     public void putObject(String bucketName, String objectName, String filePath) {
@@ -131,7 +132,7 @@ public class OssTemplate implements InitializingBean {
      * 上传文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      * @param url        文件地址
      */
     public void putObject(String bucketName, String objectName, URL url) {
@@ -152,10 +153,24 @@ public class OssTemplate implements InitializingBean {
     }
 
     /**
+     * 获取OSS中已经上传的分片文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param uploadId   上传ID
+     * @return List<Integer>
+     */
+    public List<Integer> getListParts(String bucketName, String objectName, String uploadId) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.getListParts(bucketName, objectName, uploadId);
+    }
+
+
+    /**
      * 删除文件
      *
      * @param bucketName bucket名称
-     * @param objectName 文件名称
+     * @param objectName oss对象名称
      */
     public void removeObject(String bucketName, String objectName) {
         OssExecutor ossExecutor = obtainExecutor();
@@ -175,7 +190,7 @@ public class OssTemplate implements InitializingBean {
      * @param contentType contentType
      * @return UploadUrlsInfo
      */
-    public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType){
+    public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.getPresignedObjectUploadUrl(bucketName, objectName, contentType);
     }

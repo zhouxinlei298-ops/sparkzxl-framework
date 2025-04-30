@@ -38,6 +38,7 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * description: aliYun 执行器
@@ -413,6 +414,21 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             return uploadUrlsInfo;
         } catch (Exception e) {
             log.error("初始化分片上传失败: {}", e.getMessage());
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
+        }
+    }
+
+    @Override
+    public List<Integer> getListParts(String bucketName, String objectName, String uploadId) {
+        OSSClient ossClient = obtainClient();
+        try {
+            // 合并分片，与上传分片不在同一个系统。此时，您需要先列举分片，然后再合并分片。
+            ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName, objectName, uploadId);
+            PartListing partListing = ossClient.listParts(listPartsRequest);
+            return partListing.getParts().stream()
+                    .map(PartSummary::getPartNumber)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
     }
