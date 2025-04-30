@@ -17,6 +17,7 @@ import com.github.sparkzxl.core.util.TimeUtil;
 import com.github.sparkzxl.oss.client.OssClient;
 import com.github.sparkzxl.oss.entity.FileUploadInfo;
 import com.github.sparkzxl.oss.entity.OssObject;
+import com.github.sparkzxl.oss.entity.PartData;
 import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
@@ -382,7 +383,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         log.info("文件<{}> - 分片<{}> 初始化分片上传数据 请求头 {}", objectName, chunkCount, contentType);
         UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
         try {
-            HashMultimap<String, String> headers = HashMultimap.create();
+            Map<String, String> headers = Maps.newHashMap();
             if (StringUtils.isEmpty(contentType)) {
                 contentType = "application/octet-stream";
             }
@@ -393,8 +394,9 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                 ObjectMetadata objectMetadata = new ObjectMetadata();
                 objectMetadata.setContentType(contentType);
                 request.setObjectMetadata(objectMetadata);
-                InitiateMultipartUploadResult initiateMultipartUploadResult = ossClient.initiateMultipartUpload(request);
-                uploadId = initiateMultipartUploadResult.getUploadId();
+                request.setHeaders(headers);
+                InitiateMultipartUploadResult uploadResult = ossClient.initiateMultipartUpload(request);
+                uploadId = uploadResult.getUploadId();
             }
             uploadUrlsInfo.setUploadId(uploadId);
             List<String> partList = new ArrayList<>();
@@ -405,8 +407,8 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                 request.setExpiration(expiration);
                 request.addQueryParameter("uploadId", uploadId);
                 request.addQueryParameter("partNumber", String.valueOf(i));
-                URL generatePresignedUrl = ossClient.generatePresignedUrl(request);
-                String uploadUrl = generatePresignedUrl.toString();
+                URL url = ossClient.generatePresignedUrl(request);
+                String uploadUrl = url.toString();
                 partList.add(uploadUrl);
             }
             log.info("文件初始化分片成功");
@@ -419,14 +421,20 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public List<Integer> getListParts(String bucketName, String objectName, String uploadId) {
+    public List<PartData> getListParts(String bucketName, String objectName, String uploadId) {
         OSSClient ossClient = obtainClient();
         try {
             // 合并分片，与上传分片不在同一个系统。此时，您需要先列举分片，然后再合并分片。
             ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName, objectName, uploadId);
             PartListing partListing = ossClient.listParts(listPartsRequest);
             return partListing.getParts().stream()
-                    .map(PartSummary::getPartNumber)
+                    .map(x -> {
+                        PartData partData = new PartData();
+                        partData.setPartNumber(x.getPartNumber());
+                        partData.setEtag(x.getETag());
+                        partData.setSize(x.getSize());
+                        return partData;
+                    })
                     .collect(Collectors.toList());
         } catch (Exception e) {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());

@@ -3,6 +3,7 @@ package com.github.sparkzxl.oss.executor;
 import cn.hutool.core.net.url.UrlBuilder;
 import com.github.sparkzxl.oss.entity.FileUploadInfo;
 import com.github.sparkzxl.oss.entity.OssObject;
+import com.github.sparkzxl.oss.entity.PartData;
 import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
@@ -132,10 +133,10 @@ public interface OssExecutor {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param uploadId   上传ID
-     * @return List<Integer>
+     * @param uploadId   上传标识ID
+     * @return List<PartData>
      */
-    List<Integer> getListParts(String bucketName, String objectName, String uploadId);
+    List<PartData> getListParts(String bucketName, String objectName, String uploadId);
 
     /**
      * 合并文件

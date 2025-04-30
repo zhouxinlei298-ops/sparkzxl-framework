@@ -52,7 +52,7 @@ public class FileUploadInfo extends FileObjectInfo implements Serializable {
     /**
      * listParts 从 1 开始，前端需要上传的分片索引+1
      */
-    private List<Integer> listParts;
+    private List<PartData> listParts;
 
     /**
      * 上传进度 2001:上传成功,2002:上传中,2003:未上传

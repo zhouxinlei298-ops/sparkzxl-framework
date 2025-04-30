@@ -1,7 +1,9 @@
 package com.github.sparkzxl.oss;
 
 import com.github.sparkzxl.oss.context.OssClientContextHolder;
+import com.github.sparkzxl.oss.entity.FileUploadInfo;
 import com.github.sparkzxl.oss.entity.OssObject;
+import com.github.sparkzxl.oss.entity.PartData;
 import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
 import com.github.sparkzxl.oss.executor.OssExecutor;
 import com.github.sparkzxl.oss.executor.OssExecutorFactoryContext;
@@ -153,16 +155,40 @@ public class OssTemplate implements InitializingBean {
     }
 
     /**
+     * 初始化文件分片上传
+     *
+     * @param fileUploadInfo 文件上传信息
+     * @param bucketName     bucket名称
+     * @param objectName     文件名称
+     * @return UploadUrlsInfo
+     */
+    public UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.initMultiPartUpload(fileUploadInfo, bucketName, objectName);
+    }
+
+    /**
      * 获取OSS中已经上传的分片文件
      *
-     * @param bucketName bucket名称
+     * @param bucketName     bucket名称
      * @param objectName oss对象名称
-     * @param uploadId   上传ID
+     * @param uploadId   上传标识ID
      * @return List<Integer>
      */
-    public List<Integer> getListParts(String bucketName, String objectName, String uploadId) {
+    public List<PartData> getListParts(String bucketName, String objectName, String uploadId) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.getListParts(bucketName, objectName, uploadId);
+    }
+
+    /**
+     * 合并文件
+     *
+     * @param objectName oss对象名称
+     * @param uploadId   上传标识ID
+     */
+    public boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.mergeMultipartUpload(bucketName, objectName, uploadId);
     }
 
 

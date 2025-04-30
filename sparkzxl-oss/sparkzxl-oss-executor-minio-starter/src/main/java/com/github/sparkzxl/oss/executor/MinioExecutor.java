@@ -10,6 +10,7 @@ import com.github.sparkzxl.oss.client.CustomMinioClient;
 import com.github.sparkzxl.oss.client.OssClient;
 import com.github.sparkzxl.oss.entity.FileUploadInfo;
 import com.github.sparkzxl.oss.entity.OssObject;
+import com.github.sparkzxl.oss.entity.PartData;
 import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
@@ -312,7 +313,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     }
 
     @Override
-    public List<Integer> getListParts(String bucketName, String objectName, String uploadId) {
+    public List<PartData> getListParts(String bucketName, String objectName, String uploadId) {
         List<Part> parts;
         try {
             parts = getParts(bucketName, objectName, uploadId);
@@ -320,7 +321,13 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
         return parts.stream()
-                .map(Part::partNumber)
+                .map(x -> {
+                    PartData partData = new PartData();
+                    partData.setPartNumber(x.partNumber());
+                    partData.setEtag(x.etag());
+                    partData.setSize(x.partSize());
+                    return partData;
+                })
                 .collect(Collectors.toList());
     }
 
