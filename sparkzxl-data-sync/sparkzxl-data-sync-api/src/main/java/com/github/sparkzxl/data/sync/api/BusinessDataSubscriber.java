@@ -20,6 +20,6 @@ public interface BusinessDataSubscriber extends DataSubscriber<BusinessData> {
      */
     @Override
     default String group() {
-        return ConfigGroupEnum.META_DATA.getCode();
+        return ConfigGroupEnum.BUSINESS_DATA.getCode();
     }
 }

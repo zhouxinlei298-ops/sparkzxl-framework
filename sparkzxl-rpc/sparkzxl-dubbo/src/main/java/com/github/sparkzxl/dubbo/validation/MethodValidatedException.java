@@ -1,5 +1,7 @@
 package com.github.sparkzxl.dubbo.validation;
 
+import lombok.Getter;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,6 +11,7 @@ import java.util.List;
  * @author zhouxinlei
  * @since 2022-08-11 10:54:20
  */
+@Getter
 public class MethodValidatedException extends RuntimeException {
 
     private static final long serialVersionUID = 3588016356573293333L;
@@ -29,7 +32,4 @@ public class MethodValidatedException extends RuntimeException {
 
     }
 
-    public List<ValidationResult> getValidationResults() {
-        return validationResults;
-    }
 }

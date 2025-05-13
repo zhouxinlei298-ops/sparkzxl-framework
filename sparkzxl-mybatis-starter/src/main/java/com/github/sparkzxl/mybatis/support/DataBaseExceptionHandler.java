@@ -6,8 +6,8 @@ import cn.hutool.core.util.ReUtil;
 import com.github.sparkzxl.core.base.result.R;
 import com.github.sparkzxl.core.constant.enums.BeanOrderEnum;
 import com.github.sparkzxl.core.support.BizException;
-import com.github.sparkzxl.core.support.TenantException;
 import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
+import com.kingbase8.util.KSQLException;
 import com.mysql.cj.jdbc.exceptions.MysqlDataTruncation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.exceptions.PersistenceException;
@@ -17,7 +17,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.sql.SQLException;
@@ -31,9 +30,8 @@ import java.util.regex.Pattern;
  *
  * @author zhoux
  */
-@RestControllerAdvice
-@RestController
 @Slf4j
+@RestControllerAdvice
 public class DataBaseExceptionHandler implements Ordered {
 
     private final static String DATABASE_PREFIX = "Unknown database";
@@ -139,12 +137,6 @@ public class DataBaseExceptionHandler implements Ordered {
         return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), e.getMessage());
     }
 
-    @ExceptionHandler(TenantException.class)
-    public R<?> handleTenantException(TenantException e) {
-        log.error("租户异常：", e);
-        return R.failDetail(e.getErrorCode(), e.getMessage());
-    }
-
     @ExceptionHandler(DataIntegrityViolationException.class)
     public R<?> handlerDataIntegrityViolationException(DataIntegrityViolationException e) {
         log.error("数据库操作异常:", e);
@@ -165,8 +157,52 @@ public class DataBaseExceptionHandler implements Ordered {
         return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), ExceptionErrorCode.SQL_EX.getErrorMsg());
     }
 
+    @ExceptionHandler(KSQLException.class)
+    public R<?> handleKSQLException(KSQLException e) {
+        log.error("SQL异常：", e);
+        String message = e.getMessage();
+        String prefix = "value too long for type character";
+        if (message.contains(prefix)) {
+            return R.failDetail(ExceptionErrorCode.COLUMN_DATA_TO_LONG_EXCEPTION.getErrorCode(),
+                    ExceptionErrorCode.COLUMN_DATA_TO_LONG_EXCEPTION.getErrorMsg());
+        }
+        String regex = "null value in column \"([^\"]+)\"";
+        Pattern nullPattern = Pattern.compile(regex);
+        Matcher nullMatcher = nullPattern.matcher(message);
+        if (nullMatcher.find()) {
+            String columnName = nullMatcher.group(1);
+            String errorMessage = "【" + columnName + "】字段没有默认值！";
+            return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), errorMessage);
+        }
+        String columnRegex = "column \"([^\"]+)\" of relation \"([^\"]+)\" does not exist";
+        Pattern columnPattern = Pattern.compile(columnRegex);
+        Matcher columnMatcher = columnPattern.matcher(message);
+        if (columnMatcher.find()) {
+            String columnName = columnMatcher.group(1);
+            String tableName = columnMatcher.group(2);
+            String errorMessage = "【" + tableName + "】表字段【" + columnName + "】不存在，请联系管理员！";
+            return R.failDetail(ExceptionErrorCode.UNKNOWN_TABLE.getErrorCode(), errorMessage);
+        }
+        String tableRegex = "relation \"([^\"]+)\" does not exist";
+        Pattern tablePattern = Pattern.compile(tableRegex);
+        Matcher tableMatcher = tablePattern.matcher(message);
+        if (tableMatcher.find()) {
+            String tableName = tableMatcher.group(1);
+            String errorMessage = "【" + tableName + "】表不存在，请联系管理员！";
+            return R.failDetail(ExceptionErrorCode.UNKNOWN_TABLE.getErrorCode(), errorMessage);
+        }
+        Pattern pattern = Pattern.compile("duplicate key value violates unique constraint \"([^\"]+)\"");
+        Matcher matcher = pattern.matcher(message);
+        if (matcher.find()) {
+            String constraintName = matcher.group(1);
+            String errorMessage = "违反数据库唯一约束键【" + constraintName + "】";
+            return R.failDetail(ExceptionErrorCode.VIOLATION_DATABASE_CONSTRAINT_EXCEPTION.getErrorCode(), errorMessage);
+        }
+        return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), ExceptionErrorCode.SQL_EX.getErrorMsg());
+    }
+
     @Override
     public int getOrder() {
-        return BeanOrderEnum.DATASOURCE_EXCEPTION_HANDLER_ORDER.getOrder();
+        return BeanOrderEnum.DATABASE_EXCEPTION_HANDLER_ORDER.getOrder();
     }
 }

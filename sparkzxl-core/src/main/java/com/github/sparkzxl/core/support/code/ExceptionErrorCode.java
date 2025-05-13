@@ -81,6 +81,8 @@ public enum ExceptionErrorCode implements IErrorCode {
     COLUMN_DATA_TO_LONG_EXCEPTION("C0313", "输入数据字段过长"),
     PRIMARY_KEY_CONFLICT_EXCEPTION("C0341", "主键冲突"),
     VIOLATION_DATABASE_CONSTRAINT_EXCEPTION("C0342", "违反数据库约束key：[{}]，value：[{}]"),
+    TENANT_EXCEPTION("C0350", "租户不存在异常"),
+    CAN_NOT_FIND_DATASOURCE_EXCEPTION("C0351", "数据源找不到异常"),
     ;
 
     final String errorCode;

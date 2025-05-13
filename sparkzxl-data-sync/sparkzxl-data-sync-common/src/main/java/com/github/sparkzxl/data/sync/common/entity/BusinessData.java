@@ -16,7 +16,13 @@ import java.util.List;
 @Accessors(chain = true)
 public class BusinessData implements Serializable {
 
-    private static final long serialVersionUID = -4252939968964886169L;
+
+    private static final long serialVersionUID = 3489592028847626777L;
+    /**
+     * 租户id
+     */
+    private String tenantId;
+    
     private String md5;
 
     private long lastModifyTime;

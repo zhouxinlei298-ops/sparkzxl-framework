@@ -1,5 +1,6 @@
-package com.github.sparkzxl.core.support;
+package com.github.sparkzxl.datasource.support;
 
+import com.github.sparkzxl.core.support.BaseUncheckedException;
 import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
 import lombok.Getter;
 

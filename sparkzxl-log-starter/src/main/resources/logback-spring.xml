@@ -11,9 +11,10 @@
 
     <!-- 日志显隐控制方式 -->
     <springProperty name="enableConsole" scope="context" source="logging.enable-console" defaultValue="true"/>
+    <springProperty name="enableBizPoint" scope="context" source="logging.enable-biz-point" defaultValue="true"/>
     <springProperty name="enableJson" scope="context" source="logging.file.enable-json" defaultValue="false"/>
     <springProperty name="enableAlarm" scope="context" source="logging.alarm.enabled" defaultValue="false"/>
-    <springProperty name="robotId" scope="context" source="logging.alarm.robotId" defaultValue="false"/>
+    <springProperty name="robotId" scope="context" source="logging.alarm.robotId" defaultValue=""/>
 
     <springProperty name="enableFile" scope="context" source="logging.file.enable" defaultValue="false"/>
     <springProperty name="maxHistory" scope="context" source="logging.file.maxHistory" defaultValue="7"/>
@@ -63,13 +64,15 @@
 
     <!-- 控制台 日志格式化 -->
     <property name="CONSOLE_LOG_PATTERN"
-            value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %blue(tenantId:%X{tenantId:-N/A}) %boldMagenta(traceId:%X{traceId:-N/A}) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} [%X{tid}] %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %yellow([tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A}]) %boldMagenta(traceId:%X{traceId:-N/A}) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} [%X{tid}] %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <property name="FILE_LOG_PATTERN"
-            value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} :%X{tenantId:-N/A} traceId:%X{traceId:-N/A} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%X{tid}] [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A}] traceId:%X{traceId:-N/A} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%X{tid}] [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <property name="BIZ_POINT_LOG_PATTERN" value="%m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <!-- 控制台 Appender -->
-    <appender name="ConsoleOutput" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="CONSOLE_OUTPUT_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <withJansi>true</withJansi>
         <!-- 日志的格式化 -->
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
@@ -81,7 +84,7 @@
     </appender>
 
     <!--每天记录日志到文件appender-->
-    <appender name="FileOutput" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="FILE_OUTPUT_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${logHome}/${applicationName}.log</file>
         <immediateFlush>false</immediateFlush>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -99,16 +102,17 @@
                                 {"date": "%d{yyyy-MM-dd HH:mm:ss.SSS}",
                                 "level": "%level",
                                 "application": "${applicationName}",
-                                "environment": "${environment}",
-                                "tenantId": "%X{tenantId}",
-                                "traceId": "%X{traceId}",
+                                "environment": "${environment:-N/A}",
+                                "tenantId": "%X{tenantId:-N/A}",
+                                "traceId": "%X{traceId:-N/A}",
                                 "tid": "%X{tid}",
-                                "pid": "${PID:-}",
+                                "pid": "${PID:-N/A}",
                                 "thread": "%thread",
                                 "class": "%logger{15}",
                                 "message": "%message"}
                             </pattern>
                         </pattern>
+                        <charset>utf8</charset>
                     </providers>
                 </encoder>
             </then>
@@ -122,19 +126,36 @@
         </if>
     </appender>
 
+    <appender name="BIZ_POINT_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logHome}/biz-point.log</file>
+        <immediateFlush>false</immediateFlush>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logHome}/biz-point-%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxHistory>${maxHistory}</maxHistory>
+            <maxFileSize>${maxFileSize}</maxFileSize>
+            <totalSizeCap>${totalSizeCap}</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>%msg%n</pattern>
+            </layout>
+        </encoder>
+    </appender>
+
     <!-- 日志信息发送kafka -->
-    <appender name="kafkaAppender" class="com.github.danielwegener.logback.kafka.KafkaAppender">
+    <appender name="KAFKA_APPENDER" class="com.github.danielwegener.logback.kafka.KafkaAppender">
         <encoder>
             <pattern>
                 {"date": "%d{yyyy-MM-dd HH:mm:ss.SSS}",
                 "level": "%level",
                 "application": "${applicationName}",
-                "environment": "${environment}",
-                "tenantId": "%X{tenantId}",
+                "environment": "${environment:-N/A}",
+                "tenantId": "%X{tenantId:-N/A}",
+                "traceId": "%X{traceId:-N/A}",
                 "tid": "%X{tid}",
-                "pid": "${PID:-}",
+                "pid": "${PID:-N/A}",
                 "thread": "%thread",
-                "class": "%logger{40}",
+                "class": "%logger{15}",
                 "message": "%message"}
             </pattern>
             <charset>utf8</charset>
@@ -166,7 +187,7 @@
 
     <if condition='property("enableAliYunLog").contains("true")'>
         <then>
-            <appender name="aliyun-sls-log" class="com.aliyun.openservices.log.logback.LoghubAppender">
+            <appender name="ALIYUN_SLS_LOG" class="com.aliyun.openservices.log.logback.LoghubAppender">
                 <!--必选项-->
                 <!-- 账号及网络配置 -->
                 <endpoint>${endpoint}</endpoint>
@@ -221,7 +242,7 @@
                 <discardingThreshold>0</discardingThreshold>
                 <queueSize>100</queueSize>
                 <neverBlock>true</neverBlock>
-                <appender-ref ref="aliyun-sls-log"/>
+                <appender-ref ref="ALIYUN_SLS_LOG"/>
             </appender>
         </then>
     </if>
@@ -231,7 +252,7 @@
         <discardingThreshold>0</discardingThreshold>
         <queueSize>100</queueSize>
         <neverBlock>true</neverBlock>
-        <appender-ref ref="ConsoleOutput"/>
+        <appender-ref ref="CONSOLE_OUTPUT_APPENDER"/>
     </appender>
 
     <!-- 异步输出文件 -->
@@ -239,7 +260,7 @@
         <discardingThreshold>0</discardingThreshold>
         <queueSize>100</queueSize>
         <neverBlock>true</neverBlock>
-        <appender-ref ref="FileOutput"/>
+        <appender-ref ref="FILE_OUTPUT_APPENDER"/>
     </appender>
 
     <!-- 异步传递策略，建议选择异步，不然连接kafka失败，会阻挡服务启动 -->
@@ -248,13 +269,20 @@
         <queueSize>4096</queueSize>
         <neverBlock>true</neverBlock>
         <includeCallerData>true</includeCallerData>
-        <appender-ref ref="kafkaAppender"/>
+        <appender-ref ref="KAFKA_APPENDER"/>
     </appender>
 
+    <!-- 异步输出埋点日志文件 -->
+    <appender name="AsyncBizPoint" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>50</queueSize>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="BIZ_POINT_APPENDER"/>
+    </appender>
 
     <appender name="AlarmLog" class="com.github.sparkzxl.log.AlarmLogLogbackAsyncAppender">
         <robotId>${robotId}</robotId>
-        <appender-ref ref="ConsoleOutput"/>
+        <appender-ref ref="CONSOLE_OUTPUT_APPENDER"/>
     </appender>
 
     <logger name="springfox.documentation" level="ERROR"/>
@@ -262,14 +290,19 @@
 
     <root level="${log.level.console}">
         <appender-ref ref="grpc-log"/>
+        <if condition='property("enableConsole").contains("true")'>
+            <then>
+                <appender-ref ref="AsyncConsole"/>
+            </then>
+        </if>
         <if condition='property("enableFile").contains("true")'>
             <then>
                 <appender-ref ref="AsyncFile"/>
             </then>
         </if>
-        <if condition='property("enableConsole").contains("true")'>
+        <if condition='property("enableBizPoint").contains("true")'>
             <then>
-                <appender-ref ref="AsyncConsole"/>
+                <appender-ref ref="AsyncBizPoint"/>
             </then>
         </if>
         <if condition='property("enableKafka").contains("true")'>

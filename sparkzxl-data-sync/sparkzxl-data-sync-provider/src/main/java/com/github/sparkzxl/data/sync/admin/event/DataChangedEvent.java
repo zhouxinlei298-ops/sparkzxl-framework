@@ -22,15 +22,14 @@ public class DataChangedEvent extends ApplicationEvent {
     private static final long serialVersionUID = 8717534518634182507L;
 
 
+    private final ConfigGroupEnum configGroupKey;
+
     private final DataEventTypeEnum eventType;
 
-
-    private final ConfigGroupEnum groupKey;
-
-    public DataChangedEvent(final ConfigGroupEnum groupKey, final DataEventTypeEnum type, final List<?> source) {
+    public DataChangedEvent(final ConfigGroupEnum configGroupKey, final DataEventTypeEnum type, final List<?> source) {
         super(source.stream().filter(Objects::nonNull).collect(Collectors.toList()));
         this.eventType = type;
-        this.groupKey = groupKey;
+        this.configGroupKey = configGroupKey;
     }
 
     @Override

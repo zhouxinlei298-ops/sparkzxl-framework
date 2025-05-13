@@ -1,6 +1,7 @@
 package com.github.sparkzxl.web.support;
 
 import cn.hutool.core.util.StrUtil;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.github.sparkzxl.core.base.HttpCode;
 import com.github.sparkzxl.core.base.result.R;
 import com.github.sparkzxl.core.constant.enums.BeanOrderEnum;
@@ -8,6 +9,7 @@ import com.github.sparkzxl.core.support.*;
 import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.Ordered;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -36,6 +38,8 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -178,10 +182,21 @@ public class DefaultExceptionHandler implements Ordered {
         log.error("HttpMessageNotReadableException 异常:", e);
         String prefix = "Could not read document:";
         String message = e.getMessage();
-        if (StrUtil.containsAny(message, prefix)) {
-            message = String.format("无法正确的解析json类型的参数：%s", StrUtil.subBetween(message, prefix, " at "));
+        if (StringUtils.isNotEmpty(message)) {
+            if (StrUtil.containsAny(message, prefix)) {
+                String errorMessage = String.format("无法正确的解析json类型的参数：%s", StrUtil.subBetween(message, prefix, " at "));
+                return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), errorMessage);
+            }
+            Pattern pattern = Pattern.compile("Cannot deserialize value of type `([^`]+)` from String \"([^\"]+)\"");
+            Matcher matcher = pattern.matcher(message);
+            if (matcher.find()) {
+                String type = matcher.group(1);
+                String value = matcher.group(2);
+                String errorMessage = "参数值[" + value + "]与预期字段类型:[" + type + "]不匹配";
+                return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), errorMessage);
+            }
         }
-        return R.failDetail(ExceptionErrorCode.MSG_NOT_READABLE.getErrorCode(), message);
+        return R.failDetail(ExceptionErrorCode.MSG_NOT_READABLE.getErrorCode(), ExceptionErrorCode.MSG_NOT_READABLE.getErrorMsg());
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)
@@ -209,6 +224,21 @@ public class DefaultExceptionHandler implements Ordered {
         String msg = "参数：[" + e.getName() + "]的传入值：[" + e.getValue() +
                 "]与预期的字段类型：[" + Objects.requireNonNull(e.getRequiredType()).getName() + "]不匹配";
         return R.failDetail(ExceptionErrorCode.PARAM_TYPE_ERROR.getErrorCode(), msg);
+    }
+
+    @ExceptionHandler(InvalidFormatException.class)
+    public R<?> handleInvalidFormatException(InvalidFormatException e) {
+        log.error("InvalidFormatException异常:", e);
+        String message = e.getMessage();
+        Pattern pattern = Pattern.compile("Cannot deserialize value of type `([^`]+)` from String \"([^\"]+)\"");
+        Matcher matcher = pattern.matcher(message);
+        if (matcher.find()) {
+            String type = matcher.group(1);
+            String value = matcher.group(2);
+            String errorMessage = "参数值[" + value + "]与预期的字段类型:[" + type + "]不匹配";
+            return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), errorMessage);
+        }
+        return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), message);
     }
 
     @ExceptionHandler(NullPointerException.class)

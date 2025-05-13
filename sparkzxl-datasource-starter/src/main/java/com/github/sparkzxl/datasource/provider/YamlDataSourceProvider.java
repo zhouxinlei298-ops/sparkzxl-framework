@@ -3,7 +3,7 @@ package com.github.sparkzxl.datasource.provider;
 import cn.hutool.core.text.StrFormatter;
 import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DataSourceProperty;
 import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceProperties;
-import com.github.sparkzxl.core.support.TenantException;
+import com.github.sparkzxl.datasource.support.TenantException;
 import com.github.sparkzxl.core.util.ArgumentAssert;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
