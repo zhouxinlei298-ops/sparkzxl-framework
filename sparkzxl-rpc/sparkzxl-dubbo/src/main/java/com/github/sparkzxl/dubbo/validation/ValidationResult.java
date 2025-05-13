@@ -1,5 +1,8 @@
 package com.github.sparkzxl.dubbo.validation;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -9,6 +12,8 @@ import java.util.Objects;
  * @author zhouxinlei
  * @since 2022-08-11 11:25:38
  */
+@Setter
+@Getter
 public class ValidationResult implements Serializable {
 
     private static final long serialVersionUID = -527107355540718877L;
@@ -29,54 +34,6 @@ public class ValidationResult implements Serializable {
         this.executableReturnValue = executableReturnValue;
     }
 
-
-    public Object getValue() {
-        return value;
-    }
-
-    public void setValue(Object value) {
-        this.value = value;
-    }
-
-    public Object getPropertyPath() {
-        return propertyPath;
-    }
-
-    public void setPropertyPath(Object propertyPath) {
-        this.propertyPath = propertyPath;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public String getMessageTemplate() {
-        return messageTemplate;
-    }
-
-    public void setMessageTemplate(String messageTemplate) {
-        this.messageTemplate = messageTemplate;
-    }
-
-    public Object[] getExecutableParameters() {
-        return executableParameters;
-    }
-
-    public void setExecutableParameters(Object[] executableParameters) {
-        this.executableParameters = executableParameters;
-    }
-
-    public Object getExecutableReturnValue() {
-        return executableReturnValue;
-    }
-
-    public void setExecutableReturnValue(Object executableReturnValue) {
-        this.executableReturnValue = executableReturnValue;
-    }
 
     @Override
     public boolean equals(Object o) {
