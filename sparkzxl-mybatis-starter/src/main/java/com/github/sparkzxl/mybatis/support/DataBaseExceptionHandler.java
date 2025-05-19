@@ -122,18 +122,26 @@ public class DataBaseExceptionHandler implements Ordered {
         } else if (rootCause instanceof MysqlDataTruncation) {
             MysqlDataTruncation cause = (MysqlDataTruncation) rootCause;
             return handleMysqlDataTruncation(cause);
+        } else if (rootCause instanceof SQLException) {
+            SQLException cause = (SQLException) rootCause;
+            return handleSqlException(cause);
         }
         log.error("数据库异常：", e);
-        String message = e.getMessage();
-        if (message.startsWith("Field '") && message.endsWith("' doesn't have a default value")) {
-            return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), "字段没有默认值");
-        }
         return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), ExceptionErrorCode.SQL_EX.getErrorMsg());
     }
 
     @ExceptionHandler(SQLException.class)
     public R<?> handleSqlException(SQLException e) {
         log.error("SQL异常：", e);
+        String message = e.getMessage();
+        String regex = "Field\\s+'([^']+)' doesn't have a default value";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(message);
+        if (matcher.find()) {
+            String columnName = matcher.group(1);
+            String errorMessage = "【" + columnName + "】字段没有默认值！";
+            return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), errorMessage);
+        }
         return R.failDetail(ExceptionErrorCode.SQL_EX.getErrorCode(), e.getMessage());
     }
 
