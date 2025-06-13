@@ -3,7 +3,7 @@ package com.github.sparkzxl.core.json.impl.gson;
 import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.util.StrUtil;
 import com.github.sparkzxl.core.json.impl.AbstractJSONImpl;
-import com.github.sparkzxl.core.support.JwtParseException;
+import com.github.sparkzxl.core.support.JsonParseException;
 import com.github.sparkzxl.core.util.StrPool;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -89,7 +89,7 @@ public class GsonImpl extends AbstractJSONImpl {
             }
             return GSON.toJson(val);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -101,7 +101,7 @@ public class GsonImpl extends AbstractJSONImpl {
             }
             return GSON_FORMAT.toJson(val);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -113,7 +113,7 @@ public class GsonImpl extends AbstractJSONImpl {
             }
             return GSON.fromJson(json, type);
         } catch (JsonSyntaxException e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -125,7 +125,7 @@ public class GsonImpl extends AbstractJSONImpl {
             }
             return GSON.fromJson(json, typeReference.getType());
         } catch (JsonSyntaxException e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -138,7 +138,7 @@ public class GsonImpl extends AbstractJSONImpl {
             String jsonString = GSON.toJson(val);
             return GSON.fromJson(jsonString, type);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -154,34 +154,18 @@ public class GsonImpl extends AbstractJSONImpl {
             }
             return GSON.fromJson(jsonStr, TypeToken.getParameterized(List.class, clazz).getType());
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
     @Override
     public Map<String, Object> toMap(String json) {
-        try {
-            if (StringUtils.isEmpty(json)) {
-                return null;
-            }
-            return GSON_MAP.fromJson(json, new TypeToken<LinkedHashMap<String, Object>>() {
-            }.getType());
-        } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
-        }
+        return toMap(json, Object.class);
     }
 
     @Override
     public Map<String, Object> toMap(Object val) {
-        try {
-            if (ObjectUtils.isEmpty(val)) {
-                return null;
-            }
-            String json = GSON.toJson(val);
-            return GSON_MAP.fromJson(json, TypeToken.getParameterized(LinkedHashMap.class, String.class, Object.class).getType());
-        } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
-        }
+        return toMap(val, Object.class);
     }
 
     @Override
@@ -190,23 +174,34 @@ public class GsonImpl extends AbstractJSONImpl {
             if (StringUtils.isEmpty(json)) {
                 return null;
             }
+            // 处理可能的双重转义
+            if (json.startsWith("\"") && json.endsWith("\"")) {
+                json = json.substring(1, json.length() - 1);
+                // 替换转义的引号
+                json = json.replace("\\\"", "\"");
+            }
             return GSON.fromJson(json, TypeToken.getParameterized(LinkedHashMap.class, String.class, clazz).getType());
         } catch (Exception e) {
             e.printStackTrace();
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
     @Override
     public <T, E> Map<String, T> toMap(E val, Class<T> clazz) {
         try {
-            if (ObjectUtils.isEmpty(val)) {
-                return null;
+            // 检查val是否已经是JSON字符串
+            if (val instanceof String) {
+                String jsonStr = (String) val;
+                return toMap(jsonStr, clazz);
+            } else {
+                // 如果val不是字符串，将其序列化为JSON字符串
+                String json = GSON.toJson(val);
+                return toMap(json, clazz);
             }
-            String json = GSON.toJson(val);
-            return GSON_MAP.fromJson(json, TypeToken.getParameterized(Map.class, String.class, clazz).getType());
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            logger.warn("write to map error: " + val, e);
+            throw new JsonParseException(e.getMessage());
         }
     }
 

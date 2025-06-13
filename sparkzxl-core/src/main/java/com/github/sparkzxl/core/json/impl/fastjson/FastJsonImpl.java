@@ -10,7 +10,7 @@ import com.alibaba.fastjson.serializer.SerializeConfig;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.fastjson.serializer.ToStringSerializer;
 import com.github.sparkzxl.core.json.impl.AbstractJSONImpl;
-import com.github.sparkzxl.core.support.JwtParseException;
+import com.github.sparkzxl.core.support.JsonParseException;
 import com.github.sparkzxl.core.util.StrPool;
 import com.github.sparkzxl.spi.ExtensionLoader;
 import com.google.gson.reflect.TypeToken;
@@ -86,7 +86,7 @@ public class FastJsonImpl extends AbstractJSONImpl {
             }
             return com.alibaba.fastjson.JSON.toJSONString(val, serializeConfig);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -98,7 +98,7 @@ public class FastJsonImpl extends AbstractJSONImpl {
             }
             return com.alibaba.fastjson.JSON.toJSONString(val, serializeConfig, SerializerFeature.PrettyFormat);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -110,7 +110,7 @@ public class FastJsonImpl extends AbstractJSONImpl {
             }
             return com.alibaba.fastjson.JSON.parseObject(json, type, parserConfig);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -123,7 +123,7 @@ public class FastJsonImpl extends AbstractJSONImpl {
 
             return com.alibaba.fastjson.JSON.parseObject(json, typeReference.getType(), parserConfig);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
 
     }
@@ -137,7 +137,7 @@ public class FastJsonImpl extends AbstractJSONImpl {
             String jsonString = JSON.toJSONString(val, serializeConfig);
             return com.alibaba.fastjson.JSON.parseObject(jsonString, type);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -153,37 +153,18 @@ public class FastJsonImpl extends AbstractJSONImpl {
             }
             return com.alibaba.fastjson.JSON.parseArray(jsonStr, clazz, parserConfig);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
     @Override
     public Map<String, Object> toMap(String json) {
-        try {
-            if (StringUtils.isEmpty(json)) {
-                return null;
-            }
-            return com.alibaba.fastjson.JSON.parseObject(json,
-                    TypeToken.getParameterized(LinkedHashMap.class, String.class, Object.class).getType(),
-                    parserConfig);
-        } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
-        }
+        return toMap(json, Object.class);
     }
 
     @Override
     public Map<String, Object> toMap(Object val) {
-        try {
-            if (ObjectUtils.isEmpty(val)) {
-                return null;
-            }
-            String jsonString = JSON.toJSONString(val);
-            return com.alibaba.fastjson.JSON.parseObject(jsonString,
-                    TypeToken.getParameterized(LinkedHashMap.class, String.class, Object.class).getType(),
-                    parserConfig);
-        } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
-        }
+        return toMap(val, Object.class);
     }
 
     @Override
@@ -192,11 +173,17 @@ public class FastJsonImpl extends AbstractJSONImpl {
             if (StringUtils.isEmpty(json)) {
                 return null;
             }
+            // 处理可能的双重转义
+            if (json.startsWith("\"") && json.endsWith("\"")) {
+                json = json.substring(1, json.length() - 1);
+                // 替换转义的引号
+                json = json.replace("\\\"", "\"");
+            }
             return com.alibaba.fastjson.JSON.parseObject(json,
                     TypeToken.getParameterized(LinkedHashMap.class, String.class, clazz).getType(),
                     parserConfig);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -209,7 +196,7 @@ public class FastJsonImpl extends AbstractJSONImpl {
             String jsonString = JSON.toJSONString(val);
             return toMap(jsonString, clazz);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 

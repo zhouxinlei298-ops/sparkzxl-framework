@@ -58,8 +58,8 @@ public class DefaultExceptionHandler implements Ordered {
         return R.failDetail(e.getErrorCode(), e.getMessage());
     }
 
-    @ExceptionHandler(JwtParseException.class)
-    public R<?> handleJwtParseException(JwtParseException e) {
+    @ExceptionHandler(JsonParseException.class)
+    public R<?> handleJwtParseException(JsonParseException e) {
         log.error("JwtParseException:", e);
         return R.failDetail(e.getErrorCode(), e.getMessage());
     }

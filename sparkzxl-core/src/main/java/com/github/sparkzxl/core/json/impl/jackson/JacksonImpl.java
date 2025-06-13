@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.github.sparkzxl.core.json.impl.AbstractJSONImpl;
-import com.github.sparkzxl.core.support.JwtParseException;
+import com.github.sparkzxl.core.support.JsonParseException;
 import com.github.sparkzxl.core.util.StrPool;
 import java.lang.reflect.Type;
 import java.time.ZoneId;
@@ -78,7 +78,7 @@ public class JacksonImpl extends AbstractJSONImpl {
             }
             return objectMapper.writeValueAsString(val);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -90,7 +90,7 @@ public class JacksonImpl extends AbstractJSONImpl {
             }
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(val);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -103,7 +103,7 @@ public class JacksonImpl extends AbstractJSONImpl {
             JavaType javaType = objectMapper.getTypeFactory().constructType(type);
             return objectMapper.readValue(json, javaType);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -116,7 +116,7 @@ public class JacksonImpl extends AbstractJSONImpl {
             JavaType javaType = objectMapper.getTypeFactory().constructType(typeReference.getType());
             return objectMapper.readValue(json, javaType);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -130,7 +130,7 @@ public class JacksonImpl extends AbstractJSONImpl {
             JavaType javaType = objectMapper.getTypeFactory().constructType(type);
             return objectMapper.convertValue(val, javaType);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
@@ -147,31 +147,18 @@ public class JacksonImpl extends AbstractJSONImpl {
             CollectionType collectionType = objectMapper.getTypeFactory().constructCollectionType(List.class, clazz);
             return objectMapper.readValue(jsonStr, collectionType);
         } catch (Exception e) {
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
     @Override
     public Map<String, Object> toMap(String json) {
-        try {
-            final MapType mapType = objectMapper.getTypeFactory().constructMapType(LinkedHashMap.class, String.class, Object.class);
-            return objectMapper.readValue(json, mapType);
-        } catch (Exception e) {
-            logger.warn("write to map error: " + json, e);
-            throw new JwtParseException(e.getMessage());
-        }
+        return toMap(json, Object.class);
     }
 
     @Override
     public Map<String, Object> toMap(Object val) {
-        try {
-            String json = objectMapper.writeValueAsString(val);
-            final MapType mapType = objectMapper.getTypeFactory().constructMapType(LinkedHashMap.class, String.class, Object.class);
-            return objectMapper.readValue(json, mapType);
-        } catch (Exception e) {
-            logger.warn("write to map error: " + val, e);
-            throw new JwtParseException(e.getMessage());
-        }
+        return toMap(val, Object.class);
     }
 
     @Override
@@ -180,23 +167,35 @@ public class JacksonImpl extends AbstractJSONImpl {
             if (StringUtils.isBlank(json)) {
                 return null;
             }
+            // 处理可能的双重转义
+            if (json.startsWith("\"") && json.endsWith("\"")) {
+                json = json.substring(1, json.length() - 1);
+                // 替换转义的引号
+                json = json.replace("\\\"", "\"");
+            }
             JavaType javaType = objectMapper.getTypeFactory().constructParametricType(LinkedHashMap.class, String.class, clazz);
             return objectMapper.readValue(json, javaType);
         } catch (Exception e) {
             logger.warn("write to map error: " + json, e);
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
     @Override
     public <T, E> Map<String, T> toMap(E val, Class<T> clazz) {
         try {
-            String json = objectMapper.writeValueAsString(val);
-            JavaType javaType = objectMapper.getTypeFactory().constructParametricType(LinkedHashMap.class, String.class, clazz);
-            return objectMapper.readValue(json, javaType);
+            // 检查val是否已经是JSON字符串
+            if (val instanceof String) {
+                String jsonStr = (String) val;
+                return toMap(jsonStr, clazz);
+            } else {
+                // 如果val不是字符串，将其序列化为JSON字符串
+                String json = objectMapper.writeValueAsString(val);
+                return toMap(json, clazz);
+            }
         } catch (Exception e) {
             logger.warn("write to map error: " + val, e);
-            throw new JwtParseException(e.getMessage());
+            throw new JsonParseException(e.getMessage());
         }
     }
 
