@@ -17,7 +17,7 @@ public class SignatureServerProperties implements Serializable {
     /**
      * 告警线程池配置属性前缀
      */
-    public static final String CONFIG_PREFIX = "phoenix.signature.server";
+    public static final String CONFIG_PREFIX = "sparkzxl.signature.server";
 
     private boolean enabled = true;
     /**
