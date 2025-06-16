@@ -2,6 +2,7 @@ package com.github.sparkzxl.signature.algorithm;
 
 import com.github.sparkzxl.signature.entity.SignResult;
 import com.github.sparkzxl.signature.utils.SM3SignUtil;
+import com.github.sparkzxl.signature.utils.SM3Util;
 
 import java.util.Map;
 
@@ -21,7 +22,7 @@ public class SM3SignAlgorithm implements SignAlgorithm {
 
     @Override
     public boolean verify(Map<String, Object> paramMap, String secret, String sign) {
-        return SM3SignUtil.verifySign(paramMap, secret, sign);
+        return SM3Util.verify(paramMap, secret, sign);
     }
 
     @Override

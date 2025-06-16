@@ -1,56 +1,70 @@
 package com.github.sparkzxl.signature.utils;
 
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.excel.util.StringUtils;
+import com.github.sparkzxl.core.json.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
-import com.github.sparkzxl.core.json.JsonUtils;
+import org.bouncycastle.pqc.legacy.math.linearalgebra.ByteUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
+/**
+ * description: SM3SignUtil
+ *
+ * @author zhouxinlei
+ * @since 2025-06-16 10:00:39
+ */
 public class SM3SignUtil {
 
     /**
-     * 签名
+     * 生成签名sign参数数据
      *
-     * @param map    参数Map
-     * @param secret 秘钥
+     * @param params 请求参数 。注意请求参数中不能包含key
      * @return String
      */
-    public static String sign(Map<String, Object> map, String secret) {
-        TreeMap<String, Object> treeMap = new TreeMap<>(map);
-        String sortParam = "";
-        for (Map.Entry<String, Object> entry : treeMap.entrySet()) {
-            String mapKey = entry.getKey();
-            if (!"sign".equals(mapKey) && ObjectUtils.isNotEmpty(entry.getValue())) {
-                if (StringUtils.isEmpty(sortParam)) {
-                    sortParam = mapKey + "=" + entry.getValue();
-                } else {
-                    sortParam += "&" + mapKey + "=" + entry.getValue();
-                }
-            }
-        }
-        //sign签名
-        sortParam += "&appSecret=" + secret;
-        System.out.println("sortParam：" + sortParam);
-        return SM3Util.createSign(sortParam);
+    private static String generateSignData(Map<String, Object> params, String secret) {
+        // 第1步: 将所有参数（注意是所有参数，包括appKey,timestamp,nonce），除去sign本身,拼接成字符串
+        String mapToString = SortUtils.mapToString(params, "&", "=");
+        // 第2步: 将参数名和值的拼接
+        String signData = mapToString.replaceAll("&", "").replaceAll("=", "");
+        System.out.println(signData);
+        // 第2步: 在上面拼接得到的字符串前加上密钥secret
+        return signData + secret;
+    }
+
+    public static String sign(Map<String, Object> params, String secret) {
+        String signData = generateSignData(params, secret);
+        return SM3Util.createSign(signData);
     }
 
     /**
-     * 验证签名
-     *
-     * @param map    请求参数
-     * @param secret 秘钥
-     * @param sign   签名
-     * @return boolean
+     * @param str       明文
+     * @param hexString 密文
+     * @return 明文密文对比结果
      */
-    public static boolean verifySign(Map<String, Object> map, String secret, String sign) {
-        TreeMap<String, Object> treeMap = new TreeMap<>(map);
-        String signValue = sign(treeMap, secret);
-        return sign.equals(signValue);
+    public static boolean verify(String str, String hexString) {
+        boolean flag = false;
+        byte[] srcData = str.getBytes(StandardCharsets.UTF_8);
+        byte[] sm3Hash = ByteUtils.fromHexString(hexString);
+        byte[] hash = SM3Util.hash(srcData);
+        if (Arrays.equals(hash, sm3Hash)) {
+            flag = true;
+        }
+        return flag;
+    }
+
+    /**
+     * @param params    明文参数
+     * @param hexString 密文
+     * @return 明文密文对比结果
+     */
+    public static boolean verify(Map<String, Object> params, String hexString, String secret) {
+        String sign = sign(params, secret);
+        return StringUtils.equals(sign, hexString);
     }
 
 
@@ -81,7 +95,7 @@ public class SM3SignUtil {
         String secret = IdUtil.fastSimpleUUID();
         String sign = sign(finalParams, secret);
         System.out.println("sign:" + sign);
-        boolean verified = verifySign(finalParams, secret, sign);
+        boolean verified = verify(finalParams, secret, sign);
         System.out.println("sign verify result:" + verified);
     }
 }

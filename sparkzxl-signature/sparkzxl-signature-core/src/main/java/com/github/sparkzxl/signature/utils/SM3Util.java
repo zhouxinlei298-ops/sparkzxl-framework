@@ -1,20 +1,39 @@
 package com.github.sparkzxl.signature.utils;
 
-import cn.hutool.core.util.IdUtil;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.crypto.digests.SM3Digest;
-import com.github.sparkzxl.core.json.JsonUtils;
-import org.bouncycastle.pqc.legacy.math.linearalgebra.ByteUtils;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.security.SecureRandom;
+import java.util.*;
 
+/**
+ * description: SM3密码学哈希算法工具类，支持密钥生成和消息哈希计算
+ *
+ * @author zhouxinlei
+ * @since 2025-06-16 09:50:01
+ */
 public class SM3Util {
 
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    /**
+     * 生成 SM3 算法使用的随机密钥（十六进制字符串形式）
+     *
+     * @param keyLength 密钥长度（字节），通常为 16、24 或 32 字节
+     * @return 随机生成的密钥（十六进制字符串）
+     */
+    public static String generateKey(int keyLength) {
+        byte[] key = new byte[keyLength];
+        SECURE_RANDOM.nextBytes(key);
+        return bytesToHexString(key);
+    }
+
+    /**
+     * 计算 SM3 哈希值
+     *
+     * @param srcData 待哈希的数据
+     * @return 哈希结果（字节数组）
+     */
     public static byte[] hash(byte[] srcData) {
         SM3Digest digest = new SM3Digest();
         digest.update(srcData, 0, srcData.length);
@@ -23,99 +42,126 @@ public class SM3Util {
         return hash;
     }
 
+    /**
+     * 创建签名（十六进制字符串形式）
+     *
+     * @param sortParam 排序后的参数字符串
+     * @return 签名结果（十六进制字符串）
+     */
     public static String createSign(String sortParam) {
         byte[] signHash = hash(sortParam.getBytes(StandardCharsets.UTF_8));
-        StringBuilder signature = new StringBuilder();
-        for (byte b : signHash) {
-            signature.append(byteToHexString(b));
-        }
-        return signature.toString();
+        return bytesToHexString(signHash);
     }
 
     /**
-     * 生成签名sign参数数据
+     * 生成签名数据
      *
-     * @param params 请求参数 。注意请求参数中不能包含key
-     * @return String
+     * @param params 请求参数（不含key）
+     * @param secret 密钥（十六进制字符串形式）
+     * @return 用于签名的字符串
      */
     private static String generateSignData(Map<String, Object> params, String secret) {
         // 第1步: 将所有参数（注意是所有参数，包括appKey,timestamp,nonce），除去sign本身,拼接成字符串
         String mapToString = SortUtils.mapToString(params, "&", "=");
         // 第2步: 将参数名和值的拼接
-        String signData = mapToString + "&appSecret=" + secret;
+        String signData = mapToString.replaceAll("&", "").replaceAll("=", "");
         System.out.println(signData);
         // 第2步: 在上面拼接得到的字符串前加上密钥secret
         return signData + secret;
     }
 
+    /**
+     * 生成签名
+     *
+     * @param params 请求参数
+     * @param secret 密钥（十六进制字符串形式）
+     * @return 签名结果（十六进制字符串）
+     */
     public static String sign(Map<String, Object> params, String secret) {
         String signData = generateSignData(params, secret);
         return createSign(signData);
     }
 
     /**
-     * @param str       明文
-     * @param hexString 密文
-     * @return 明文密文对比结果
+     * 验证签名
+     *
+     * @param str       原始字符串
+     * @param hexString 待验证的签名（十六进制字符串形式）
+     * @return 验证结果
      */
     public static boolean verify(String str, String hexString) {
-        boolean flag = false;
-        byte[] srcData = str.getBytes(StandardCharsets.UTF_8);
-        byte[] sm3Hash = ByteUtils.fromHexString(hexString);
-        byte[] hash = hash(srcData);
-        if (Arrays.equals(hash, sm3Hash)) {
-            flag = true;
-        }
-        return flag;
+        String computedSign = createSign(str);
+        return computedSign.equals(hexString);
     }
 
     /**
-     * @param params    明文参数
-     * @param hexString 密文
-     * @return 明文密文对比结果
+     * 验证参数签名
+     *
+     * @param params    请求参数
+     * @param hexString 待验证的签名（十六进制字符串形式）
+     * @param secret    密钥（十六进制字符串形式）
+     * @return 验证结果
      */
     public static boolean verify(Map<String, Object> params, String hexString, String secret) {
-        String sign = sign(params, secret);
-        return StringUtils.equals(sign, hexString);
+        String computedSign = sign(params, secret);
+        return computedSign.equals(hexString);
     }
 
-    public static String byteToHexString(byte ib) {
-        char[] Digit = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-        char[] ob = new char[2];
-        ob[0] = Digit[(ib >>> 4) & 0X0f];
-        ob[1] = Digit[ib & 0X0F];
-        return new String(ob);
+    /**
+     * 字节数组转十六进制字符串
+     */
+    private static String bytesToHexString(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte b : bytes) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
     }
-
 
     public static void main(String[] args) {
-        Map<String, Object> params = Maps.newHashMap();
+        // 构建请求参数
+        Map<String, Object> params = new HashMap<>();
         params.put("socialCreditCode", "24427218FX8FQTDMBE");
         params.put("enterpriseName", "测试企业");
         params.put("contactName", "茅全勇");
         params.put("contactPhone", "13202630638");
-        List<Map<String, Object>> mapList = Lists.newArrayList();
-        Map<String, Object> fileMap0 = Maps.newHashMap();
+
+        // 构建文件列表
+        List<Map<String, Object>> fileList = new ArrayList<>();
+        Map<String, Object> fileMap0 = new HashMap<>();
         fileMap0.put("fileId", 1809035302853783552L);
         fileMap0.put("fileName", "测试文件.pdf");
         fileMap0.put("fileUrl", "http://172.16.200.202:9000/nmg/dev/330300/2024/01/22/8e95100dab334115a6e7027c44393b99.pdf");
-        mapList.add(fileMap0);
-        Map<String, Object> fileMap1 = Maps.newHashMap();
+        fileList.add(fileMap0);
+
+        Map<String, Object> fileMap1 = new HashMap<>();
         fileMap1.put("fileId", 1749318552873357313L);
         fileMap1.put("fileName", "cs.pdf");
         fileMap1.put("fileUrl", "http://172.16.200.202:9000/nmg/dev/330300/2024/01/22/26f2f9855c0141d5965df7cad62d24e5.pdf");
-        mapList.add(fileMap1);
-        params.put("files", mapList);
-        Map<String, Object> finalParams = Maps.newHashMap();
+        fileList.add(fileMap1);
+
+        params.put("files", fileList);
+
+        // 构建最终参数
+        Map<String, Object> finalParams = new HashMap<>();
         finalParams.put("appKey", "mbnfq0dwgzltcilw");
         finalParams.put("timestamp", System.currentTimeMillis());
-        finalParams.put("nonce", IdUtil.fastSimpleUUID());
+        finalParams.put("nonce", UUID.randomUUID().toString().replace("-", ""));
         finalParams.put("dataInfo", params);
-        System.out.println(JsonUtils.getJson().toJsonPretty(finalParams));
-        String secret = IdUtil.fastSimpleUUID();
+
+        // 打印参数
+        System.out.println("请求参数: " + finalParams);
+
+        // 生成密钥（正确方式）
+        String secret = generateKey(16);
+        System.out.println("生成的密钥（十六进制）: " + secret);
+
+        // 生成签名
         String sign = sign(finalParams, secret);
-        System.out.println("sign:" + sign);
-        System.out.println(verify(finalParams, sign, secret));
-        System.out.println(IdUtil.getSnowflakeNextId());
+        System.out.println("生成的签名: " + sign);
+
+        // 验证签名
+        boolean isValid = verify(finalParams, sign, secret);
+        System.out.println("签名验证结果: " + isValid);
     }
 }
