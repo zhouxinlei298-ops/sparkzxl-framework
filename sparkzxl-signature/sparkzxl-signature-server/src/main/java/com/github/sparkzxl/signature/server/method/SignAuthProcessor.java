@@ -34,7 +34,7 @@ public class SignAuthProcessor implements SignProcessor {
 
         // 判断时间是否大于xx秒(防止重放攻击)
         long NONCE_STR_TIMEOUT_SECONDS = signatureServerProperties.getNonceTimeoutSeconds();
-        if (StrUtil.isEmpty(timestamp) || DateUtil.between(DateUtil.date(Long.parseLong(timestamp) * 1000), DateUtil.date(), DateUnit.SECOND) > NONCE_STR_TIMEOUT_SECONDS) {
+        if (StrUtil.isEmpty(timestamp) || DateUtil.between(DateUtil.date(Long.parseLong(timestamp)), DateUtil.date(), DateUnit.SECOND) > NONCE_STR_TIMEOUT_SECONDS) {
             throw new ArgumentException("invalid  timestamp");
         }
 

@@ -4,17 +4,18 @@ import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
-import com.github.sparkzxl.core.util.ArgumentAssert;
-import com.github.sparkzxl.signature.server.cache.SignCache;
-import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
 import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.core.support.ArgumentException;
+import com.github.sparkzxl.core.util.ArgumentAssert;
 import com.github.sparkzxl.signature.constant.SignatureConstant;
 import com.github.sparkzxl.signature.executor.SignatureExecutor;
 import com.github.sparkzxl.signature.executor.SignatureExecutorContext;
 import com.github.sparkzxl.signature.properties.SignatureProperties;
+import com.github.sparkzxl.signature.server.cache.SignCache;
 import com.github.sparkzxl.signature.server.properties.SignatureServerProperties;
+import com.google.common.collect.Maps;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -41,6 +42,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -94,7 +96,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
         }
 
         // 判断时间是否大于xx秒(防止重放攻击)
-        if (StrUtil.isEmpty(timestamp) || DateUtil.between(DateUtil.date(Long.parseLong(timestamp) * 1000), DateUtil.date(), DateUnit.SECOND) > signatureServerProperties.getNonceTimeoutSeconds()) {
+        if (StrUtil.isEmpty(timestamp) || DateUtil.between(DateUtil.date(Long.parseLong(timestamp)), DateUtil.date(), DateUnit.SECOND) > signatureServerProperties.getNonceTimeoutSeconds()) {
             throw new ArgumentException("invalid timestamp");
         }
 
@@ -108,13 +110,17 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
         if (StrUtil.isEmpty(signature)) {
             throw new ArgumentException("invalid signature");
         }
-
         if (StringUtils.startsWithIgnoreCase(contentType, MediaType.APPLICATION_JSON_VALUE)
                 || StringUtils.startsWithIgnoreCase(contentType, MediaType.MULTIPART_FORM_DATA_VALUE)) {
             return readBody(signature, appKey, timestamp, nonce, exchange, chain);
         }
         if (MediaType.APPLICATION_FORM_URLENCODED_VALUE.equals(contentType)) {
             return readFormData(signature, appKey, timestamp, nonce, exchange, chain);
+        } else {
+            boolean verified = this.verifySignature(exchange, signature, appKey, timestamp, nonce, null);
+            if (!verified) {
+                return Mono.error(new ArgumentException("验签失败"));
+            }
         }
         return chain.filter(exchange);
     }
@@ -169,7 +175,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                     if (formDataBodyBuilder.length() > 0) {
                         formDataBodyString = formDataBodyBuilder.substring(0, formDataBodyBuilder.length() - 1);
                     }
-                    boolean verified = this.verifySignature(signature, appKey, timestamp, nonce, formDataBodyMap);
+                    boolean verified = this.verifySignature(exchange, signature, appKey, timestamp, nonce, formDataBodyMap);
                     if (!verified) {
                         return Mono.error(new ArgumentException("验签失败"));
                     }
@@ -227,7 +233,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                     DataBufferUtils.release(dataBuffer);
                     String requestData = new String(bytes, StandardCharsets.UTF_8);
                     Map<String, Object> requestBodyMap = JsonUtils.getJson().toMap(requestData);
-                    boolean verified = this.verifySignature(signature, appKey, timestamp, nonce, requestBodyMap);
+                    boolean verified = this.verifySignature(exchange, signature, appKey, timestamp, nonce, requestBodyMap);
                     if (!verified) {
                         return Mono.error(new ArgumentException("验签失败"));
                     }
@@ -251,19 +257,31 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
     /**
      * 校验签名是否一致
      *
-     * @param signature 请求的sign
-     * @param appKey    应用ID
-     * @param timestamp 时间戳
-     * @param nonce     随机值
-     * @param params    请求参数
+     * @param signature   请求的sign
+     * @param appKey      应用ID
+     * @param timestamp   时间戳
+     * @param nonce       随机值
+     * @param requestBody 请求体
      * @return boolean
      */
-    private boolean verifySignature(String signature, String appKey, String timestamp, String nonce, Map<String, Object> params) {
+    private boolean verifySignature(ServerWebExchange exchange, String signature, String appKey, String timestamp, String nonce, Map<String, Object> requestBody) {
+        Map<String, Object> map = new HashMap<>();
+        // 添加URL参数
+        MultiValueMap<String, String> queryParams = exchange.getRequest().getQueryParams();
+        for (Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
+            // 排除签名参数
+            if (!"signature".equalsIgnoreCase(entry.getKey())) {
+                map.put(entry.getKey(), entry.getValue().get(0));
+            }
+        }
+        if (MapUtils.isNotEmpty(requestBody)) {
+            map.put("body", requestBody);
+        }
         Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getProvider();
         SignatureProperties.AppProperties appProperties = provider.get(appKey);
         ArgumentAssert.notNull(appProperties, "应用程序ID[{}]签名配置不存在", appKey);
         SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(appProperties.getSignType().name());
-        return signatureExecutor.verify(appKey, Long.valueOf(timestamp), nonce, signature, params);
+        return signatureExecutor.verify(appKey, Long.valueOf(timestamp), nonce, signature, map);
     }
 
     @Override

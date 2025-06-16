@@ -8,8 +8,8 @@ package com.github.sparkzxl.signature.constant;
  */
 public class SignatureConstant {
 
-    public static final String SIGNATURE = "sign";
-    public static final String APP_KEY = "appKey";
-    public static final String TIMESTAMP = "timestamp";
-    public static final String NONCE = "nonce";
+    public static final String SIGNATURE = "x-sign";
+    public static final String APP_KEY = "x-appKey";
+    public static final String TIMESTAMP = "x-timestamp";
+    public static final String NONCE = "x-nonce";
 }

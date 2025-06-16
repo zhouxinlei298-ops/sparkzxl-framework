@@ -9,6 +9,12 @@ import java.util.List;
 
 import static com.github.sparkzxl.signature.server.properties.SignatureServerProperties.CONFIG_PREFIX;
 
+/**
+ * description:
+ *
+ * @author zhouxinlei
+ * @since 2025-06-16 10:13:37
+ */
 @Data
 @ConfigurationProperties(prefix = CONFIG_PREFIX)
 public class SignatureServerProperties implements Serializable {

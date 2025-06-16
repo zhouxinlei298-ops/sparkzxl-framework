@@ -1,5 +1,6 @@
 package com.github.sparkzxl.signature.algorithm;
 
+import com.github.sparkzxl.signature.constant.enums.AlgorithmEnum;
 import com.github.sparkzxl.signature.entity.SignResult;
 import com.github.sparkzxl.signature.utils.SM3SignUtil;
 import com.github.sparkzxl.signature.utils.SM3Util;
@@ -22,11 +23,11 @@ public class SM3SignAlgorithm implements SignAlgorithm {
 
     @Override
     public boolean verify(Map<String, Object> paramMap, String secret, String sign) {
-        return SM3Util.verify(paramMap, secret, sign);
+        return SM3Util.verify(paramMap, sign, secret);
     }
 
     @Override
     public String getType() {
-        return "SM3";
+        return AlgorithmEnum.SM3.getValue();
     }
 }

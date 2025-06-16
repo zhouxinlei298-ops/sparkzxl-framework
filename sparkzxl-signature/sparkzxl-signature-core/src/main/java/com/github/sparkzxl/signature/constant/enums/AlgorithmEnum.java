@@ -14,6 +14,7 @@ public enum AlgorithmEnum {
     SHA256withECDSA("SHA256withECDSA"),
     // 需要BC库加入支持
     SHA256withRSA_PSS("SHA256WithRSA/PSS"),
+    SM3("SM3"),
     ;
 
     private final String value;

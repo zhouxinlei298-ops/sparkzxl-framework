@@ -144,16 +144,16 @@ public class SM3Util {
 
         // 构建最终参数
         Map<String, Object> finalParams = new HashMap<>();
-        finalParams.put("appKey", "mbnfq0dwgzltcilw");
+        finalParams.put("appKey", "330300");
         finalParams.put("timestamp", System.currentTimeMillis());
         finalParams.put("nonce", UUID.randomUUID().toString().replace("-", ""));
-        finalParams.put("dataInfo", params);
+        finalParams.put("level", 4);
 
         // 打印参数
         System.out.println("请求参数: " + finalParams);
 
         // 生成密钥（正确方式）
-        String secret = generateKey(16);
+        String secret = "8dffe576976c0502b1838ab2f069cd5c";
         System.out.println("生成的密钥（十六进制）: " + secret);
 
         // 生成签名
