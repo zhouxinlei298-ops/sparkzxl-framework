@@ -95,7 +95,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
 
         // 判断时间是否大于xx秒(防止重放攻击)
         if (StrUtil.isEmpty(timestamp) || DateUtil.between(DateUtil.date(Long.parseLong(timestamp) * 1000), DateUtil.date(), DateUnit.SECOND) > signatureServerProperties.getNonceTimeoutSeconds()) {
-            throw new ArgumentException("invalid  timestamp");
+            throw new ArgumentException("invalid timestamp");
         }
 
         // 判断该用户的nonce参数是否已经在redis中（防止短时间内的重放攻击）
@@ -106,7 +106,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
 
         // 对请求头参数进行签名
         if (StrUtil.isEmpty(signature)) {
-            throw new ArgumentException("验签失败");
+            throw new ArgumentException("invalid signature");
         }
 
         if (StringUtils.startsWithIgnoreCase(contentType, MediaType.APPLICATION_JSON_VALUE)
