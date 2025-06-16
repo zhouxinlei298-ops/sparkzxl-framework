@@ -14,7 +14,7 @@ import java.util.Map;
  * @author zhouxinlei
  * @since 2024-05-20 10:06:17
  */
-@ConfigurationProperties(prefix = "phoenix.signature")
+@ConfigurationProperties(prefix = "sparkzxl.signature")
 @Data
 public class SignatureProperties implements Serializable {
 
