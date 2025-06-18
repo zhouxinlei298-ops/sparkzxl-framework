@@ -278,7 +278,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
         MultiValueMap<String, String> queryParams = exchange.getRequest().getQueryParams();
         for (Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
             // 排除签名参数
-            if (!"signature".equalsIgnoreCase(entry.getKey())) {
+            if (!SignatureConstant.SIGNATURE.equalsIgnoreCase(entry.getKey())) {
                 map.put(entry.getKey(), entry.getValue().get(0));
             }
         }
