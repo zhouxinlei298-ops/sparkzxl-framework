@@ -11,6 +11,14 @@ import java.util.Map;
 public interface SignProcessor {
 
     /**
+     * 校验是否需要签名验签
+     *
+     * @param tenantId 租户ID
+     * @return boolean
+     */
+    boolean check(String tenantId);
+
+    /**
      * 校验签名是否一致
      *
      * @param appKey    签名应用Key

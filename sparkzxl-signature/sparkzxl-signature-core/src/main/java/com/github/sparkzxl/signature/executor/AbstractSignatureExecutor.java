@@ -24,7 +24,7 @@ public abstract class AbstractSignatureExecutor<T> implements SignatureExecutor<
     private SignAlgorithmContext signAlgorithmContext;
 
     public SignatureProperties.AppProperties getConfigBySignAppId(String appKey) {
-        Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getProvider();
+        Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
         SignatureProperties.AppProperties appProperties = provider.get(appKey);
         ArgumentAssert.notNull(appProperties, "签名应用Key[{}]签名配置不存在", appKey);
         return appProperties;

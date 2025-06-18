@@ -3,10 +3,15 @@ package com.github.sparkzxl.signature.properties;
 import com.github.sparkzxl.signature.constant.enums.AlgorithmEnum;
 import com.github.sparkzxl.signature.constant.enums.SignTypeEnum;
 import lombok.Data;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * description: 签名配置
@@ -16,11 +21,13 @@ import java.util.Map;
  */
 @ConfigurationProperties(prefix = "sparkzxl.signature")
 @Data
-public class SignatureProperties implements Serializable {
+public class SignatureProperties implements InitializingBean, Serializable {
 
     private static final long serialVersionUID = 5535285015830449402L;
 
-    private Map<String, AppProperties> provider;
+    private final Map<String, AppProperties> configMap = new HashMap<>();
+
+    private List<AppProperties> configs;
 
     /**
      * 签名类型
@@ -37,9 +44,9 @@ public class SignatureProperties implements Serializable {
     public static class AppProperties {
 
         /**
-         * 是否启用该AKSK，1表示启用，0表示禁用。
+         * 租户ID
          */
-        private boolean enabled;
+        private String tenantId;
 
         /**
          * 访问密钥（AK），用于标识客户身份
@@ -93,4 +100,11 @@ public class SignatureProperties implements Serializable {
 
     }
 
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (CollectionUtils.isNotEmpty(configs)) {
+            Map<String, AppProperties> propertiesMap = configs.stream().collect(Collectors.toMap(AppProperties::getAppKey, k -> k));
+            configMap.putAll(propertiesMap);
+        }
+    }
 }

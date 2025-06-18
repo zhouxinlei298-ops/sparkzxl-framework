@@ -70,7 +70,7 @@ public class SignMethodAspect {
             appKey = signAnnotation.value();
         }
         Object signData = AopUtil.getParameterAnnotationData(method, joinPoint.getArgs(), SignField.class, null);
-        Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getProvider();
+        Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
         SignatureProperties.AppProperties properties = provider.get(appKey);
         SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(properties.getSignType().name());
         // 生成签名

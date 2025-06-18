@@ -10,10 +10,19 @@ import com.github.sparkzxl.signature.executor.SignatureExecutorContext;
 import com.github.sparkzxl.signature.properties.SignatureProperties;
 import com.github.sparkzxl.signature.server.cache.SignCache;
 import com.github.sparkzxl.signature.server.properties.SignatureServerProperties;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+/**
+ * description:
+ *
+ * @author zhouxinlei
+ * @since 2025-06-18 16:54:49
+ */
 public class SignAuthProcessor implements SignProcessor {
 
     @Autowired
@@ -24,6 +33,16 @@ public class SignAuthProcessor implements SignProcessor {
     private SignatureServerProperties signatureServerProperties;
     @Autowired
     private SignatureProperties signatureProperties;
+
+    @Override
+    public boolean check(String tenantId) {
+        List<SignatureProperties.AppProperties> propertiesConfigs = signatureProperties.getConfigs();
+        if (CollectionUtils.isEmpty(propertiesConfigs)) {
+            return false;
+        }
+        Optional<SignatureProperties.AppProperties> propertiesOptional = propertiesConfigs.stream().filter(x -> x.getTenantId().equals(tenantId)).findFirst();
+        return propertiesOptional.isPresent();
+    }
 
     @Override
     public boolean verifySign(String appKey, String timestamp, String nonce, String sign, Map<String, Object> params) {
@@ -55,7 +74,7 @@ public class SignAuthProcessor implements SignProcessor {
     }
 
     private boolean verifySignature(String sign, String appKey, String timestamp, String nonce, Map<String, Object> params) {
-        Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getProvider();
+        Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
         SignatureProperties.AppProperties appProperties = provider.get(appKey);
         ArgumentAssert.notNull(appProperties, "签名应用程序Key[{}]签名配置不存在", appKey);
         SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(appProperties.getSignType().name());

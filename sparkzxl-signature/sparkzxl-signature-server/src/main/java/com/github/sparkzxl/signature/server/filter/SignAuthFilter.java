@@ -4,6 +4,7 @@ import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
+import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.core.support.ArgumentException;
 import com.github.sparkzxl.core.util.ArgumentAssert;
@@ -14,6 +15,7 @@ import com.github.sparkzxl.signature.properties.SignatureProperties;
 import com.github.sparkzxl.signature.server.cache.SignCache;
 import com.github.sparkzxl.signature.server.properties.SignatureServerProperties;
 import com.google.common.collect.Maps;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,10 +44,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * description: 验签过滤器
@@ -81,7 +80,16 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
         if (!includeMatched) {
             return chain.filter(exchange);
         }
+        List<SignatureProperties.AppProperties> propertiesConfigs = signatureProperties.getConfigs();
+        if (CollectionUtils.isEmpty(propertiesConfigs)) {
+            return chain.filter(exchange);
+        }
         ServerHttpRequest request = exchange.getRequest();
+        String tenantId = request.getHeaders().getFirst(BaseContextConstants.TENANT_ID);
+        Optional<SignatureProperties.AppProperties> propertiesOptional = propertiesConfigs.stream().filter(x -> x.getTenantId().equals(tenantId)).findFirst();
+        if (!propertiesOptional.isPresent()) {
+            return chain.filter(exchange);
+        }
         String contentType = request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
         // 获取时间戳
         String appKey = request.getHeaders().getFirst(SignatureConstant.APP_KEY);
@@ -257,14 +265,14 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
     /**
      * 校验签名是否一致
      *
-     * @param signature   请求的sign
-     * @param appKey      应用ID
-     * @param timestamp   时间戳
-     * @param nonce       随机值
-     * @param requestBody 请求体
+     * @param signature 请求的sign
+     * @param appKey    应用ID
+     * @param timestamp 时间戳
+     * @param nonce     随机值
+     * @param bodyMap   请求体Map
      * @return boolean
      */
-    private boolean verifySignature(ServerWebExchange exchange, String signature, String appKey, String timestamp, String nonce, Map<String, Object> requestBody) {
+    private boolean verifySignature(ServerWebExchange exchange, String signature, String appKey, String timestamp, String nonce, Map<String, Object> bodyMap) {
         Map<String, Object> map = new HashMap<>();
         // 添加URL参数
         MultiValueMap<String, String> queryParams = exchange.getRequest().getQueryParams();
@@ -274,10 +282,10 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                 map.put(entry.getKey(), entry.getValue().get(0));
             }
         }
-        if (MapUtils.isNotEmpty(requestBody)) {
-            map.put("body", requestBody);
+        if (MapUtils.isNotEmpty(bodyMap)) {
+            map.putAll(bodyMap);
         }
-        Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getProvider();
+        Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
         SignatureProperties.AppProperties appProperties = provider.get(appKey);
         ArgumentAssert.notNull(appProperties, "应用程序ID[{}]签名配置不存在", appKey);
         SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(appProperties.getSignType().name());
