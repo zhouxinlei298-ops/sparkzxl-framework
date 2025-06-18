@@ -21,7 +21,7 @@ public class SignatureServerProperties implements Serializable {
 
     private static final long serialVersionUID = 2139244261223119041L;
     /**
-     * 告警线程池配置属性前缀
+     * 配置属性前缀
      */
     public static final String CONFIG_PREFIX = "sparkzxl.signature.server";
 

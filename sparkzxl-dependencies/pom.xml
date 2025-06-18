@@ -20,7 +20,7 @@
         <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
         <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
         <!-- spring-version-->
-        <spring-boot-dependencies.version>2.7.15</spring-boot-dependencies.version>
+        <spring-boot-dependencies.version>2.7.18</spring-boot-dependencies.version>
         <spring-cloud-dependencies.version>2021.0.6</spring-cloud-dependencies.version>
         <spring-cloud-alibaba-dependencies.version>2021.1</spring-cloud-alibaba-dependencies.version>
         <resilience4j.version>1.7.0</resilience4j.version>
@@ -40,7 +40,7 @@
         <dynamic-datasource.version>3.6.1</dynamic-datasource.version>
         <druid.version>1.2.8</druid.version>
         <p6spy.version>3.9.1</p6spy.version>
-        <logstash.version>7.0.1</logstash.version>
+        <logstash.version>8.1</logstash.version>
         <vavr.version>0.10.4</vavr.version>
 
         <!-- common组件-->
@@ -70,7 +70,7 @@
         <seata.version>1.8.1-SNAPSHOT</seata.version>
         <protobuf-java.version>3.20.3</protobuf-java.version>
         <janino.version>3.1.12</janino.version>
-        <drools-version>7.60.0.Final</drools-version>
+        <drools-version>7.69.0.Final</drools-version>
         <logback-kafka-appender.version>0.2.0-RC2</logback-kafka-appender.version>
         <jsqlparser.version>4.3</jsqlparser.version>
         <sensitive-word.version>0.0.15</sensitive-word.version>
