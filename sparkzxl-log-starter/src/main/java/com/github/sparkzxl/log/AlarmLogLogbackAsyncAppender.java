@@ -16,6 +16,7 @@ import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
 
 /**
@@ -60,20 +61,29 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
                     sendLogAlarm(alarmRequest, message);
                 }
             } else if (level.equals(Level.ERROR)) {
-                AlarmRequest alarmRequest = new AlarmRequest();
-                alarmRequest.setTitle("服务系统异常告警");
-                String traceId = MDC.get(BaseContextConstants.LOG_TRACE_ID);
-                String applicationName = SpringContextUtils.getApplicationName();
-                String environment = SpringContextUtils.getEnvironment();
-                AlarmLogInfo alarmLogInfo = AlarmLogInfo.builder()
-                        .applicationName(applicationName)
-                        .environment(environment)
-                        .message(loggingEvent.getFormattedMessage())
-                        .threadName(loggingEvent.getThreadName())
-                        .traceId(traceId)
-                        .build();
-                String message = ThrowableUtils.dingTalkMarkdownContent(alarmLogInfo, null);
-                sendLogAlarm(alarmRequest, message);
+                String exceptionClass = MDC.get("exceptionClass");
+                if (StringUtils.isNotBlank(exceptionClass) && AlarmLogContext.doWarnException(exceptionClass)) {
+                    StackTraceElement[] callerData = loggingEvent.getCallerData();
+                    if (callerData != null && callerData.length > 0) {
+                        AlarmRequest alarmRequest = new AlarmRequest();
+                        alarmRequest.setTitle("服务系统异常告警");
+                        String traceId = MDC.get(BaseContextConstants.LOG_TRACE_ID);
+                        String applicationName = SpringContextUtils.getApplicationName();
+                        String environment = SpringContextUtils.getEnvironment();
+                        AlarmLogInfo alarmLogInfo = AlarmLogInfo.builder()
+                                .applicationName(applicationName)
+                                .environment(environment)
+                                .message(loggingEvent.getFormattedMessage())
+                                .threadName(loggingEvent.getThreadName())
+                                .traceId(traceId)
+                                .build();
+                        StackTraceElement stackTraceElement = callerData[0];
+                        alarmLogInfo.setClassName(stackTraceElement.getClassName()).setFileName(stackTraceElement.getFileName())
+                                .setMethodName(stackTraceElement.getMethodName()).setLineNumber(stackTraceElement.getLineNumber());
+                        String message = ThrowableUtils.dingTalkMarkdownContent(alarmLogInfo, null);
+                        sendLogAlarm(alarmRequest, message);
+                    }
+                }
             }
         }
     }

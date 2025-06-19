@@ -4,6 +4,7 @@ import cn.hutool.cron.CronUtil;
 import com.github.sparkzxl.log.annotation.OptLogRecord;
 import com.github.sparkzxl.log.aop.OptLogRecordAnnotationAdvisor;
 import com.github.sparkzxl.log.aop.OptLogRecordInterceptor;
+import com.github.sparkzxl.log.aspect.ExceptionHandlerAspect;
 import com.github.sparkzxl.log.aspect.HttpRequestLogAspect;
 import com.github.sparkzxl.log.event.HttpRequestLogListener;
 import com.github.sparkzxl.log.event.OptLogListener;
@@ -52,6 +53,11 @@ public class LogAutoConfiguration {
     @Bean
     public HttpRequestLogAspect httpRequestLogAspect() {
         return new HttpRequestLogAspect();
+    }
+
+    @Bean
+    public ExceptionHandlerAspect exceptionHandlerAspect() {
+        return new ExceptionHandlerAspect();
     }
 
     @Bean
