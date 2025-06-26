@@ -45,7 +45,7 @@ public class SignAuthInterceptor implements AsyncHandlerInterceptor {
 
         Map<String, Object> params = Maps.newConcurrentMap();
         Enumeration<String> enumeration = request.getParameterNames();
-        if (enumeration.hasMoreElements()) {
+        while (enumeration.hasMoreElements()) {
             String name = enumeration.nextElement();
             String value = request.getParameter(name);
             params.put(name, URLEncoder.encode(value, StandardCharsets.UTF_8.name()));

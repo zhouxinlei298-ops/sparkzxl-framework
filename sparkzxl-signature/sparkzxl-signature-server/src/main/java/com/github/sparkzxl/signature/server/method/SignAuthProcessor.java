@@ -25,13 +25,13 @@ import java.util.Optional;
  */
 public class SignAuthProcessor implements SignProcessor {
 
-    @Autowired
+    @Autowired(required = false)
     private SignatureExecutorContext signatureExecutorContext;
-    @Autowired
+    @Autowired(required = false)
     private SignCache signCache;
-    @Autowired
+    @Autowired(required = false)
     private SignatureServerProperties signatureServerProperties;
-    @Autowired
+    @Autowired(required = false)
     private SignatureProperties signatureProperties;
 
     @Override
@@ -52,8 +52,8 @@ public class SignAuthProcessor implements SignProcessor {
         }
 
         // 判断时间是否大于xx秒(防止重放攻击)
-        long NONCE_STR_TIMEOUT_SECONDS = signatureServerProperties.getNonceTimeoutSeconds();
-        if (StrUtil.isEmpty(timestamp) || DateUtil.between(DateUtil.date(Long.parseLong(timestamp)), DateUtil.date(), DateUnit.SECOND) > NONCE_STR_TIMEOUT_SECONDS) {
+        long nonceTimeoutSeconds = signatureServerProperties.getNonceTimeoutSeconds();
+        if (StrUtil.isEmpty(timestamp) || DateUtil.between(DateUtil.date(Long.parseLong(timestamp)), DateUtil.date(), DateUnit.SECOND) > nonceTimeoutSeconds) {
             throw new ArgumentException("invalid  timestamp");
         }
 
@@ -69,7 +69,7 @@ public class SignAuthProcessor implements SignProcessor {
         }
 
         // 将本次用户请求的nonceStr参数存到redis中设置xx秒后自动删除
-        signCache.set(nonce, nonce, NONCE_STR_TIMEOUT_SECONDS);
+        signCache.set(nonce, nonce, nonceTimeoutSeconds);
         return true;
     }
 

@@ -2,13 +2,16 @@ package com.github.sparkzxl.core.util;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ResourceUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.lionsoul.ip2region.xdb.Searcher;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.lionsoul.ip2region.xdb.Searcher;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * description：获取ip地址
@@ -54,7 +57,7 @@ public class AddressUtil {
             String result = searcher.search(ip);
             long endTime = System.currentTimeMillis();
             log.debug("region use time[{}] result[{}]", endTime - startTime, result);
-            return result;
+            return extractChinese(result);
         } catch (Exception e) {
             log.error("error:[{}]", e.getMessage());
             return "";
@@ -64,5 +67,27 @@ public class AddressUtil {
             } catch (IOException ignored) {
             }
         }
+    }
+    
+    /**
+     * 解析地址
+     *
+     * @param text 文本
+     * @return String
+     */
+    public static String extractChinese(String text) {
+        if (text == null) {
+            return "";
+        }
+
+        StringBuilder chineseBuilder = new StringBuilder();
+        Pattern pattern = Pattern.compile("[\u4e00-\u9fa5]+");
+        Matcher matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            chineseBuilder.append(matcher.group());
+        }
+
+        return chineseBuilder.toString();
     }
 }
