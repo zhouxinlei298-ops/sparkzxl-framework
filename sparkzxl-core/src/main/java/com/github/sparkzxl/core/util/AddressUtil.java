@@ -9,6 +9,9 @@ import org.lionsoul.ip2region.xdb.Searcher;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -68,7 +71,7 @@ public class AddressUtil {
             }
         }
     }
-    
+
     /**
      * 解析地址
      *
@@ -80,14 +83,14 @@ public class AddressUtil {
             return "";
         }
 
-        StringBuilder chineseBuilder = new StringBuilder();
+        List<String> chineseWords = new ArrayList<>();
         Pattern pattern = Pattern.compile("[\u4e00-\u9fa5]+");
         Matcher matcher = pattern.matcher(text);
 
         while (matcher.find()) {
-            chineseBuilder.append(matcher.group());
+            chineseWords.add(matcher.group());
         }
-
-        return chineseBuilder.toString();
+        LinkedHashSet<String> uniqueWords = new LinkedHashSet<>(chineseWords);
+        return String.join("", uniqueWords);
     }
 }

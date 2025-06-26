@@ -103,7 +103,7 @@ public class SignatureProperties implements InitializingBean, Serializable {
     @Override
     public void afterPropertiesSet() throws Exception {
         if (CollectionUtils.isNotEmpty(configs)) {
-            Map<String, AppProperties> propertiesMap = configs.stream().collect(Collectors.toMap(AppProperties::getAppKey, k -> k));
+            Map<String, AppProperties> propertiesMap = configs.stream().collect(Collectors.toMap(AppProperties::getTenantId, k -> k));
             configMap.putAll(propertiesMap);
         }
     }

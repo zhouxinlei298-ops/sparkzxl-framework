@@ -1,11 +1,12 @@
 package com.github.sparkzxl.signature.executor;
 
 import cn.hutool.core.util.IdUtil;
+import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.json.JsonUtils;
+import com.github.sparkzxl.signature.algorithm.SignAlgorithm;
 import com.github.sparkzxl.signature.constant.SignatureConstant;
 import com.github.sparkzxl.signature.constant.enums.SignTypeEnum;
 import com.github.sparkzxl.signature.entity.SignResult;
-import com.github.sparkzxl.signature.algorithm.SignAlgorithm;
 import com.github.sparkzxl.signature.properties.SignatureProperties;
 
 import java.util.Map;
@@ -20,7 +21,8 @@ public class StandardSignatureExecutor extends AbstractSignatureExecutor<Object>
 
     @Override
     public SignResult sign(String appKey, Object data) {
-        SignatureProperties.AppProperties properties = getConfigBySignAppId(appKey);
+        String tenantId = RequestLocalContextHolder.getTenantId();
+        SignatureProperties.AppProperties properties = getConfigByTenantId(tenantId);
         Map<String, Object> paramMap = JsonUtils.getJson().toMap(data);
         long timestamp = System.currentTimeMillis();
         paramMap.computeIfAbsent(SignatureConstant.APP_KEY, k -> properties.getAppKey());
@@ -33,7 +35,8 @@ public class StandardSignatureExecutor extends AbstractSignatureExecutor<Object>
 
     @Override
     public boolean verify(String appKey, Long timestamp, String nonce, String sign, Object data) {
-        SignatureProperties.AppProperties properties = getConfigBySignAppId(appKey);
+        String tenantId = RequestLocalContextHolder.getTenantId();
+        SignatureProperties.AppProperties properties = getConfigByTenantId(tenantId);
         Map<String, Object> paramMap = JsonUtils.getJson().toMap(data);
         paramMap.put(SignatureConstant.APP_KEY, properties.getAppKey());
         paramMap.put(SignatureConstant.TIMESTAMP, timestamp);

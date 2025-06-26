@@ -4,6 +4,7 @@ import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.util.ReflectUtil;
+import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.signature.client.annotation.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -69,9 +70,10 @@ public class SignMethodAspect {
         } else {
             appKey = signAnnotation.value();
         }
+        String tenantId = RequestLocalContextHolder.getTenantId();
         Object signData = AopUtil.getParameterAnnotationData(method, joinPoint.getArgs(), SignField.class, null);
         Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
-        SignatureProperties.AppProperties properties = provider.get(appKey);
+        SignatureProperties.AppProperties properties = provider.get(tenantId);
         SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(properties.getSignType().name());
         // 生成签名
         SignResult signResult = signatureExecutor.sign(appKey, signData);
