@@ -45,7 +45,7 @@ public class SignAuthProcessor implements SignProcessor {
     }
 
     @Override
-    public boolean verifySign(String appKey, String timestamp, String nonce, String sign, Map<String, Object> params) {
+    public boolean verifySign(String tenantId, String appKey, String timestamp, String nonce, String sign, Map<String, Object> params) {
 
         if (StrUtil.isEmpty(appKey)) {
             throw new ArgumentException("invalid sign appKey");
@@ -64,7 +64,7 @@ public class SignAuthProcessor implements SignProcessor {
         }
 
         // 对请求头参数进行签名
-        if (StrUtil.isEmpty(sign) || !this.verifySignature(sign, appKey, timestamp, nonce, params)) {
+        if (StrUtil.isEmpty(sign) || !this.verifySignature(tenantId, sign, appKey, timestamp, nonce, params)) {
             throw new ArgumentException("验签失败");
         }
 
@@ -73,10 +73,10 @@ public class SignAuthProcessor implements SignProcessor {
         return true;
     }
 
-    private boolean verifySignature(String sign, String appKey, String timestamp, String nonce, Map<String, Object> params) {
+    private boolean verifySignature(String tenantId, String sign, String appKey, String timestamp, String nonce, Map<String, Object> params) {
         Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
-        SignatureProperties.AppProperties appProperties = provider.get(appKey);
-        ArgumentAssert.notNull(appProperties, "签名应用程序Key[{}]签名配置不存在", appKey);
+        SignatureProperties.AppProperties appProperties = provider.get(tenantId);
+        ArgumentAssert.notNull(appProperties, "租户[{}]应用签名配置不存在", tenantId);
         SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(appProperties.getSignType().name());
         return signatureExecutor.verify(appKey, Long.valueOf(timestamp), nonce, sign, params);
     }

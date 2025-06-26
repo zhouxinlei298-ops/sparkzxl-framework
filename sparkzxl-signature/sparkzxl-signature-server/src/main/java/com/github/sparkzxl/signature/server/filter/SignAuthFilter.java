@@ -285,8 +285,9 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
         if (MapUtils.isNotEmpty(bodyMap)) {
             map.putAll(bodyMap);
         }
+        String tenantId = exchange.getRequest().getHeaders().getFirst(BaseContextConstants.TENANT_ID);
         Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
-        SignatureProperties.AppProperties appProperties = provider.get(appKey);
+        SignatureProperties.AppProperties appProperties = provider.get(tenantId);
         ArgumentAssert.notNull(appProperties, "应用程序ID[{}]签名配置不存在", appKey);
         SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(appProperties.getSignType().name());
         return signatureExecutor.verify(appKey, Long.valueOf(timestamp), nonce, signature, map);

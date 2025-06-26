@@ -21,6 +21,7 @@ public interface SignProcessor {
     /**
      * 校验签名是否一致
      *
+     * @param tenantId  租户ID
      * @param appKey    签名应用Key
      * @param timestamp 时间戳
      * @param nonce     随机数
@@ -28,6 +29,6 @@ public interface SignProcessor {
      * @param params    待签名数据
      * @return 验签结果
      */
-    boolean verifySign(String appKey, String timestamp, String nonce, String sign, Map<String, Object> params);
+    boolean verifySign(String tenantId, String appKey, String timestamp, String nonce, String sign, Map<String, Object> params);
 
 }
