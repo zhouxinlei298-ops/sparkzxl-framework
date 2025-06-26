@@ -14,7 +14,7 @@ public interface SignatureExecutor<T> {
      * 加签
      *
      * @param appKey 签名应用Key标识
-     * @param data      数据
+     * @param data   数据
      * @return SignResult
      */
     SignResult sign(String appKey, T data);
@@ -22,14 +22,15 @@ public interface SignatureExecutor<T> {
     /**
      * 验证签名
      *
-     * @param appKey 签名应用Key标识
+     * @param tenantId  租户ID
+     * @param appKey    签名应用Key标识
      * @param timestamp 时间戳
      * @param nonce     随机数
      * @param sign      签名数据
      * @param data      数据
      * @return boolean
      */
-    boolean verify(String appKey, Long timestamp, String nonce, String sign, T data);
+    boolean verify(String tenantId, String appKey, Long timestamp, String nonce, String sign, T data);
 
     /**
      * 类型

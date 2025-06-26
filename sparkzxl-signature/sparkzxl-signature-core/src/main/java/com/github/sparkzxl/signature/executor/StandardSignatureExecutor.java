@@ -36,8 +36,7 @@ public class StandardSignatureExecutor extends AbstractSignatureExecutor<Object>
     }
 
     @Override
-    public boolean verify(String appKey, Long timestamp, String nonce, String sign, Object data) {
-        String tenantId = RequestLocalContextHolder.getTenantId();
+    public boolean verify(String tenantId, String appKey, Long timestamp, String nonce, String sign, Object data) {
         SignatureProperties.AppProperties properties = getConfigByTenantId(tenantId);
         ArgumentAssert.isTrue(properties.getAppKey().equals(appKey), "appKey不一致，无效请求");
         Map<String, Object> paramMap = JsonUtils.getJson().toMap(data);
