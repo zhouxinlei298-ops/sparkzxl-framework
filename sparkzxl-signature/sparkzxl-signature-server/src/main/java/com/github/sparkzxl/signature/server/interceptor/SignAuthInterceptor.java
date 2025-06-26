@@ -51,7 +51,7 @@ public class SignAuthInterceptor implements AsyncHandlerInterceptor {
             params.put(name, URLEncoder.encode(value, StandardCharsets.UTF_8.name()));
         }
         // 对请求头参数进行签名
-        if (StrUtil.isEmpty(signature) || !signProcessor.verifySign(appKey, timestamp, nonce, signature, params)) {
+        if (StrUtil.isEmpty(signature) || !signProcessor.verifySign(tenantId,appKey, timestamp, nonce, signature, params)) {
             throw new ArgumentException("验签失败");
         }
         return true;
