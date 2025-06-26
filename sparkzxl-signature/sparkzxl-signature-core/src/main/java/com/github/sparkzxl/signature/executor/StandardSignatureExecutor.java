@@ -3,6 +3,7 @@ package com.github.sparkzxl.signature.executor;
 import cn.hutool.core.util.IdUtil;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.json.JsonUtils;
+import com.github.sparkzxl.core.util.ArgumentAssert;
 import com.github.sparkzxl.signature.algorithm.SignAlgorithm;
 import com.github.sparkzxl.signature.constant.SignatureConstant;
 import com.github.sparkzxl.signature.constant.enums.SignTypeEnum;
@@ -24,6 +25,7 @@ public class StandardSignatureExecutor extends AbstractSignatureExecutor<Object>
         String tenantId = RequestLocalContextHolder.getTenantId();
         SignatureProperties.AppProperties properties = getConfigByTenantId(tenantId);
         Map<String, Object> paramMap = JsonUtils.getJson().toMap(data);
+        ArgumentAssert.isTrue(properties.getAppKey().equals(appKey), "appKey不一致，无效请求");
         long timestamp = System.currentTimeMillis();
         paramMap.computeIfAbsent(SignatureConstant.APP_KEY, k -> properties.getAppKey());
         paramMap.putIfAbsent(SignatureConstant.TIMESTAMP, timestamp);
@@ -37,6 +39,7 @@ public class StandardSignatureExecutor extends AbstractSignatureExecutor<Object>
     public boolean verify(String appKey, Long timestamp, String nonce, String sign, Object data) {
         String tenantId = RequestLocalContextHolder.getTenantId();
         SignatureProperties.AppProperties properties = getConfigByTenantId(tenantId);
+        ArgumentAssert.isTrue(properties.getAppKey().equals(appKey), "appKey不一致，无效请求");
         Map<String, Object> paramMap = JsonUtils.getJson().toMap(data);
         paramMap.put(SignatureConstant.APP_KEY, properties.getAppKey());
         paramMap.put(SignatureConstant.TIMESTAMP, timestamp);

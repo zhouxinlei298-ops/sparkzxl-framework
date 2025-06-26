@@ -75,9 +75,10 @@ public class SignAuthProcessor implements SignProcessor {
 
     private boolean verifySignature(String tenantId, String sign, String appKey, String timestamp, String nonce, Map<String, Object> params) {
         Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
-        SignatureProperties.AppProperties appProperties = provider.get(tenantId);
-        ArgumentAssert.notNull(appProperties, "租户[{}]应用签名配置不存在", tenantId);
-        SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(appProperties.getSignType().name());
+        SignatureProperties.AppProperties properties = provider.get(tenantId);
+        ArgumentAssert.notNull(properties, "租户[{}]应用签名配置不存在", tenantId);
+        ArgumentAssert.isTrue(properties.getAppKey().equals(appKey), "appKey不一致，无效请求");
+        SignatureExecutor signatureExecutor = signatureExecutorContext.getExecutor(properties.getSignType().name());
         return signatureExecutor.verify(appKey, Long.valueOf(timestamp), nonce, sign, params);
     }
 }

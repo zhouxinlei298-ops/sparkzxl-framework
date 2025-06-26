@@ -25,9 +25,9 @@ public abstract class AbstractSignatureExecutor<T> implements SignatureExecutor<
 
     public SignatureProperties.AppProperties getConfigByTenantId(String tenantId) {
         Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
-        SignatureProperties.AppProperties appProperties = provider.get(tenantId);
-        ArgumentAssert.notNull(appProperties, "租户[{}]应用签名配置不存在", tenantId);
-        return appProperties;
+        SignatureProperties.AppProperties properties = provider.get(tenantId);
+        ArgumentAssert.notNull(properties, "租户[{}]应用签名配置不存在", tenantId);
+        return properties;
     }
 
     public SignAlgorithm getSignAlgorithm(String type) {
