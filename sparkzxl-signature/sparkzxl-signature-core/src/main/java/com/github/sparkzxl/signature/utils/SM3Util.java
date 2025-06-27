@@ -1,5 +1,6 @@
 package com.github.sparkzxl.signature.utils;
 
+import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.crypto.digests.SM3Digest;
 
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,7 @@ import java.util.*;
  * @author zhouxinlei
  * @since 2025-06-16 09:50:01
  */
+@Slf4j
 public class SM3Util {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -65,9 +67,11 @@ public class SM3Util {
         String mapToString = SortUtils.mapToString(params, "&", "=");
         // 第2步: 将参数名和值的拼接
         String signData = mapToString.replaceAll("&", "").replaceAll("=", "");
+        String sign = signData + secret;
         System.out.println(signData);
+        log.debug("签名数据排序：{}", signData);
         // 第2步: 在上面拼接得到的字符串前加上密钥secret
-        return signData + secret;
+        return sign;
     }
 
     /**
