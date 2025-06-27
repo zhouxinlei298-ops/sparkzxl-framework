@@ -68,8 +68,8 @@ public class SM3Util {
         // 第2步: 将参数名和值的拼接
         String signData = mapToString.replaceAll("&", "").replaceAll("=", "");
         String sign = signData + secret;
-        System.out.println(signData);
-        log.debug("签名数据排序：{}", signData);
+        System.out.println(sign);
+        log.debug("签名数据排序：{}", sign);
         // 第2步: 在上面拼接得到的字符串前加上密钥secret
         return sign;
     }
