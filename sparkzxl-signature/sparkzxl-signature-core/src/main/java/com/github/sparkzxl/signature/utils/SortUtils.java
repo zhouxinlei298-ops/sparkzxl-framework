@@ -53,7 +53,7 @@ public class SortUtils {
                 }
                 content.append(key)
                         .append(assignmentSymlinks)
-                        .append(value.toString())
+                        .append(strValue)
                         .append(connectSymlinks);
             }
         }
@@ -87,12 +87,12 @@ public class SortUtils {
                 result.append(handleList((List<?>) item, connectSymlinks, assignmentSymlinks));
             } else {
                 // 处理字符串值，去除前后空格
-                String strValue = item.toString().trim();
+                String strItem = item.toString().trim();
                 // 如果处理后为空字符串则跳过
-                if (!StringUtils.hasText(strValue)) {
+                if (!StringUtils.hasText(strItem)) {
                     continue;
                 }
-                result.append(item.toString()).append(connectSymlinks);
+                result.append(strItem).append(connectSymlinks);
             }
         }
 
