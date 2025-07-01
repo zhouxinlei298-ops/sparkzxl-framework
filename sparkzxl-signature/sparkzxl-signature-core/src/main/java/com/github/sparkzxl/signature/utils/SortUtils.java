@@ -68,7 +68,7 @@ public class SortUtils {
     private static String handleList(List<?> list, String connectSymlinks, String assignmentSymlinks) {
         StrBuilder result = StrBuilder.create();
         for (Object item : list) {
-            if (item == null) {
+            if (ObjectUtils.isEmpty(item)) {
                 continue;
             }
 
