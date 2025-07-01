@@ -28,12 +28,11 @@ public class SM3SignUtil {
      */
     private static String generateSignData(Map<String, Object> params, String secret) {
         // 第1步: 将所有参数（注意是所有参数，包括appKey,timestamp,nonce），除去sign本身,拼接成字符串
-        String mapToString = SortUtils.mapToString(params, "&", "=");
+        String mapToString = SortUtils.mapToString(params, "", "");
         // 第2步: 将参数名和值的拼接
-        String signData = mapToString.replaceAll("&", "").replaceAll("=", "");
-        System.out.println(signData);
+        System.out.println(mapToString);
         // 第2步: 在上面拼接得到的字符串前加上密钥secret
-        return signData + secret;
+        return mapToString + secret;
     }
 
     public static String sign(Map<String, Object> params, String secret) {
