@@ -64,10 +64,9 @@ public class SM3Util {
      */
     private static String generateSignData(Map<String, Object> params, String secret) {
         // 第1步: 将所有参数（注意是所有参数，包括appKey,timestamp,nonce），除去sign本身,拼接成字符串
-        String mapToString = SortUtils.mapToString(params, "&", "=");
+        String mapToString = SortUtils.mapToString(params, "", "");
         // 第2步: 将参数名和值的拼接
-        String signData = mapToString.replaceAll("&", "").replaceAll("=", "");
-        String sign = signData + secret;
+        String sign = mapToString + secret;
         System.out.println(sign);
         log.debug("签名数据排序：{}", sign);
         // 第2步: 在上面拼接得到的字符串前加上密钥secret
