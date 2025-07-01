@@ -5,34 +5,23 @@ import cn.hutool.core.util.StrUtil;
 import com.github.sparkzxl.core.json.impl.AbstractJSONImpl;
 import com.github.sparkzxl.core.support.JsonParseException;
 import com.github.sparkzxl.core.util.StrPool;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.TypeAdapter;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.time.Duration;
+import java.util.*;
 
 /**
  * description: GsonImpl
@@ -159,6 +148,28 @@ public class GsonImpl extends AbstractJSONImpl {
     }
 
     @Override
+    public <T> List<T> toJavaList(String json, TypeReference<T> typeReference) {
+        try {
+            if (StringUtils.isEmpty(json)) {
+                return null;
+            }
+            String jsonStr = json;
+            if (!StrUtil.startWith(json, StrPool.LEFT_SQ_BRACKET)) {
+                jsonStr = StrPool.LEFT_SQ_BRACKET + json + StrPool.RIGHT_SQ_BRACKET;
+            }
+            // 从TypeReference获取实际类型参数
+            Type typeArgument = typeReference.getType();
+
+            // 构建完整的List<T>类型
+            Type listType = TypeToken.getParameterized(List.class, typeArgument).getType();
+            // 使用GSON进行反序列化
+            return new Gson().fromJson(jsonStr, listType);
+        } catch (Exception e) {
+            throw new JsonParseException(e.getMessage());
+        }
+    }
+
+    @Override
     public Map<String, Object> toMap(String json) {
         return toMap(json, Object.class);
     }
@@ -228,7 +239,8 @@ public class GsonImpl extends AbstractJSONImpl {
             } else {
                 try {
                     resultMap = (Map<T, U>) mapClass.getConstructor().newInstance();
-                } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                         NoSuchMethodException e) {
                     logger.error("failed to get constructor", e);
                 }
             }

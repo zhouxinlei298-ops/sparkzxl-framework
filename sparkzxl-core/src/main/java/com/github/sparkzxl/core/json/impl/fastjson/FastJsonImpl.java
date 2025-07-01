@@ -14,17 +14,20 @@ import com.github.sparkzxl.core.support.JsonParseException;
 import com.github.sparkzxl.core.util.StrPool;
 import com.github.sparkzxl.spi.ExtensionLoader;
 import com.google.gson.reflect.TypeToken;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * description: FastJsonImpl
@@ -152,6 +155,47 @@ public class FastJsonImpl extends AbstractJSONImpl {
                 jsonStr = StrPool.LEFT_SQ_BRACKET + json + StrPool.RIGHT_SQ_BRACKET;
             }
             return com.alibaba.fastjson.JSON.parseArray(jsonStr, clazz, parserConfig);
+        } catch (Exception e) {
+            throw new JsonParseException(e.getMessage());
+        }
+    }
+
+    @Override
+    public <T> List<T> toJavaList(String json, TypeReference<T> typeReference) {
+        try {
+            if (StringUtils.isEmpty(json)) {
+                return null;
+            }
+
+            // 确保JSON是数组格式
+            String jsonStr = json;
+            if (!StrUtil.startWith(json, StrPool.LEFT_SQ_BRACKET)) {
+                jsonStr = StrPool.LEFT_SQ_BRACKET + json + StrPool.RIGHT_SQ_BRACKET;
+            }
+
+            // 获取原始TypeReference的Type
+            Type typeArgument = typeReference.getType();
+
+            // 构建List<T>的Type
+            Type listType = new ParameterizedType() {
+                @Override
+                public Type @NotNull [] getActualTypeArguments() {
+                    return new Type[]{typeArgument};
+                }
+
+                @Override
+                public @NotNull Type getRawType() {
+                    return List.class;
+                }
+
+                @Override
+                public Type getOwnerType() {
+                    return null;
+                }
+            };
+
+            // 使用parseObject方法并传入完整的泛型Type
+            return com.alibaba.fastjson.JSON.parseObject(jsonStr, listType, parserConfig);
         } catch (Exception e) {
             throw new JsonParseException(e.getMessage());
         }

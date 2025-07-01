@@ -15,11 +15,8 @@ import com.github.sparkzxl.core.support.JsonParseException;
 import com.github.sparkzxl.core.util.StrPool;
 import java.lang.reflect.Type;
 import java.time.ZoneId;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
+
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -152,6 +149,26 @@ public class JacksonImpl extends AbstractJSONImpl {
     }
 
     @Override
+    public <T> List<T> toJavaList(String json, TypeReference<T> typeReference) {
+        try {
+            if (StringUtils.isEmpty(json)) {
+                return null;
+            }
+            // 如果JSON不是数组格式，将其包裹在数组中
+            String jsonStr = json;
+            if (!StrUtil.startWith(json, StrPool.LEFT_SQ_BRACKET)) {
+                jsonStr = StrPool.LEFT_SQ_BRACKET + json + StrPool.RIGHT_SQ_BRACKET;
+            }
+            // 构建集合类型，明确指定List元素的类型
+            JavaType collectionType = objectMapper.getTypeFactory()
+                    .constructCollectionType(List.class, objectMapper.getTypeFactory().constructType(typeReference.getType()));
+            return objectMapper.readValue(jsonStr, collectionType);
+        } catch (Exception e) {
+            throw new JsonParseException(e.getMessage());
+        }
+    }
+
+    @Override
     public Map<String, Object> toMap(String json) {
         return toMap(json, Object.class);
     }
@@ -179,6 +196,11 @@ public class JacksonImpl extends AbstractJSONImpl {
             logger.warn("write to map error: " + json, e);
             throw new JsonParseException(e.getMessage());
         }
+    }
+
+    public static void main(String[] args) {
+        Map<String, Object> objectMap = new JacksonImpl().toMap("[{\"id\":\"1850002074401939457\",\"configId\":\"1850001718200692736\",\"configCode\":\"projectSpecificTransactionMethod\",\"filedCode\":\"specificTransactionMethod\",\"paramKey\":\"defaultValue\",\"paramName\":\"默认选项\",\"paramSwitch\":true,\"state\":true,\"createDateTime\":\"2024-11-06 15:03:58\",\"createName\":\"admin\",\"modifyDateTime\":\"2024-11-06 15:03:58\",\"modifyName\":\"admin\"},{\"id\":\"1850002074401939458\",\"configId\":\"1850001718200692736\",\"configCode\":\"projectSpecificTransactionMethod\",\"filedCode\":\"specificTransactionMethod\",\"paramKey\":\"allowOperate\",\"paramName\":\"是否可编辑\",\"paramSwitch\":true,\"state\":true,\"createDateTime\":\"2024-11-06 15:03:58\",\"createName\":\"admin\",\"modifyDateTime\":\"2024-11-06 15:03:58\",\"modifyName\":\"admin\"}]", Object.class);
+        System.out.println(objectMap);
     }
 
     @Override

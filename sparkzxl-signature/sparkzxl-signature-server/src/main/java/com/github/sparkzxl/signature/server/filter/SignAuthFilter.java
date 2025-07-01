@@ -2,12 +2,14 @@ package com.github.sparkzxl.signature.server.filter;
 
 import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.core.support.ArgumentException;
 import com.github.sparkzxl.core.util.ArgumentAssert;
+import com.github.sparkzxl.core.util.StrPool;
 import com.github.sparkzxl.signature.constant.SignatureConstant;
 import com.github.sparkzxl.signature.executor.SignatureExecutor;
 import com.github.sparkzxl.signature.executor.SignatureExecutorContext;
@@ -15,8 +17,8 @@ import com.github.sparkzxl.signature.properties.SignatureProperties;
 import com.github.sparkzxl.signature.server.cache.SignCache;
 import com.github.sparkzxl.signature.server.properties.SignatureServerProperties;
 import com.google.common.collect.Maps;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -41,6 +43,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -52,6 +55,7 @@ import java.util.*;
  * @author zhouxinlei
  * @since 2024-05-21 11:03:48
  */
+@Slf4j
 public class SignAuthFilter implements GlobalFilter, Ordered {
 
     @Autowired
@@ -183,7 +187,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                     if (formDataBodyBuilder.length() > 0) {
                         formDataBodyString = formDataBodyBuilder.substring(0, formDataBodyBuilder.length() - 1);
                     }
-                    boolean verified = this.verifySignature(exchange, signature, appKey, timestamp, nonce, formDataBodyMap);
+                    boolean verified = this.verifySignature(exchange, signature, appKey, timestamp, nonce, JsonUtils.getJson().toJson(formDataBodyMap));
                     if (!verified) {
                         return Mono.error(new ArgumentException("验签失败"));
                     }
@@ -240,8 +244,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                     dataBuffer.read(bytes);
                     DataBufferUtils.release(dataBuffer);
                     String requestData = new String(bytes, StandardCharsets.UTF_8);
-                    Map<String, Object> requestBodyMap = JsonUtils.getJson().toMap(requestData);
-                    boolean verified = this.verifySignature(exchange, signature, appKey, timestamp, nonce, requestBodyMap);
+                    boolean verified = this.verifySignature(exchange, signature, appKey, timestamp, nonce, requestData);
                     if (!verified) {
                         return Mono.error(new ArgumentException("验签失败"));
                     }
@@ -269,10 +272,10 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
      * @param appKey    应用ID
      * @param timestamp 时间戳
      * @param nonce     随机值
-     * @param bodyMap   请求体Map
+     * @param bodyData  请求体数据
      * @return boolean
      */
-    private boolean verifySignature(ServerWebExchange exchange, String signature, String appKey, String timestamp, String nonce, Map<String, Object> bodyMap) {
+    private boolean verifySignature(ServerWebExchange exchange, String signature, String appKey, String timestamp, String nonce, String bodyData) {
         Map<String, Object> map = new HashMap<>();
         // 添加URL参数
         MultiValueMap<String, String> queryParams = exchange.getRequest().getQueryParams();
@@ -282,9 +285,24 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                 map.put(entry.getKey(), entry.getValue().get(0));
             }
         }
-        if (MapUtils.isNotEmpty(bodyMap)) {
-            map.putAll(bodyMap);
+        if (StringUtils.isNotEmpty(bodyData)) {
+            List<Map<String, Object>> requestBodyList = new ArrayList<>();
+            if (StrUtil.startWith(bodyData, StrPool.LEFT_SQ_BRACKET)) {
+                // 处理JSON数组
+                requestBodyList = JsonUtils.getJson().toJavaList(bodyData, new TypeReference<Map<String, Object>>() {
+                    @Override
+                    public Type getType() {
+                        return super.getType();
+                    }
+                });
+            } else {
+                // 处理单个JSON对象
+                Map<String, Object> requestBodyMap = JsonUtils.getJson().toMap(bodyData);
+                requestBodyList.add(requestBodyMap);
+            }
+            map.put("body", requestBodyList);
         }
+        log.debug("验签请求参数:{}", JsonUtils.getJson().toJson(map));
         String tenantId = exchange.getRequest().getHeaders().getFirst(BaseContextConstants.TENANT_ID);
         Map<String, SignatureProperties.AppProperties> provider = signatureProperties.getConfigMap();
         SignatureProperties.AppProperties properties = provider.get(tenantId);

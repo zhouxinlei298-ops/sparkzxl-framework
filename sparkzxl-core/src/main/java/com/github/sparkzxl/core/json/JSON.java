@@ -1,6 +1,7 @@
 package com.github.sparkzxl.core.json;
 
 import cn.hutool.core.lang.TypeReference;
+
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +83,16 @@ public interface JSON {
      * @return T
      */
     <T> List<T> toJavaList(final String json, Class<T> clazz);
+
+    /**
+     * 将json字符串转换为实体对象
+     *
+     * @param json          json字符串
+     * @param typeReference 泛型类型
+     * @param <T>           泛型
+     * @return T
+     */
+    <T> List<T> toJavaList(String json, TypeReference<T> typeReference);
 
     /**
      * 获取list对象
