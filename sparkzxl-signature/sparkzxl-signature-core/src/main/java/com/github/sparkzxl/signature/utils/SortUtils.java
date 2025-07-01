@@ -2,6 +2,7 @@ package com.github.sparkzxl.signature.utils;
 
 import cn.hutool.core.text.StrBuilder;
 import com.github.sparkzxl.core.json.JsonUtils;
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.util.*;
 
@@ -29,7 +30,7 @@ public class SortUtils {
         StrBuilder content = StrBuilder.create();
         for (String key : sortedKeys) {
             Object value = params.get(key);
-            if (value == null) {
+            if (ObjectUtils.isEmpty(value)) {
                 continue;
             }
 
