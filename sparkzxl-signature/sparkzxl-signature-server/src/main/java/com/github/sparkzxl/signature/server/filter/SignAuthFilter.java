@@ -19,6 +19,7 @@ import com.github.sparkzxl.signature.server.properties.SignatureServerProperties
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -286,7 +287,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
             }
         }
         if (StringUtils.isNotEmpty(bodyData)) {
-            List<Map<String, Object>> requestBodyList = new ArrayList<>();
+            List<Map<String, Object>> requestBodyList;
             if (StrUtil.startWith(bodyData, StrPool.LEFT_SQ_BRACKET)) {
                 // 处理JSON数组
                 requestBodyList = JsonUtils.getJson().toJavaList(bodyData, new TypeReference<Map<String, Object>>() {
@@ -295,12 +296,12 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                         return super.getType();
                     }
                 });
+                map.put("body", requestBodyList);
             } else {
                 // 处理单个JSON对象
                 Map<String, Object> requestBodyMap = JsonUtils.getJson().toMap(bodyData);
-                requestBodyList.add(requestBodyMap);
+                map.put("body", requestBodyMap);
             }
-            map.put("body", requestBodyList);
         }
         log.debug("验签请求参数:{}", JsonUtils.getJson().toJson(map));
         String tenantId = exchange.getRequest().getHeaders().getFirst(BaseContextConstants.TENANT_ID);
