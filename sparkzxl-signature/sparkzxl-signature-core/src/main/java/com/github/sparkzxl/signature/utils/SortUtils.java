@@ -3,6 +3,7 @@ package com.github.sparkzxl.signature.utils;
 import cn.hutool.core.text.StrBuilder;
 import com.github.sparkzxl.core.json.JsonUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
 
@@ -44,6 +45,12 @@ public class SortUtils {
                 content.append(key);
                 content.append(handleList((List<?>) value, connectSymlinks, assignmentSymlinks));
             } else {
+                // 处理字符串值，去除前后空格
+                String strValue = value.toString().trim();
+                // 如果处理后为空字符串则跳过
+                if (!StringUtils.hasText(strValue)) {
+                    continue;
+                }
                 content.append(key)
                         .append(assignmentSymlinks)
                         .append(value.toString())
@@ -79,6 +86,12 @@ public class SortUtils {
             } else if (item instanceof List) {
                 result.append(handleList((List<?>) item, connectSymlinks, assignmentSymlinks));
             } else {
+                // 处理字符串值，去除前后空格
+                String strValue = item.toString().trim();
+                // 如果处理后为空字符串则跳过
+                if (!StringUtils.hasText(strValue)) {
+                    continue;
+                }
                 result.append(item.toString()).append(connectSymlinks);
             }
         }
@@ -91,6 +104,7 @@ public class SortUtils {
         dataMap.put("mapObj", new HashMap<String, Object>() {{
             put("id", "1");
             put("username", "张三");
+            put("user_generator", "111");
         }});
         System.out.println(JsonUtils.getJson().toJson(dataMap));
         System.out.println(SortUtils.mapToString(dataMap, "", ""));
