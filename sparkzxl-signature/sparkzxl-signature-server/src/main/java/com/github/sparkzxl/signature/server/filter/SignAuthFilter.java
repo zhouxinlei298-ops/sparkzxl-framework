@@ -283,7 +283,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
         for (Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
             // 排除签名参数
             if (!SignatureConstant.SIGNATURE.equalsIgnoreCase(entry.getKey())) {
-                map.put(entry.getKey(), entry.getValue().get(0));
+                map.put(entry.getKey(), entry.getValue());
             }
         }
         if (StringUtils.isNotEmpty(bodyData)) {
