@@ -41,6 +41,7 @@ public class JacksonImpl extends AbstractJSONImpl {
                 .enable(JsonReadFeature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER.mappedFeature())
                 //该特性决定parser将是否允许解析使用Java/C++ 样式的注释（包括'/'+'*' 和'//' 变量）
                 .enable(JsonParser.Feature.ALLOW_COMMENTS)
+                .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
                 //该特性决定parser是否允许单引号来包住属性名称和字符串值
                 .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES)
                 .enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT)
@@ -196,11 +197,6 @@ public class JacksonImpl extends AbstractJSONImpl {
             logger.warn("write to map error: " + json, e);
             throw new JsonParseException(e.getMessage());
         }
-    }
-
-    public static void main(String[] args) {
-        Map<String, Object> objectMap = new JacksonImpl().toMap("[{\"id\":\"1850002074401939457\",\"configId\":\"1850001718200692736\",\"configCode\":\"projectSpecificTransactionMethod\",\"filedCode\":\"specificTransactionMethod\",\"paramKey\":\"defaultValue\",\"paramName\":\"默认选项\",\"paramSwitch\":true,\"state\":true,\"createDateTime\":\"2024-11-06 15:03:58\",\"createName\":\"admin\",\"modifyDateTime\":\"2024-11-06 15:03:58\",\"modifyName\":\"admin\"},{\"id\":\"1850002074401939458\",\"configId\":\"1850001718200692736\",\"configCode\":\"projectSpecificTransactionMethod\",\"filedCode\":\"specificTransactionMethod\",\"paramKey\":\"allowOperate\",\"paramName\":\"是否可编辑\",\"paramSwitch\":true,\"state\":true,\"createDateTime\":\"2024-11-06 15:03:58\",\"createName\":\"admin\",\"modifyDateTime\":\"2024-11-06 15:03:58\",\"modifyName\":\"admin\"}]", Object.class);
-        System.out.println(objectMap);
     }
 
     @Override

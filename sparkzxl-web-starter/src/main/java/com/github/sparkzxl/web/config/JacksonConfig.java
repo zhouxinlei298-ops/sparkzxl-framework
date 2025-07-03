@@ -3,11 +3,7 @@ package com.github.sparkzxl.web.config;
 import cn.hutool.core.date.DatePattern;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
@@ -21,6 +17,14 @@ import com.github.sparkzxl.core.json.impl.jackson.serializer.CustomDateDeseriali
 import com.github.sparkzxl.core.json.impl.jackson.serializer.CustomLocalDateTimeDeSerializer;
 import com.github.sparkzxl.core.json.impl.jackson.serializer.EnumeratorSerializer;
 import com.google.common.collect.ImmutableMap;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
@@ -33,13 +37,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 /**
  * description: Jackson全局配置
@@ -70,7 +67,7 @@ public class JacksonConfig {
                 .build();
         return jacksonObjectMapperBuilder -> jacksonObjectMapperBuilder.serializersByType(jsonSerializerMap)
                 .deserializersByType(jsonDeserializerMap)
-                .featuresToEnable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
+                .featuresToEnable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
 
     /**
