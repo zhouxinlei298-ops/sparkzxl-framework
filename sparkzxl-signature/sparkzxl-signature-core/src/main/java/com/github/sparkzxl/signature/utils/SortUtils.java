@@ -1,5 +1,6 @@
 package com.github.sparkzxl.signature.utils;
 
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.text.StrBuilder;
 import com.github.sparkzxl.core.json.JsonUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -46,7 +47,7 @@ public class SortUtils {
                 content.append(handleList((List<?>) value, connectSymlinks, assignmentSymlinks));
             } else {
                 // 处理字符串值，去除前后空格
-                String strValue = value.toString().trim();
+                String strValue = Convert.toStr(value).trim();
                 // 如果处理后为空字符串则跳过
                 if (!StringUtils.hasText(strValue)) {
                     continue;
@@ -87,7 +88,7 @@ public class SortUtils {
                 result.append(handleList((List<?>) item, connectSymlinks, assignmentSymlinks));
             } else {
                 // 处理字符串值，去除前后空格
-                String strItem = item.toString().trim();
+                String strItem = Convert.toStr(item).trim();
                 // 如果处理后为空字符串则跳过
                 if (!StringUtils.hasText(strItem)) {
                     continue;
