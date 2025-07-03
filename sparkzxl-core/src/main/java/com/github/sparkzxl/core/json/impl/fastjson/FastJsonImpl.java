@@ -5,10 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.parser.ParserConfig;
 import com.alibaba.fastjson.parser.deserializer.ObjectDeserializer;
-import com.alibaba.fastjson.serializer.ObjectSerializer;
-import com.alibaba.fastjson.serializer.SerializeConfig;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.alibaba.fastjson.serializer.ToStringSerializer;
+import com.alibaba.fastjson.serializer.*;
 import com.github.sparkzxl.core.json.impl.AbstractJSONImpl;
 import com.github.sparkzxl.core.support.JsonParseException;
 import com.github.sparkzxl.core.util.StrPool;
@@ -43,6 +40,7 @@ public class FastJsonImpl extends AbstractJSONImpl {
     private final ParserConfig parserConfig = new ParserConfig();
 
     public FastJsonImpl() {
+        parserConfig.putDeserializer(Number.class, BigDecimalCodec.instance);
         serializeConfig.put(Long.class, ToStringSerializer.instance);
         serializeConfig.put(Long.TYPE, ToStringSerializer.instance);
         serializeConfig.put(BigInteger.class, ToStringSerializer.instance);
@@ -243,5 +241,4 @@ public class FastJsonImpl extends AbstractJSONImpl {
             throw new JsonParseException(e.getMessage());
         }
     }
-
 }
