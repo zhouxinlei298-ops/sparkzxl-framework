@@ -14,6 +14,8 @@ import com.github.sparkzxl.core.util.StrPool;
 import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.data.redis.connection.DataType;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.*;
@@ -320,11 +322,11 @@ public class RedisOps {
     public List<CacheExpireKey> keyExpires(@NonNull String pattern) {
         List<CacheExpireKey> keyList = Lists.newArrayList();
         Set<String> keys = redisTemplate.keys(pattern);
-        if (keys != null) {
+        if (CollectionUtils.isNotEmpty(keys)) {
             for (String key : keys) {
                 Long expire = redisTemplate.getExpire(key, TimeUnit.SECONDS);
                 DataType type = redisTemplate.type(key);
-                if (type == null) {
+                if (ObjectUtils.isEmpty(type)) {
                     type = DataType.NONE;
                 }
                 keyList.add(new CacheExpireKey(key, type.code(), expire));
