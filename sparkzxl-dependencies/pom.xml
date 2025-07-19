@@ -24,7 +24,7 @@
         <spring-cloud-dependencies.version>2021.0.6</spring-cloud-dependencies.version>
         <spring-cloud-alibaba-dependencies.version>2021.1</spring-cloud-alibaba-dependencies.version>
         <resilience4j.version>1.7.0</resilience4j.version>
-        <nacos.version>2.2.0</nacos.version>
+        <nacos.version>2.5.1</nacos.version>
 
         <servlet-api.version>4.0.1</servlet-api.version>
         <knife4j.version>2.0.9</knife4j.version>
