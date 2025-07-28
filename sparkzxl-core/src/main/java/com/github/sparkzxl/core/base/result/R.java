@@ -11,6 +11,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -75,6 +76,9 @@ public class R<T> implements Serializable {
         this.result = result;
         this.errorCode = errorCode.getErrorCode();
         this.errorMessage = errorCode.getErrorMsg();
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public R(Integer code, String message, T result) {
@@ -82,6 +86,9 @@ public class R<T> implements Serializable {
         this.message = message;
         this.success = (code == HttpStatus.HTTP_OK);
         this.result = result;
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public R(HttpCode httpCode, T result, IErrorCode iBaseErrorCode) {
@@ -91,6 +98,9 @@ public class R<T> implements Serializable {
         this.result = result;
         this.errorCode = iBaseErrorCode.getErrorCode();
         this.errorMessage = iBaseErrorCode.getErrorMsg();
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public R(HttpCode httpCode, T result) {
@@ -98,6 +108,9 @@ public class R<T> implements Serializable {
         this.message = httpCode.getMessage();
         this.success = (code == HttpStatus.HTTP_OK);
         this.result = result;
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public R(HttpCode httpCode, IErrorCode iBaseErrorCode) {
@@ -106,12 +119,18 @@ public class R<T> implements Serializable {
         this.success = (code == HttpStatus.HTTP_OK);
         this.errorCode = iBaseErrorCode.getErrorCode();
         this.errorMessage = iBaseErrorCode.getErrorMsg();
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public R(HttpCode httpCode) {
         this.code = httpCode.getCode();
         this.message = httpCode.getMessage();
         this.success = (code == HttpStatus.HTTP_OK);
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public R(HttpCode httpCode, String errorMessage) {
@@ -119,6 +138,9 @@ public class R<T> implements Serializable {
         this.message = httpCode.getMessage();
         this.success = (code == HttpStatus.HTTP_OK);
         this.errorMessage = errorMessage;
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public R(HttpCode httpCode, String errorCode, String errorMessage) {
@@ -127,6 +149,9 @@ public class R<T> implements Serializable {
         this.success = (code == HttpStatus.HTTP_OK);
         this.errorMessage = errorMessage;
         this.errorCode = errorCode;
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public R(HttpCode httpCode, T result, String errorCode, String errorMessage) {
@@ -136,6 +161,9 @@ public class R<T> implements Serializable {
         this.result = result;
         this.errorMessage = errorMessage;
         this.errorCode = errorCode;
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("traceId", TraceContext.traceId());
+        this.extra = extra;
     }
 
     public static R success() {
