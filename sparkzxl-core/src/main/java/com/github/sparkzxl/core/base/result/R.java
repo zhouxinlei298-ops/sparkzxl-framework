@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.apache.skywalking.apm.toolkit.trace.TraceContext;
 
 import java.io.Serializable;
 import java.util.HashMap;
