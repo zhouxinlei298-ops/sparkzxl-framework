@@ -144,7 +144,7 @@
 
     <!-- 日志信息发送kafka -->
     <appender name="KAFKA_APPENDER" class="com.github.danielwegener.logback.kafka.KafkaAppender">
-        <encoder>
+        <encoder
             <pattern>
                 {"date": "%d{yyyy-MM-dd HH:mm:ss.SSS}",
                 "level": "%level",
