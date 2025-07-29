@@ -64,10 +64,10 @@
 
     <!-- 控制台 日志格式化 -->
     <property name="CONSOLE_LOG_PATTERN"
-              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %yellow([tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A},: %X{:-N/A},exceptionClass: %X{exceptionClass:-N/A}]) %boldMagenta(:%X{:-N/A}) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} [%X{tid}] %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %yellow([tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A},tid: %X{tid:-N/A},exceptionClass: %X{exceptionClass:-N/A}]) %boldMagenta(tid:%X{tid:-N/A}) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} [%X{tid}] %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <property name="FILE_LOG_PATTERN"
-              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A}] :%X{:-N/A} exceptionClass:%X{exceptionClass:-N/A} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%X{tid}] [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A}] tid:%X{tid:-N/A} exceptionClass:%X{exceptionClass:-N/A} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%X{tid}] [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <property name="BIZ_POINT_LOG_PATTERN" value="%m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
@@ -104,9 +104,8 @@
                                 "application": "${applicationName}",
                                 "environment": "${environment:-N/A}",
                                 "tenantId": "%X{tenantId:-N/A}",
-                                "": "%X{:-N/A}",
+                                "tid": "%X{tid:-N/A}",
                                 "exceptionClass": "%X{exceptionClass:-N/A}",
-                                "tid": "%X{tid}",
                                 "pid": "${PID:-N/A}",
                                 "thread": "%thread",
                                 "class": "%logger{15}",
@@ -152,8 +151,7 @@
                 "application": "${applicationName}",
                 "environment": "${environment:-N/A}",
                 "tenantId": "%X{tenantId:-N/A}",
-                "": "%X{:-N/A}",
-                "tid": "%X{tid}",
+                "tid": "%X{tid:-N/A}",
                 "pid": "${PID:-N/A}",
                 "thread": "%thread",
                 "class": "%logger{15}",
