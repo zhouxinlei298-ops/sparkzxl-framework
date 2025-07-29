@@ -68,7 +68,7 @@ public class FeignRequestCircuitBreakerExtractor implements CircuitBreakerExtrac
         }
         RequestTemplate requestTemplate = (RequestTemplate) context.getClientRequest().getAttributes()
                 .get(FeignBlockingLoadBalancerClientExtend.REQUEST_TEMPLATE);
-        List<String> headers = (List<String>) requestTemplate.headers().get(BaseContextConstants.TRACE_ID_HEADER);
+        List<String> headers = (List<String>) requestTemplate.headers().get(BaseContextConstants.TRACE_ID);
         if (CollectionUtils.isEmpty(headers)) {
             return "";
         }

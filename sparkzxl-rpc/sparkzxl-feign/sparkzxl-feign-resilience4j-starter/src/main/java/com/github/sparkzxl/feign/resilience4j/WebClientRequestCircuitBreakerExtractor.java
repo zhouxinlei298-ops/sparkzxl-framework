@@ -55,7 +55,7 @@ public class WebClientRequestCircuitBreakerExtractor implements CircuitBreakerEx
         RequestDataContext context = Convert.convert(RequestDataContext.class, request.getContext());
         RequestData requestData = context.getClientRequest();
         List<String> headers = ObjectUtils.isEmpty(requestData) ? Lists.newArrayList()
-                : requestData.getHeaders().get(BaseContextConstants.TRACE_ID_HEADER);
+                : requestData.getHeaders().get(BaseContextConstants.TRACE_ID);
         if (CollectionUtils.isEmpty(headers)) {
             return IdUtil.fastSimpleUUID();
         }
