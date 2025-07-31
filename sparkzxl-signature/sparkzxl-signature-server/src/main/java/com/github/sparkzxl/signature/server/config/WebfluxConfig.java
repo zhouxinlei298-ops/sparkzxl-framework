@@ -8,6 +8,10 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.codec.HttpMessageReader;
+import org.springframework.http.codec.multipart.DefaultPartHttpMessageReader;
+import org.springframework.http.codec.multipart.MultipartHttpMessageReader;
+import org.springframework.http.codec.multipart.Part;
 
 import static com.github.sparkzxl.signature.server.properties.SignatureServerProperties.CONFIG_PREFIX;
 
@@ -25,7 +29,13 @@ public class WebfluxConfig {
 
     @Bean(name = "signAuthFilter")
     @ConditionalOnProperty(prefix = CONFIG_PREFIX, name = "enabled", havingValue = "true")
-    public GlobalFilter signAuthFilter() {
-        return new SignAuthFilter();
+    public GlobalFilter signAuthFilter(MultipartHttpMessageReader multipartHttpMessageReader) {
+        return new SignAuthFilter(multipartHttpMessageReader);
+    }
+
+    @Bean
+    public MultipartHttpMessageReader multipartHttpMessageReader() {
+        HttpMessageReader<Part> httpMessageReader = new DefaultPartHttpMessageReader();
+        return new MultipartHttpMessageReader(httpMessageReader);
     }
 }

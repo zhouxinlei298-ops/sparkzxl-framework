@@ -19,7 +19,6 @@ import com.github.sparkzxl.signature.server.properties.SignatureServerProperties
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -27,11 +26,15 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.filter.factory.rewrite.CachedBodyOutputMessage;
 import org.springframework.cloud.gateway.support.BodyInserterContext;
 import org.springframework.core.Ordered;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ReactiveHttpOutputMessage;
+import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.http.codec.multipart.MultipartHttpMessageReader;
+import org.springframework.http.codec.multipart.Part;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.util.AntPathMatcher;
@@ -67,8 +70,13 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
     private SignatureProperties signatureProperties;
     @Autowired
     private SignatureServerProperties signatureServerProperties;
+    private final MultipartHttpMessageReader multipartReader;
 
     private static final AntPathMatcher ANT_PATH_MATCHER = new AntPathMatcher();
+
+    public SignAuthFilter(MultipartHttpMessageReader multipartReader) {
+        this.multipartReader = multipartReader;
+    }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -239,6 +247,13 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
      * @return Mono<Void>
      */
     private Mono<Void> readBody(String signature, String appKey, String timestamp, String nonce, ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 判断是否为文件上传请求
+        boolean isMultipart = isMultipartRequest(exchange);
+
+        if (isMultipart) {
+            // 处理文件上传请求，提取文件名进行验签
+            return handleMultipartRequest(signature, appKey, timestamp, nonce, exchange, chain);
+        }
         return DataBufferUtils.join(exchange.getRequest().getBody())
                 .flatMap(dataBuffer -> {
                     byte[] bytes = new byte[dataBuffer.readableByteCount()];
@@ -264,6 +279,149 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                     signCache.set(nonce, nonce, signatureServerProperties.getNonceTimeoutSeconds());
                     return chain.filter(exchange.mutate().request(mutatedRequest).build());
                 });
+    }
+
+
+    /**
+     * 判断是否为multipart/form-data请求（通常用于文件上传）
+     */
+    private boolean isMultipartRequest(ServerWebExchange exchange) {
+        String contentType = exchange.getRequest().getHeaders().getFirst("Content-Type");
+        if (contentType == null) {
+            return false;
+        }
+        // 检查Content-Type是否以multipart/form-data开头
+        return contentType.startsWith("multipart/form-data");
+    }
+
+
+    private Mono<Void> handleMultipartRequest(String signature, String appKey, String timestamp, String nonce,
+                                              ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 校验请求头是否包含 boundary
+        if (!hasValidMultipartBoundary(exchange)) {
+            return Mono.error(new ArgumentException("文件上传请求缺少 boundary 参数"));
+        }
+        // 1. 缓存原始请求体（避免二次消费）
+        return DataBufferUtils.join(exchange.getRequest().getBody())
+                .flatMap(originalDataBuffer -> {
+                    // 复制原始字节数据
+                    byte[] originalBytes = new byte[originalDataBuffer.readableByteCount()];
+                    originalDataBuffer.read(originalBytes);
+                    DataBufferUtils.release(originalDataBuffer);
+
+                    // 2. 重建请求体，供 multipart 解析器使用
+                    DataBuffer cachedBuffer = exchange.getResponse().bufferFactory().wrap(originalBytes);
+                    Flux<DataBuffer> cachedBody = Flux.just(cachedBuffer);
+
+                    // 包装请求，使用缓存的 body
+                    ServerHttpRequest wrappedRequest = new ServerHttpRequestDecorator(exchange.getRequest()) {
+                        @Override
+                        public Flux<DataBuffer> getBody() {
+                            return cachedBody;
+                        }
+                    };
+
+                    // 3. 使用 MultipartHttpMessageReader 解析（依赖正确的 boundary）
+                    // 修复：创建空的hints map而不是null
+                    Map<String, Object> hints = Collections.emptyMap();
+                    return multipartReader.read(
+                                    ResolvableType.forClass(MultiValueMap.class),
+                                    wrappedRequest,
+                                    hints
+                            )
+                            .next() // 获取第一个 MultiValueMap（单个请求通常只有一个）
+                            .flatMap(partsMap -> {
+                                // 存储表单字段名与文件名的映射关系 (fieldName -> filename)
+                                Map<String, String> fileDataMap = new HashMap<>();
+
+                                // 遍历MultiValueMap的entry集，获取key（表单字段名）和对应的Part
+                                for (Map.Entry<String, List<Part>> entry : partsMap.entrySet()) {
+                                    // 表单字段名（如<input name="file1">中的"file1"）
+                                    String fieldName = entry.getKey();
+                                    List<Part> parts = entry.getValue();
+                                    // 存储当前字段的所有文件名
+                                    List<String> fieldFilenames = new ArrayList<>();
+                                    for (Part part : parts) {
+                                        if (part instanceof FilePart) {
+                                            // 处理文件类型字段
+                                            String filename = ((FilePart) part).filename();
+                                            if (StringUtils.isNotBlank(filename)) {
+                                                fieldFilenames.add(filename.trim());
+                                            }
+                                        } else {
+                                            // 处理普通表单字段（读取文本内容）
+                                            StringBuilder fieldContent = new StringBuilder();
+                                            part.content()
+                                                    .map(dataBuffer -> {
+                                                        byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                                                        dataBuffer.read(bytes);
+                                                        DataBufferUtils.release(dataBuffer);
+                                                        return new String(bytes, StandardCharsets.UTF_8);
+                                                    })
+                                                    .subscribe(content -> fieldContent.append(content));
+
+                                            // 存储普通字段内容
+                                            fileDataMap.put(fieldName, fieldContent.toString());
+                                        }
+                                    }
+                                    // 对文件名进行排序（按自然顺序，如字母顺序、数字顺序）
+                                    Collections.sort(fieldFilenames);
+                                    // 将排序后的文件名用逗号拼接后存入Map
+                                    if (!fieldFilenames.isEmpty()) {
+                                        String joinedFilenames = String.join(",", fieldFilenames);
+                                        fileDataMap.put(fieldName, joinedFilenames);
+                                    }
+                                }
+                                // 释放所有 Part 的内容流
+                                Flux<Part> allParts = Flux.fromIterable(partsMap.values())
+                                        .flatMap(Flux::fromIterable);
+                                return allParts
+                                        .flatMap(part -> part.content()
+                                                .doOnNext(DataBufferUtils::release)
+                                                .then()
+                                        )
+                                        // 4. 验签逻辑
+                                        .then(Mono.fromRunnable(() -> {
+                                            String fileJsonData = JsonUtils.getJson().toJson(fileDataMap);
+                                            boolean verified = verifySignature(exchange, signature, appKey, timestamp, nonce, fileJsonData);
+                                            if (!verified) {
+                                                throw new ArgumentException("文件名验签失败: " + fileJsonData);
+                                            }
+                                        }))
+                                        // 5. 重建请求供后续处理
+                                        .then(Mono.defer(() -> {
+                                            Flux<DataBuffer> finalBody = Flux.defer(() -> {
+                                                DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(originalBytes);
+                                                DataBufferUtils.retain(buffer);
+                                                return Mono.just(buffer);
+                                            });
+
+                                            ServerHttpRequest mutatedRequest = new ServerHttpRequestDecorator(exchange.getRequest()) {
+                                                @Override
+                                                public Flux<DataBuffer> getBody() {
+                                                    return finalBody;
+                                                }
+                                            };
+
+                                            signCache.set(nonce, nonce, signatureServerProperties.getNonceTimeoutSeconds());
+                                            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                                        }));
+                            })
+                            .onErrorResume(e -> {
+                                // 捕获 boundary 解析失败的异常
+                                String errorMsg = "文件上传解析失败（可能是 boundary 不匹配）: " + e.getMessage();
+                                return Mono.error(new ArgumentException(errorMsg));
+                            });
+                });
+    }
+
+    // 辅助方法：校验 boundary 是否存在
+    private boolean hasValidMultipartBoundary(ServerWebExchange exchange) {
+        String contentType = exchange.getRequest().getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
+        if (contentType == null || !contentType.startsWith(MediaType.MULTIPART_FORM_DATA_VALUE)) {
+            return false;
+        }
+        return contentType.contains("boundary=");
     }
 
     /**
