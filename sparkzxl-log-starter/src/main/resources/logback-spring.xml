@@ -274,7 +274,7 @@
             <if condition='property("plumelogType").contains("redis")'>
                 <then>
                     <appender name="plumelog" class="com.plumelog.logback.appender.RedisAppender">
-                        <appName>${springAppName}</appName>
+                        <appName>${applicationName}</appName>
                         <env>${plumelog.env}</env>
                         <redisHost>${plumelog.redisHost}</redisHost>
                         <redisPort>${plumelog.redisPort}</redisPort>
@@ -295,7 +295,7 @@
             <if condition='property("plumelogType").contains("kafka")'>
                 <then>
                     <appender name="plumelog" class="com.plumelog.logback.appender.KafkaAppender">
-                        <appName>${springAppName}</appName>
+                        <appName>${applicationName}</appName>
                         <env>${plumelog.env}</env>
                         <kafkaHosts>${plumelog.kafkaHosts}</kafkaHosts>
                         <runModel>${plumelog.runModel}</runModel>
