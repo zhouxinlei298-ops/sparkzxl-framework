@@ -385,7 +385,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                                             String fileJsonData = JsonUtils.getJson().toJson(fileDataMap);
                                             boolean verified = verifySignature(exchange, signature, appKey, timestamp, nonce, fileJsonData);
                                             if (!verified) {
-                                                throw new ArgumentException("文件名验签失败: " + fileJsonData);
+                                                throw new ArgumentException("验签失败");
                                             }
                                         }))
                                         // 5. 重建请求供后续处理
@@ -409,7 +409,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                             })
                             .onErrorResume(e -> {
                                 // 捕获 boundary 解析失败的异常
-                                String errorMsg = "文件上传解析失败（可能是 boundary 不匹配）: " + e.getMessage();
+                                String errorMsg = "文件上传失败（可能是 boundary 不匹配）: " + e.getMessage();
                                 return Mono.error(new ArgumentException(errorMsg));
                             });
                 });
