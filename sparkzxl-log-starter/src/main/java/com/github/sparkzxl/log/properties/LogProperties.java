@@ -5,6 +5,7 @@ import static com.github.sparkzxl.log.properties.LogProperties.LOG_PREFIX;
 import java.util.List;
 
 import cn.hutool.core.date.DatePattern;
+import com.github.sparkzxl.log.enums.LogTypeEnum;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,6 +41,11 @@ public class LogProperties {
      * 日志告警
      */
     private AlarmProperties alarm = new AlarmProperties();
+
+
+    @NestedConfigurationProperty
+    private PlumeLogProperties plumelog = new PlumeLogProperties();
+
 
 
     /**
@@ -172,6 +178,43 @@ public class LogProperties {
         private int maxRetryBackoffMs = 50000;
         private String timeFormat = DatePattern.NORM_DATETIME_MS_PATTERN;
         private String timeZone = "Asia/Shanghai";
+    }
+
+    @Getter
+    @Setter
+    public static class PlumeLogProperties {
+        private boolean enabled;
+
+        private LogTypeEnum type;
+
+        private PlumeLogRedis redis;
+
+        private PlumeLogKafka kafka;
+
+        private String runModel;
+        private String expand;
+        private int maxCount = 100;
+        private int logQueueSize = 10000;
+        private int threadPoolSize = 1;
+        private boolean compressor = false;
+    }
+
+    @Getter
+    @Setter
+    public static class PlumeLogRedis {
+        private String redisHost;
+        private String redisPort;
+        private String redisAuth;
+        private String model = "standalone";
+        private String masterName;
+        private int redisDb = 0;
+
+    }
+
+    @Getter
+    @Setter
+    public static class PlumeLogKafka {
+        private String kafkaHosts;
     }
 
 }

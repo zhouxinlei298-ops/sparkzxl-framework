@@ -62,12 +62,34 @@
     <springProperty name="timeZone" scope="context" source="logging.aliYunLog.timeZone"
                     defaultValue="Asia/Shanghai"/>
 
+    <!--plumelog服务配置-->
+    <springProperty name="enablePlumeLog" scope="context" source="logging.plumelog.enabled" defaultValue="false"/>
+    <springProperty name="plumelogType" scope="context" source="logging.plumelog.type" defaultValue="redis"/>
+    <springProperty name="plumelog.env" scope="context" source="spring.profiles.active"/>
+    <springProperty name="plumelog.runModel" scope="context" source="logging.plumelog.runModel"  defaultValue="1"/>
+    <springProperty name="plumelog.expand" scope="context" source="logging.plumelog.expand" defaultValue=""/>
+    <springProperty name="plumelog.maxCount" scope="context" source="logging.plumelog.maxCount" defaultValue="100"/>
+    <springProperty name="plumelog.logQueueSize" scope="context" source="logging.plumelog.logQueueSize" defaultValue="10000"/>
+    <springProperty name="plumelog.threadPoolSize" scope="context" source="logging.plumelog.threadPoolSize" defaultValue="1"/>
+    <springProperty name="plumelog.compressor" scope="context" source="logging.plumelog.compressor" defaultValue="false"/>
+    <!--plumelog redis服务配置-->
+    <springProperty name="plumelog.redisHost" scope="context" source="logging.plumelog.redis.redisHost" defaultValue=""/>
+    <springProperty name="plumelog.redisPort" scope="context" source="logging.plumelog.redis.redisPort" defaultValue="6379"/>
+    <springProperty name="plumelog.redisAuth" scope="context" source="logging.plumelog.redis.redisAuth" defaultValue=""/>
+    <springProperty name="plumelog.model" scope="context" source="logging.plumelog.redis.model" defaultValue="standalone"/>
+    <springProperty name="plumelog.masterName" scope="context" source="logging.plumelog.redis.masterName" defaultValue=""/>
+    <springProperty name="plumelog.redisDb" scope="context" source="logging.plumelog.redis.redisDb" defaultValue="0"/>
+
+    <!--plumelog kafka服务配置-->
+    <springProperty name="plumelog.kafkaHosts" scope="context" source="logging.plumelog.kafka.kafkaHosts" defaultValue=""/>
+
+
     <!-- 控制台 日志格式化 -->
     <property name="CONSOLE_LOG_PATTERN"
-              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr([%X{tid}]){magenta} %yellow([tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A},traceId: %X{traceId:-N/A},exceptionClass: %X{exceptionClass:-N/A}]) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %yellow([tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A},traceId: %X{traceId:-N/A},exceptionClass: %X{exceptionClass:-N/A}]) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <property name="FILE_LOG_PATTERN"
-              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{tid}] [tenantId: %X{tenantId:-N/A},areaCode :%X{areaCode:-N/A}] traceId: %X{traceId:-N/A},exceptionClass: %X{exceptionClass:-N/A}]) ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [tenantId: %X{tenantId:-N/A},areaCode :%X{areaCode:-N/A}] traceId: %X{traceId:-N/A},exceptionClass: %X{exceptionClass:-N/A}]) ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <property name="BIZ_POINT_LOG_PATTERN" value="%m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
@@ -104,7 +126,7 @@
                                 "application": "${applicationName}",
                                 "environment": "${environment:-N/A}",
                                 "tenantId": "%X{tenantId:-N/A}",
-                                "traceId": "%X{tid:-N/A}",
+                                "traceId": "%X{traceId:-N/A}",
                                 "exceptionClass": "%X{exceptionClass:-N/A}",
                                 "pid": "${PID:-N/A}",
                                 "thread": "%thread",
@@ -112,7 +134,6 @@
                                 "message": "%message"}
                             </pattern>
                         </pattern>
-                        <charset>utf8</charset>
                     </providers>
                 </encoder>
             </then>
@@ -151,7 +172,7 @@
                 "application": "${applicationName}",
                 "environment": "${environment:-N/A}",
                 "tenantId": "%X{tenantId:-N/A}",
-                "traceId": "%X{tid:-N/A}",
+                "traceId": "%X{traceId:-N/A}",
                 "pid": "${PID:-N/A}",
                 "thread": "%thread",
                 "class": "%logger{15}",
@@ -246,6 +267,55 @@
         </then>
     </if>
 
+    <!--PlumeLog置-->
+    <if condition='property("enablePlumeLog").contains("true")'>
+        <then>
+            <!--使用redis启用下面配置-->
+            <if condition='property("plumelogType").contains("redis")'>
+                <then>
+                    <appender name="plumelog" class="com.plumelog.logback.appender.RedisAppender">
+                        <appName>${springAppName}</appName>
+                        <env>${plumelog.env}</env>
+                        <redisHost>${plumelog.redisHost}</redisHost>
+                        <redisPort>${plumelog.redisPort}</redisPort>
+                        <redisAuth>${plumelog.redisAuth}</redisAuth>
+                        <model>${plumelog.model}</model>
+                        <masterName>${plumelog.masterName}</masterName>
+                        <redisDb>${plumelog.redisDb}</redisDb>
+                        <runModel>${plumelog.runModel}</runModel>
+                        <expand>${plumelog.expand}</expand>
+                        <maxCount>${plumelog.maxCount}</maxCount>
+                        <logQueueSize>${plumelog.logQueueSize}</logQueueSize>
+                        <threadPoolSize>${plumelog.threadPoolSize}</threadPoolSize>
+                        <compressor>${plumelog.compressor}</compressor>
+                    </appender>
+                </then>
+            </if>
+            <!--使用kafka启用下面配置-->
+            <if condition='property("plumelogType").contains("kafka")'>
+                <then>
+                    <appender name="plumelog" class="com.plumelog.logback.appender.KafkaAppender">
+                        <appName>${springAppName}</appName>
+                        <env>${plumelog.env}</env>
+                        <kafkaHosts>${plumelog.kafkaHosts}</kafkaHosts>
+                        <runModel>${plumelog.runModel}</runModel>
+                        <expand>${plumelog.expand}</expand>
+                        <maxCount>${plumelog.maxCount}</maxCount>
+                        <logQueueSize>${plumelog.logQueueSize}</logQueueSize>
+                        <threadPoolSize>${plumelog.threadPoolSize}</threadPoolSize>
+                        <compressor>${plumelog.compressor}</compressor>
+                    </appender>
+                </then>
+            </if>
+            <appender name="AsyncPlumeLog" class="ch.qos.logback.classic.AsyncAppender">
+                <discardingThreshold>0</discardingThreshold>
+                <queueSize>100</queueSize>
+                <neverBlock>true</neverBlock>
+                <appender-ref ref="plumelog"/>
+            </appender>
+        </then>
+    </if>
+
     <!-- 异步控制台打印 -->
     <appender name="AsyncConsole" class="ch.qos.logback.classic.AsyncAppender">
         <discardingThreshold>0</discardingThreshold>
@@ -317,6 +387,11 @@
         <if condition='property("enableAliYunLog").contains("true")'>
             <then>
                 <appender-ref ref="AsyncAaLiYunLog"/>
+            </then>
+        </if>
+        <if condition='property("enablePlumeLog").contains("true")'>
+            <then>
+                <appender-ref ref="plumelog"/>
             </then>
         </if>
     </root>
