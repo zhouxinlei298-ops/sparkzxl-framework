@@ -15,6 +15,8 @@
  */
 package com.github.sparkzxl.datasource.dynamic;
 
+import com.baomidou.dynamic.datasource.destroyer.DataSourceDestroyer;
+import com.baomidou.dynamic.datasource.destroyer.DefaultDataSourceDestroyer;
 import com.baomidou.dynamic.datasource.ds.AbstractRoutingDataSource;
 import com.baomidou.dynamic.datasource.ds.GroupDataSource;
 import com.baomidou.dynamic.datasource.ds.ItemDataSource;
@@ -22,19 +24,16 @@ import com.baomidou.dynamic.datasource.exception.CannotFindDataSourceException;
 import com.baomidou.dynamic.datasource.provider.DynamicDataSourceProvider;
 import com.baomidou.dynamic.datasource.strategy.DynamicDataSourceStrategy;
 import com.baomidou.dynamic.datasource.strategy.LoadBalanceDynamicDataSourceStrategy;
+import com.baomidou.dynamic.datasource.toolkit.DsStrUtils;
 import com.p6spy.engine.spy.P6DataSource;
 import io.seata.rm.datasource.DataSourceProxy;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.ReflectionUtils;
-import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,8 +57,7 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
      * 分组数据库
      */
     private final Map<String, GroupDataSource> groupDataSources = new ConcurrentHashMap<>();
-    @Autowired
-    private List<DynamicDataSourceProvider> providers;
+    private final List<DynamicDataSourceProvider> providers;
     @Setter
     private Class<? extends DynamicDataSourceStrategy> strategy = LoadBalanceDynamicDataSourceStrategy.class;
     @Setter
@@ -70,6 +68,12 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
     private Boolean p6spy = false;
     @Setter
     private Boolean seata = false;
+    @Setter
+    private Boolean graceDestroy = false;
+
+    public DynamicRoutingDataSource(List<DynamicDataSourceProvider> providers) {
+        this.providers = providers;
+    }
 
     @Override
     protected String getPrimary() {
@@ -121,7 +125,7 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
      * @return 数据源
      */
     public DataSource getDataSource(String ds) {
-        if (StringUtils.isEmpty(ds)) {
+        if (DsStrUtils.isEmpty(ds)) {
             return determinePrimaryDataSource();
         } else if (!groupDataSources.isEmpty() && groupDataSources.containsKey(ds)) {
             log.debug("dynamic-datasource switch to the datasource named [{}]", ds);
@@ -131,7 +135,7 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
             return dataSourceMap.get(ds);
         }
         if (strict) {
-            throw new CannotFindDataSourceException("dynamic-datasource could not find a datasource named" + ds);
+            throw new CannotFindDataSourceException("dynamic-datasource could not find a datasource named " + ds);
         }
         return determinePrimaryDataSource();
     }
@@ -148,7 +152,7 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
         this.addGroupDataSource(ds, dataSource);
         // 关闭老的数据源
         if (oldDataSource != null) {
-            closeDataSource(ds, oldDataSource);
+            closeDataSource(ds, oldDataSource, graceDestroy);
         }
         log.info("dynamic-datasource - add a datasource named [{}] success", ds);
     }
@@ -181,7 +185,7 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
      * @param ds 数据源名称
      */
     public synchronized void removeDataSource(String ds) {
-        if (!StringUtils.hasText(ds)) {
+        if (!DsStrUtils.hasText(ds)) {
             throw new RuntimeException("remove parameter could not be empty");
         }
         if (primary.equals(ds)) {
@@ -189,7 +193,6 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
         }
         if (dataSourceMap.containsKey(ds)) {
             DataSource dataSource = dataSourceMap.remove(ds);
-            closeDataSource(ds, dataSource);
             if (ds.contains(UNDERLINE)) {
                 String group = ds.split(UNDERLINE)[0];
                 if (groupDataSources.containsKey(group)) {
@@ -199,6 +202,7 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
                     }
                 }
             }
+            closeDataSource(ds, dataSource, graceDestroy);
             log.info("dynamic-datasource - remove the database named [{}] success", ds);
         } else {
             log.warn("dynamic-datasource - could not find a database named [{}]", ds);
@@ -206,22 +210,25 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         log.info("dynamic-datasource start closing ....");
         for (Map.Entry<String, DataSource> item : dataSourceMap.entrySet()) {
-            closeDataSource(item.getKey(), item.getValue());
+            closeDataSource(item.getKey(), item.getValue(), false);
         }
         log.info("dynamic-datasource all closed success,bye");
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         // 检查开启了配置但没有相关依赖
         checkEnv();
         // 添加并分组数据源
         Map<String, DataSource> dataSources = new HashMap<>(16);
         for (DynamicDataSourceProvider provider : providers) {
-            dataSources.putAll(provider.loadDataSources());
+            Map<String, DataSource> dsMap = provider.loadDataSources();
+            if (dsMap != null) {
+                dataSources.putAll(dsMap);
+            }
         }
         for (Map.Entry<String, DataSource> dsItem : dataSources.entrySet()) {
             addDataSource(dsItem.getKey(), dsItem.getValue());
@@ -258,30 +265,40 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource implemen
     /**
      * close db
      *
-     * @param ds         dsName
-     * @param dataSource db
+     * @param ds           dsName
+     * @param dataSource   db
+     * @param graceDestroy If true, close the connection after a delay.
      */
-    private void closeDataSource(String ds, DataSource dataSource) {
+    private void closeDataSource(String ds, DataSource dataSource, boolean graceDestroy) {
         try {
+            DataSource realDataSource = null;
             if (dataSource instanceof ItemDataSource) {
-                ((ItemDataSource) dataSource).close();
+                realDataSource = ((ItemDataSource) dataSource).getRealDataSource();
             } else {
                 if (seata) {
                     if (dataSource instanceof DataSourceProxy) {
                         DataSourceProxy dataSourceProxy = (DataSourceProxy) dataSource;
-                        dataSource = dataSourceProxy.getTargetDataSource();
+                        realDataSource = dataSourceProxy.getTargetDataSource();
                     }
                 }
                 if (p6spy) {
                     if (dataSource instanceof P6DataSource) {
                         Field realDataSourceField = P6DataSource.class.getDeclaredField("realDataSource");
                         realDataSourceField.setAccessible(true);
-                        dataSource = (DataSource) realDataSourceField.get(dataSource);
+                        realDataSource = (DataSource) realDataSourceField.get(dataSource);
                     }
                 }
-                Method closeMethod = ReflectionUtils.findMethod(dataSource.getClass(), "close");
-                if (closeMethod != null) {
-                    closeMethod.invoke(dataSource);
+            }
+
+            if (null == realDataSource) {
+                realDataSource = dataSource;
+            }
+            if (null != realDataSource) {
+                DataSourceDestroyer destroyer = new DefaultDataSourceDestroyer();
+                if (graceDestroy) {
+                    destroyer.asyncDestroy(ds, realDataSource);
+                } else {
+                    destroyer.destroy(ds, realDataSource);
                 }
             }
         } catch (Exception e) {

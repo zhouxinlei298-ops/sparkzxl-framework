@@ -1,6 +1,8 @@
 package com.github.sparkzxl.alarm.properties;
 
 import com.github.sparkzxl.alarm.constant.AlarmConstant;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -9,6 +11,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author zhouxinlei
  * @since 2022-05-24 10:48:46
  */
+@Setter
+@Getter
 @ConfigurationProperties(prefix = AlarmConstant.ALARM_THREAD_CONFIG_PREFIX)
 public class AlarmThreadPoolProperties {
 
@@ -34,43 +38,4 @@ public class AlarmThreadPoolProperties {
      */
     private String threadNamePrefix = AlarmConstant.DEFAULT_THREAD_NAME_PREFIX;
 
-    public int getCoreSize() {
-        return coreSize;
-    }
-
-    public void setCoreSize(int coreSize) {
-        this.coreSize = coreSize;
-    }
-
-    public int getMaxSize() {
-        return maxSize;
-    }
-
-    public void setMaxSize(int maxSize) {
-        this.maxSize = maxSize;
-    }
-
-    public int getKeepAliveSeconds() {
-        return keepAliveSeconds;
-    }
-
-    public void setKeepAliveSeconds(int keepAliveSeconds) {
-        this.keepAliveSeconds = keepAliveSeconds;
-    }
-
-    public int getQueueCapacity() {
-        return queueCapacity;
-    }
-
-    public void setQueueCapacity(int queueCapacity) {
-        this.queueCapacity = queueCapacity;
-    }
-
-    public String getThreadNamePrefix() {
-        return threadNamePrefix;
-    }
-
-    public void setThreadNamePrefix(String threadNamePrefix) {
-        this.threadNamePrefix = threadNamePrefix;
-    }
 }

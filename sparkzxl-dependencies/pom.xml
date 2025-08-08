@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>com.github.sparkzxl</groupId>
     <artifactId>sparkzxl-dependencies</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>3.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>sparkzxl-dependencies</name>
     <description>sparkzxl dependencies pom</description>
     <url>https://github.com/zhouxinlei828/sparkzxl-dependencies</url>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
         <!-- maven -->
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -20,50 +19,48 @@
         <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
         <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
         <!-- spring-version-->
-        <spring-boot-dependencies.version>2.7.18</spring-boot-dependencies.version>
-        <spring-cloud-dependencies.version>2021.0.9</spring-cloud-dependencies.version>
-        <spring-cloud-alibaba-dependencies.version>2021.1</spring-cloud-alibaba-dependencies.version>
-        <resilience4j.version>1.7.0</resilience4j.version>
+        <spring-framework.version>6.2.9</spring-framework.version>
+        <spring-boot.version>3.5.4</spring-boot.version>
+        <spring-cloud-dependencies.version>2025.0.0</spring-cloud-dependencies.version>
+        <spring-cloud-alibaba-dependencies.version>2023.0.3.3</spring-cloud-alibaba-dependencies.version>
         <nacos.version>2.5.1</nacos.version>
 
-        <servlet-api.version>4.0.1</servlet-api.version>
-        <knife4j.version>2.0.9</knife4j.version>
-        <springfox.version>2.10.5</springfox.version>
-        <swagger-models.version>1.5.22</swagger-models.version>
-        <log4j.version>2.17.2</log4j.version>
-        <spring-webmvc.version>5.3.26</spring-webmvc.version>
+        <knife4j.version>4.5.0</knife4j.version>
+        <knife4j-swagger-models-v3.version>2.2.28</knife4j-swagger-models-v3.version>
+        <log4j.version>2.25.1</log4j.version>
+        <dubbo.version>3.3.5</dubbo.version>
 
         <!-- datasource-->
-        <mybatis.version>3.5.7</mybatis.version>
+        <mybatis.version>3.5.19</mybatis.version>
         <mysql.version>8.0.33</mysql.version>
-        <mybatis-plus.version>3.5.3</mybatis-plus.version>
-        <dynamic-datasource.version>3.6.1</dynamic-datasource.version>
-        <druid.version>1.2.8</druid.version>
+        <mybatis-plus.version>3.5.12</mybatis-plus.version>
+        <dynamic-datasource.version>4.3.1</dynamic-datasource.version>
+        <druid.version>1.2.25</druid.version>
         <p6spy.version>3.9.1</p6spy.version>
         <logstash.version>8.1</logstash.version>
         <vavr.version>0.10.4</vavr.version>
 
         <!-- common组件-->
-        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <commons-lang3.version>3.18.0</commons-lang3.version>
         <!-- jwt组件-->
         <jwt.version>9.12.1</jwt.version>
 
         <!-- google-->
-        <guava.version>33.0.0-jre</guava.version>
-        <hutool.version>5.8.34</hutool.version>
+        <guava.version>33.4.8-jre</guava.version>
+        <hutool.version>5.8.39</hutool.version>
         <!-- redisson -->
-        <redisson-spring-boot-starter.version>3.17.1</redisson-spring-boot-starter.version>
-        <zookeeper.version>3.6.2</zookeeper.version>
-        <curator.version>5.2.0</curator.version>
+        <redisson-spring-boot-starter.version>3.50.0</redisson-spring-boot-starter.version>
+        <zookeeper.version>3.9.3</zookeeper.version>
+        <curator.version>5.9.0</curator.version>
 
         <elasticsearch.version>7.17.1</elasticsearch.version>
-        <lombok.version>1.18.8</lombok.version>
+        <lombok.version>1.18.38</lombok.version>
         <apm-toolkit-trace.version>8.16.0</apm-toolkit-trace.version>
         <ip2region.version>2.6.5</ip2region.version>
         <caffeine.version>2.9.3</caffeine.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <easy-excel.version>3.1.4</easy-excel.version>
-        <retrofit-spring-boot-starter.version>2.3.13</retrofit-spring-boot-starter.version>
+        <easy-excel.version>4.0.3</easy-excel.version>
+        <retrofit-spring-boot-starter.version>3.1.7</retrofit-spring-boot-starter.version>
         <xxl-job.version>2.3.1</xxl-job.version>
         <javax.el.version>3.0.1-b11</javax.el.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
@@ -74,14 +71,13 @@
         <logback-kafka-appender.version>0.2.0-RC2</logback-kafka-appender.version>
         <jsqlparser.version>4.3</jsqlparser.version>
         <sensitive-word.version>0.0.15</sensitive-word.version>
-        <transmittable-thread-local.version>2.12.1</transmittable-thread-local.version>
+        <transmittable-thread-local.version>2.12.2</transmittable-thread-local.version>
 
         <freemarker.version>2.3.28</freemarker.version>
-        <swagger-models.version>1.5.22</swagger-models.version>
         <aliyun-dysmsapi-version>2.0.8</aliyun-dysmsapi-version>
         <bcprov-jdk15on-version>1.70</bcprov-jdk15on-version>
         <tencentcloud-sdk-java-version>3.1.515</tencentcloud-sdk-java-version>
-        <grpc-spring-boot-starter.version>2.13.1.RELEASE</grpc-spring-boot-starter.version>
+        <grpc-spring-boot-starter.version>3.1.0.RELEASE</grpc-spring-boot-starter.version>
         <commons-compress.version>1.21</commons-compress.version>
         <commons-io.version>2.10.0</commons-io.version>
         <xstream.version>1.4.20</xstream.version>
@@ -125,9 +121,23 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud-dependencies.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot-dependencies.version}</version>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring-framework.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -137,28 +147,6 @@
                 <version>${spring-cloud-alibaba-dependencies.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-autoconfigure</artifactId>
-                <version>${spring-boot-dependencies.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud-dependencies.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.github.resilience4j</groupId>
-                <artifactId>resilience4j-spring-boot2</artifactId>
-                <version>${resilience4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.resilience4j</groupId>
-                <artifactId>resilience4j-spring-cloud2</artifactId>
-                <version>${resilience4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba.nacos</groupId>
@@ -172,22 +160,6 @@
                 <version>${lombok.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-webmvc</artifactId>
-                <version>${spring-webmvc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-aop</artifactId>
-                <version>${spring-boot-dependencies.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-starter-logging</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-dependencies</artifactId>
                 <version>${knife4j.version}</version>
@@ -195,10 +167,29 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>${knife4j-swagger-models-v3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-models-jakarta</artifactId>
+                <version>${knife4j-swagger-models-v3.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.github.xiaoymin</groupId>
-                <artifactId>knife4j-spring-boot-starter</artifactId>
+                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo-bom</artifactId>
+                <version>${dubbo.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <dependency>
                 <groupId>mysql</groupId>
                 <artifactId>mysql-connector-java</artifactId>
@@ -207,13 +198,10 @@
             <!-- mybatis-plus -->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <artifactId>mybatis-plus-bom</artifactId>
                 <version>${mybatis-plus.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-annotation</artifactId>
-                <version>${mybatis-plus.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.baomidou</groupId>
@@ -232,12 +220,12 @@
             </dependency>
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>dynamic-datasource-spring-boot-starter</artifactId>
+                <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
                 <version>${dynamic-datasource.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
-                <artifactId>druid-spring-boot-starter</artifactId>
+                <artifactId>druid-spring-boot-3-starter</artifactId>
                 <version>${druid.version}</version>
             </dependency>
             <dependency>
@@ -266,24 +254,9 @@
                 <version>${protobuf-java.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.swagger</groupId>
-                <artifactId>swagger-annotations</artifactId>
-                <version>${swagger-models.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.springfox</groupId>
-                <artifactId>springfox-core</artifactId>
-                <version>${springfox.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>javax.servlet-api</artifactId>
-                <version>${servlet-api.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-web</artifactId>
-                <version>${spring-boot-dependencies.version}</version>
+                <version>${spring-boot.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.mybatis</groupId>
@@ -531,13 +504,6 @@
                 <version>${transmittable-thread-local.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.squareup.okio</groupId>
-                <artifactId>okio</artifactId>
-                <version>2.8.0</version>
-            </dependency>
-
-
             <!-- sparkzxl-framework 组件库-->
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
@@ -671,22 +637,12 @@
             </dependency>
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
-                <artifactId>sparkzxl-mail-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-mongodb-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-mybatis-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.sparkzxl</groupId>
-                <artifactId>sparkzxl-oauth2-resource-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -707,11 +663,6 @@
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-patterns-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.sparkzxl</groupId>
-                <artifactId>sparkzxl-security-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

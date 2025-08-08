@@ -1,11 +1,16 @@
 package com.github.sparkzxl.alarm.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * description: Link类型实体对象
  *
  * @author zhouxinlei
  * @since 2022-05-19 10:38:05
  */
+@Setter
+@Getter
 public class BaseLink {
 
     /**
@@ -36,35 +41,4 @@ public class BaseLink {
         return new BaseLink(title, text, messageUrl, picUrl);
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-    }
-
-    public String getMessageUrl() {
-        return messageUrl;
-    }
-
-    public void setMessageUrl(String messageUrl) {
-        this.messageUrl = messageUrl;
-    }
-
-    public String getPicUrl() {
-        return picUrl;
-    }
-
-    public void setPicUrl(String picUrl) {
-        this.picUrl = picUrl;
-    }
 }

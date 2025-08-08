@@ -4,19 +4,12 @@ import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.dynamic.datasource.event.DataSourceInitEvent;
 import com.baomidou.dynamic.datasource.event.EncDataSourceInitEvent;
-import com.baomidou.dynamic.datasource.processor.DsHeaderProcessor;
+import com.baomidou.dynamic.datasource.processor.DsJakartaHeaderProcessor;
+import com.baomidou.dynamic.datasource.processor.DsJakartaSessionProcessor;
 import com.baomidou.dynamic.datasource.processor.DsProcessor;
-import com.baomidou.dynamic.datasource.processor.DsSessionProcessor;
 import com.baomidou.dynamic.datasource.processor.DsSpelExpressionProcessor;
-import com.baomidou.dynamic.datasource.processor.jakarta.DsJakartaHeaderProcessor;
-import com.baomidou.dynamic.datasource.processor.jakarta.DsJakartaSessionProcessor;
 import com.baomidou.dynamic.datasource.provider.DynamicDataSourceProvider;
-import com.baomidou.dynamic.datasource.provider.YmlDynamicDataSourceProvider;
-import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceCreatorAutoConfiguration;
-import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceProperties;
-import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourcePropertiesCustomizer;
-import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDatasourceAopProperties;
-import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.druid.DruidDynamicDataSourceConfiguration;
+import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.*;
 import com.github.sparkzxl.datasource.dynamic.DynamicRoutingDataSource;
 import com.github.sparkzxl.datasource.dynamic.aop.DynamicDataSourceAnnotationAdvisor;
 import com.github.sparkzxl.datasource.dynamic.aop.DynamicDataSourceAnnotationInterceptor;
@@ -29,7 +22,6 @@ import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.SpringBootVersion;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -42,7 +34,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Role;
 import org.springframework.context.expression.BeanFactoryResolver;
-import org.springframework.core.annotation.Order;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -56,44 +47,56 @@ import java.util.Optional;
  *
  * @author zhouxinlei
  */
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({DynamicDataSourceProperties.class, DynamicDataProperties.class})
 @Slf4j
-@AutoConfigureBefore(value = DataSourceAutoConfiguration.class, name = "com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure")
-@Import(value = {DruidDynamicDataSourceConfiguration.class, DynamicDataSourceCreatorAutoConfiguration.class, DataSourceExceptionHandler.class})
+@AutoConfigureBefore(
+        value = DataSourceAutoConfiguration.class,
+        name = {
+                "com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure",
+                "com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure"
+        })
+@Import({DruidDynamicDataSourceConfiguration.class,
+        DynamicDataSourceCreatorAutoConfiguration.class,
+        DynamicDataSourceAssistConfiguration.class,
+        DataSourceExceptionHandler.class
+})
 @ConditionalOnProperty(prefix = DynamicDataSourceProperties.PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DynamicDataSourceAutoConfig implements WebMvcConfigurer, InitializingBean {
 
-    public static final String DEFAULT_DYNAMIC_DATASOURCE_INTERCEPTOR_NAME = "dynamicDataSourceInterceptor";
-    private DynamicDataProperties dynamicDataProperties;
+    private final DynamicDataProperties dynamicDataProperties;
 
     private final DynamicDataSourceProperties properties;
 
     private final List<DynamicDataSourcePropertiesCustomizer> dataSourcePropertiesCustomizers;
 
     public DynamicDataSourceAutoConfig(
+            DynamicDataProperties dynamicDataProperties,
             DynamicDataSourceProperties properties,
             ObjectProvider<List<DynamicDataSourcePropertiesCustomizer>> dataSourcePropertiesCustomizers) {
+        this.dynamicDataProperties = dynamicDataProperties;
         log.info("Dynamic data source autoconfiguration is enabled");
         this.properties = properties;
         this.dataSourcePropertiesCustomizers = dataSourcePropertiesCustomizers.getIfAvailable();
     }
 
-    @Autowired
-    public void setDynamicDataProperties(DynamicDataProperties dynamicDataProperties) {
-        this.dynamicDataProperties = dynamicDataProperties;
-    }
-
-    @Bean(name = DEFAULT_DYNAMIC_DATASOURCE_INTERCEPTOR_NAME)
+    @Bean
     @ConditionalOnMissingBean
-    public DynamicDataSourceInterceptor dynamicDataSourceInterceptor() {
-        return new DynamicDataSourceInterceptor();
+    public DataSource dataSource(List<DynamicDataSourceProvider> providers) {
+        DynamicRoutingDataSource dataSource = new DynamicRoutingDataSource(providers);
+        dataSource.setPrimary(properties.getPrimary());
+        dataSource.setStrict(properties.getStrict());
+        dataSource.setStrategy(properties.getStrategy());
+        dataSource.setP6spy(properties.getP6spy());
+        dataSource.setSeata(properties.getSeata());
+        dataSource.setGraceDestroy(properties.getGraceDestroy());
+        return dataSource;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         if (dynamicDataProperties.isEnabled()) {
-            DynamicDataSourceInterceptor dynamicDataSourceInterceptor = dynamicDataSourceInterceptor();
+            DynamicDataSourceInterceptor dynamicDataSourceInterceptor = new DynamicDataSourceInterceptor();
             Optional.of(dynamicDataSourceInterceptor).ifPresent(interceptor -> {
                 registry.addInterceptor(interceptor);
                 log.info("已加载拦截器：[{}]", ClassUtils.getName(interceptor));
@@ -101,24 +104,6 @@ public class DynamicDataSourceAutoConfig implements WebMvcConfigurer, Initializi
         }
     }
 
-
-    @Bean
-    @Order(0)
-    public DynamicDataSourceProvider ymlDynamicDataSourceProvider() {
-        return new YmlDynamicDataSourceProvider(properties.getDatasource());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public DataSource dataSource() {
-        DynamicRoutingDataSource dataSource = new DynamicRoutingDataSource();
-        dataSource.setPrimary(properties.getPrimary());
-        dataSource.setStrict(properties.getStrict());
-        dataSource.setStrategy(properties.getStrategy());
-        dataSource.setP6spy(properties.getP6spy());
-        dataSource.setSeata(properties.getSeata());
-        return dataSource;
-    }
 
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @Bean
@@ -137,29 +122,17 @@ public class DynamicDataSourceAutoConfig implements WebMvcConfigurer, Initializi
     @Bean
     @ConditionalOnProperty(prefix = DynamicDataSourceProperties.PREFIX, name = "seata", havingValue = "false", matchIfMissing = true)
     public Advisor dynamicTransactionAdvisor() {
-        DynamicLocalTransactionInterceptor interceptor = new DynamicLocalTransactionInterceptor();
+        DynamicDatasourceAopProperties aopProperties = properties.getAop();
+        DynamicLocalTransactionInterceptor interceptor = new DynamicLocalTransactionInterceptor(aopProperties.getAllowedPublicOnly());
         return new DynamicDataSourceAnnotationAdvisor(interceptor, DSTransactional.class);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public DataSourceInitEvent dataSourceInitEvent() {
-        return new EncDataSourceInitEvent();
-    }
-
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @Bean
     @ConditionalOnMissingBean
     public DsProcessor dsProcessor(BeanFactory beanFactory) {
-        String version = SpringBootVersion.getVersion();
-        DsProcessor headerProcessor;
-        DsProcessor sessionProcessor;
-        if (version.startsWith("3")) {
-            headerProcessor = new DsJakartaHeaderProcessor();
-            sessionProcessor = new DsJakartaSessionProcessor();
-        } else {
-            headerProcessor = new DsHeaderProcessor();
-            sessionProcessor = new DsSessionProcessor();
-        }
+        DsProcessor headerProcessor = new DsJakartaHeaderProcessor();
+        DsProcessor sessionProcessor = new DsJakartaSessionProcessor();
         DsSpelExpressionProcessor spelExpressionProcessor = new DsSpelExpressionProcessor();
         spelExpressionProcessor.setBeanResolver(new BeanFactoryResolver(beanFactory));
         headerProcessor.setNextProcessor(sessionProcessor);

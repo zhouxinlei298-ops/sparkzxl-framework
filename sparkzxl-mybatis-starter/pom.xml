@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.sparkzxl</groupId>
         <artifactId>sparkzxl-framework</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>3.0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>sparkzxl-mybatis-starter</artifactId>
@@ -22,7 +22,21 @@
         <!-- mybatis-plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>HikariCP</artifactId>
+                    <groupId>com.zaxxer</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.jsqlparser</groupId>
+            <artifactId>jsqlparser</artifactId>
         </dependency>
         <dependency>
             <groupId>com.github.sparkzxl</groupId>

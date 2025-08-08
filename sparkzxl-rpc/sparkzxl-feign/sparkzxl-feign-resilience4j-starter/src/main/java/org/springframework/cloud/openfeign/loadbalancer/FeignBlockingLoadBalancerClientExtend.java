@@ -1,31 +1,13 @@
 package org.springframework.cloud.openfeign.loadbalancer;
 
-import static org.springframework.cloud.openfeign.loadbalancer.LoadBalancerUtils.executeWithLoadBalancerLifecycleProcessing;
-
 import com.google.common.collect.Maps;
 import feign.Client;
 import feign.Request;
 import feign.Response;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cloud.client.ServiceInstance;
-import org.springframework.cloud.client.loadbalancer.CompletionContext;
-import org.springframework.cloud.client.loadbalancer.DefaultRequest;
-import org.springframework.cloud.client.loadbalancer.DefaultResponse;
-import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
-import org.springframework.cloud.client.loadbalancer.LoadBalancerLifecycle;
-import org.springframework.cloud.client.loadbalancer.LoadBalancerLifecycleValidator;
-import org.springframework.cloud.client.loadbalancer.LoadBalancerProperties;
-import org.springframework.cloud.client.loadbalancer.RequestData;
-import org.springframework.cloud.client.loadbalancer.RequestDataContext;
-import org.springframework.cloud.client.loadbalancer.ResponseData;
+import org.springframework.cloud.client.loadbalancer.*;
 import org.springframework.cloud.loadbalancer.support.LoadBalancerClientFactory;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -33,6 +15,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
+
+import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.springframework.cloud.openfeign.loadbalancer.LoadBalancerUtils.executeWithLoadBalancerLifecycleProcessing;
 
 
 /**
@@ -42,27 +34,36 @@ import org.springframework.util.Assert;
  * @since 2022-04-04 12:01:34
  */
 @Slf4j
-@RequiredArgsConstructor
 public class FeignBlockingLoadBalancerClientExtend implements Client {
 
     public static final String REQUEST_TEMPLATE = "request_template";
     private final Client delegate;
     private final LoadBalancerClient loadBalancerClient;
-    private final LoadBalancerProperties properties;
+    private final List<LoadBalancerFeignRequestTransformer> transformers;
     private final LoadBalancerClientFactory loadBalancerClientFactory;
+
+    public FeignBlockingLoadBalancerClientExtend(Client delegate,
+                                                 LoadBalancerClient loadBalancerClient,
+                                                 LoadBalancerClientFactory loadBalancerClientFactory,
+                                                 List<LoadBalancerFeignRequestTransformer> transformers) {
+        this.delegate = delegate;
+        this.loadBalancerClient = loadBalancerClient;
+        this.loadBalancerClientFactory = loadBalancerClientFactory;
+        this.transformers = transformers;
+    }
 
     /**
      * 修改的就是这里，原来这个方法是在 LoadBalancerUtils 里面 这里就是将 Request 的额外信息放进去
      *
-     * @param request
-     * @return
+     * @param request request
+     * @return RequestData
      */
     static RequestData buildRequestData(Request request) {
         HttpHeaders requestHeaders = new HttpHeaders();
         request.headers().forEach((key, value) -> requestHeaders.put(key, new ArrayList<>(value)));
         Map<String, Object> attributes = Maps.newHashMap();
         attributes.put(REQUEST_TEMPLATE, request.requestTemplate());
-        return new RequestData(HttpMethod.resolve(request.httpMethod().name()), URI.create(request.url()),
+        return new RequestData(HttpMethod.valueOf(request.httpMethod().name()), URI.create(request.url()),
                 requestHeaders, null, attributes);
     }
 
@@ -95,15 +96,16 @@ public class FeignBlockingLoadBalancerClientExtend implements Client {
             supportedLifecycleProcessors.forEach(lifecycle -> lifecycle
                     .onComplete(new CompletionContext<ResponseData, ServiceInstance, RequestDataContext>(
                             CompletionContext.Status.DISCARD, lbRequest, lbResponse)));
-            return Response.builder().request(request).status(HttpStatus.SERVICE_UNAVAILABLE.value())
-                    .reason(message)
-                    .body(message, StandardCharsets.UTF_8).build();
+            return Response.builder()
+                    .request(request)
+                    .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                    .body(message, StandardCharsets.UTF_8)
+                    .build();
         }
         String reconstructedUrl = loadBalancerClient.reconstructURI(instance, originalUri).toString();
-        Request newRequest = buildRequest(request, reconstructedUrl);
-        LoadBalancerProperties loadBalancerProperties = loadBalancerClientFactory.getProperties(serviceId);
+        Request newRequest = buildRequest(request, reconstructedUrl, instance);
         return executeWithLoadBalancerLifecycleProcessing(delegate, options, newRequest, lbRequest, lbResponse,
-                supportedLifecycleProcessors, loadBalancerProperties.isUseRawStatusCodeInResponseData());
+                supportedLifecycleProcessors);
     }
 
     protected Request buildRequest(Request request, String reconstructedUrl) {
@@ -111,7 +113,18 @@ public class FeignBlockingLoadBalancerClientExtend implements Client {
                 request.charset(), request.requestTemplate());
     }
 
+    protected Request buildRequest(Request request, String reconstructedUrl, ServiceInstance instance) {
+        Request newRequest = buildRequest(request, reconstructedUrl);
+        if (transformers != null) {
+            for (LoadBalancerFeignRequestTransformer transformer : transformers) {
+                newRequest = transformer.transformRequest(newRequest, instance);
+            }
+        }
+        return newRequest;
+    }
+
     private String getHint(String serviceId) {
+        LoadBalancerProperties properties = loadBalancerClientFactory.getProperties(serviceId);
         String defaultHint = properties.getHint().getOrDefault("default", "default");
         String hintPropertyValue = properties.getHint().get(serviceId);
         return hintPropertyValue != null ? hintPropertyValue : defaultHint;

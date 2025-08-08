@@ -3,6 +3,9 @@ package com.github.sparkzxl.alarm.dingtalk.entity;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.TypeReference;
 import com.github.sparkzxl.alarm.entity.BaseImageText;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +16,8 @@ import java.util.Map;
  * @author zhouxinlei
  * @since 2022-05-19 10:20:51
  */
+@Setter
+@Getter
 public class DingFeedCard extends DingTalkMessage {
 
     /**
@@ -27,14 +32,6 @@ public class DingFeedCard extends DingTalkMessage {
     public DingFeedCard(List<FeedCard.Link> links) {
         this();
         this.feedCard = new FeedCard(links);
-    }
-
-    public FeedCard getFeedCard() {
-        return feedCard;
-    }
-
-    public void setFeedCard(FeedCard feedCard) {
-        this.feedCard = feedCard;
     }
 
     @Override

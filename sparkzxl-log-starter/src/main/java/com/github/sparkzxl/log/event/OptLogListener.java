@@ -27,7 +27,7 @@ public class OptLogListener {
 
     @Async
     @EventListener(OptLogEvent.class)
-    public void saveRequestLog(OptLogEvent event) {
+    public void saveOptLog(OptLogEvent event) {
         OptRecordLog optRecordLog = (OptRecordLog) event.getSource();
         if (ObjectUtils.isEmpty(optRecordLog)) {
             log.warn("忽略操作日志记录");

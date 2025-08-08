@@ -1,11 +1,16 @@
 package com.github.sparkzxl.alarm.sign;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * description: 签名返回体
  *
  * @author zhouxinlei
  * @since 2022-05-18 15:54:18
  */
+@Setter
+@Getter
 public class SignResult extends BaseSign {
 
     /**
@@ -19,22 +24,6 @@ public class SignResult extends BaseSign {
 
     public SignResult(String sign, Long timestamp) {
         this.sign = sign;
-        this.timestamp = timestamp;
-    }
-
-    public String getSign() {
-        return sign;
-    }
-
-    public void setSign(String sign) {
-        this.sign = sign;
-    }
-
-    public Long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
     }
 

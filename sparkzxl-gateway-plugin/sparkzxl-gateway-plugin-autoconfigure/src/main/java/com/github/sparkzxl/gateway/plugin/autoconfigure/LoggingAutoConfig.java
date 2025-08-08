@@ -6,7 +6,7 @@ import com.github.sparkzxl.gateway.plugin.logging.ResponseLogFilter;
 import com.github.sparkzxl.gateway.plugin.logging.service.IOptLogService;
 import com.github.sparkzxl.gateway.properties.GatewayPluginProperties;
 import com.github.sparkzxl.gateway.properties.LoggingProperties;
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

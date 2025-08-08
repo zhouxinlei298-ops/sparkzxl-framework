@@ -26,8 +26,8 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 
 /**
  * description: 切面工具类
@@ -36,7 +36,7 @@ import javax.servlet.ServletResponse;
  */
 public class AopUtil {
 
-    public static final DefaultParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
+    public static final DefaultParameterNameDiscoverer PARAMETER_NAME_DISCOVERER = new DefaultParameterNameDiscoverer();
 
     public static Method getTargetMethod(JoinPoint joinPoint) {
         Signature signature = joinPoint.getSignature();
@@ -99,7 +99,7 @@ public class AopUtil {
 
 
     public static Map<String, Object> getParameterAnnotationMap(Method method, Object[] args, Class<? extends Annotation> annotation, String propertyName) {
-        String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
+        String[] parameterNames = PARAMETER_NAME_DISCOVERER.getParameterNames(method);
         Map<String, Object> paramMap = Maps.newHashMap();
         final Parameter[] parameters = method.getParameters();
         if (args != null && parameterNames != null) {
@@ -141,7 +141,7 @@ public class AopUtil {
     }
 
     public static Object getParameterAnnotationData(Method method, Object[] args, Class<? extends Annotation> annotation, String propertyName) {
-        String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
+        String[] parameterNames = PARAMETER_NAME_DISCOVERER.getParameterNames(method);
         Map<String, Object> paramMap = Maps.newHashMap();
         final Parameter[] parameters = method.getParameters();
         if (args != null && parameterNames != null) {
@@ -203,7 +203,7 @@ public class AopUtil {
      * @return String
      */
     public static Map<String, Object> getParameterMap(Method method, Object[] args, Class<?>[] excludeClass) {
-        String[] paramNames = parameterNameDiscoverer.getParameterNames(method);
+        String[] paramNames = PARAMETER_NAME_DISCOVERER.getParameterNames(method);
         Map<String, Object> parameterMap = Maps.newHashMap();
         if (args != null && paramNames != null) {
             for (int i = 0; i < args.length; i++) {

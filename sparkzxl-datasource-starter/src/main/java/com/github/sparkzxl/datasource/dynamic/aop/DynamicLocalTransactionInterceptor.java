@@ -15,39 +15,47 @@
  */
 package com.github.sparkzxl.datasource.dynamic.aop;
 
-import com.baomidou.dynamic.datasource.tx.LocalTxUtil;
-import com.baomidou.dynamic.datasource.tx.TransactionContext;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
+import com.baomidou.dynamic.datasource.support.DataSourceClassResolver;
+import com.baomidou.dynamic.datasource.tx.TransactionalExecutor;
+import com.baomidou.dynamic.datasource.tx.TransactionalInfo;
+import com.baomidou.dynamic.datasource.tx.TransactionalTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.util.StringUtils;
+
+import java.lang.reflect.Method;
 
 /**
+ * Dynamic DataSource Transaction Interceptor
+ *
  * @author funkye
  */
 @Slf4j
 public class DynamicLocalTransactionInterceptor implements MethodInterceptor {
+    private final TransactionalTemplate transactionalTemplate;
+    private final DataSourceClassResolver dataSourceClassResolver;
+
+    public DynamicLocalTransactionInterceptor(Boolean allowedPublicOnly) {
+        transactionalTemplate = new TransactionalTemplate();
+        dataSourceClassResolver = new DataSourceClassResolver(allowedPublicOnly);
+    }
 
     @Override
-    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
-        if (!StringUtils.isEmpty(TransactionContext.getXID())) {
-            return methodInvocation.proceed();
-        }
-        boolean state = true;
-        Object o;
-        LocalTxUtil.startTransaction();
-        try {
-            o = methodInvocation.proceed();
-        } catch (Exception e) {
-            state = false;
-            throw e;
-        } finally {
-            if (state) {
-                LocalTxUtil.commit();
-            } else {
-                LocalTxUtil.rollback();
+    public Object invoke(final MethodInvocation methodInvocation) throws Throwable {
+        final Method method = methodInvocation.getMethod();
+
+        TransactionalExecutor transactionalExecutor = new TransactionalExecutor() {
+            @Override
+            public Object execute() throws Throwable {
+                return methodInvocation.proceed();
             }
-        }
-        return o;
+
+            @Override
+            public TransactionalInfo getTransactionInfo() {
+                return dataSourceClassResolver.findTransactionalInfo(method, methodInvocation.getThis(), DSTransactional.class);
+            }
+        };
+        return transactionalTemplate.execute(transactionalExecutor);
     }
 }

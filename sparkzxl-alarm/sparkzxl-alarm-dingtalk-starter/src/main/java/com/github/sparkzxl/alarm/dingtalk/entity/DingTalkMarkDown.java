@@ -1,5 +1,8 @@
 package com.github.sparkzxl.alarm.dingtalk.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.Map;
 
@@ -9,6 +12,8 @@ import java.util.Map;
  * @author zhouxinlei
  * @since 2022-05-19 10:15:55
  */
+@Setter
+@Getter
 public class DingTalkMarkDown extends Message {
 
     /**
@@ -18,14 +23,6 @@ public class DingTalkMarkDown extends Message {
 
     public DingTalkMarkDown(MarkDown markdown) {
         setMsgtype(DingTalkMsgType.MARKDOWN.type());
-        this.markdown = markdown;
-    }
-
-    public MarkDown getMarkdown() {
-        return markdown;
-    }
-
-    public void setMarkdown(MarkDown markdown) {
         this.markdown = markdown;
     }
 

@@ -2,17 +2,17 @@ package com.github.sparkzxl.data.sync.admin.listener.websocket;
 
 import com.github.sparkzxl.data.sync.admin.config.websocket.WebsocketProviderProperties;
 import com.github.sparkzxl.data.sync.common.constant.ConfigConstant;
+import jakarta.websocket.HandshakeResponse;
+import jakarta.websocket.server.HandshakeRequest;
+import jakarta.websocket.server.ServerEndpointConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Configuration;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpSession;
-import javax.websocket.HandshakeResponse;
-import javax.websocket.server.HandshakeRequest;
-import javax.websocket.server.ServerEndpointConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpSession;
 
 import static org.apache.tomcat.websocket.server.Constants.BINARY_BUFFER_SIZE_SERVLET_CONTEXT_INIT_PARAM;
 import static org.apache.tomcat.websocket.server.Constants.TEXT_BUFFER_SIZE_SERVLET_CONTEXT_INIT_PARAM;

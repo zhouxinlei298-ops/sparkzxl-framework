@@ -2,9 +2,10 @@ package org.slf4j;
 
 import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import com.alibaba.ttl.TransmittableThreadLocal;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.*;
+
+import org.slf4j.helpers.ThreadLocalMapOfStacks;
 import org.slf4j.spi.MDCAdapter;
 
 /**
@@ -15,14 +16,15 @@ import org.slf4j.spi.MDCAdapter;
 public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
 
     private static final int WRITE_OPERATION = 1;
-    private static final int READ_OPERATION = 2;
-    private static final TransmittableThreadLocalMdcAdapter CUSTOM_MDC_ADAPTER;
+    private static final int MAP_COPY_OPERATION = 2;
+    private static final TransmittableThreadLocalMdcAdapter mtcMDCAdapter;
 
     static {
-        CUSTOM_MDC_ADAPTER = new TransmittableThreadLocalMdcAdapter();
-        MDC.mdcAdapter = CUSTOM_MDC_ADAPTER;
+        mtcMDCAdapter = new TransmittableThreadLocalMdcAdapter();
+        MDC.MDC_ADAPTER = mtcMDCAdapter;
     }
 
+    private final ThreadLocalMapOfStacks threadLocalMapOfDeques = new ThreadLocalMapOfStacks();
     private final ThreadLocal<Map<String, String>> copyOnInheritThreadLocal = new TransmittableThreadLocal<>();
     /**
      * keeps track of the last operation performed
@@ -30,11 +32,11 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
     private final ThreadLocal<Integer> lastOperation = new ThreadLocal<>();
 
     public static MDCAdapter getInstance() {
-        return CUSTOM_MDC_ADAPTER;
+        return mtcMDCAdapter;
     }
 
     private static boolean wasLastOpReadOrNull(Integer lastOp) {
-        return lastOp == null || lastOp == READ_OPERATION;
+        return lastOp == null || lastOp == MAP_COPY_OPERATION;
     }
 
     private Integer getAndSetLastOperation(int op) {
@@ -63,7 +65,8 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
      * contrary to log4j, the <code>val</code> parameter can be null.
      * <p/>
      * <p/>
-     * If the current thread does not have a context map it is created as a side effect of this call.
+     * If the current thread does not have a context map it is created as a side
+     * effect of this call.
      *
      * @throws IllegalArgumentException in case the "key" parameter is null
      */
@@ -125,7 +128,7 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
      */
     @Override
     public String get(String key) {
-        final Map<String, String> map = getPropertyMap();
+        final Map<String, String> map = copyOnInheritThreadLocal.get();
         if ((map != null) && (key != null)) {
             return map.get(key);
         } else {
@@ -133,20 +136,36 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
         }
     }
 
+
     /**
-     * Get the current thread's MDC as a map. This method is intended to be used internally.
+     * Get the current thread's MDC as a map. This method is intended to be used
+     * internally.
      */
     public Map<String, String> getPropertyMap() {
-        lastOperation.set(READ_OPERATION);
+        lastOperation.set(MAP_COPY_OPERATION);
         return copyOnInheritThreadLocal.get();
     }
 
     /**
-     * Return a copy of the current thread's context map. Returned value may be null.
+     * Returns the keys in the MDC as a {@link Set}. The returned value can be
+     * null.
+     */
+    public Set<String> getKeys() {
+        Map<String, String> map = getPropertyMap();
+
+        if (map != null) {
+            return map.keySet();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Return a copy of the current thread's context map. Returned value may be
+     * null.
      */
     @Override
     public Map<String, String> getCopyOfContextMap() {
-        lastOperation.set(READ_OPERATION);
         Map<String, String> hashMap = copyOnInheritThreadLocal.get();
         if (hashMap == null) {
             return null;
@@ -164,5 +183,25 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
 
         // the newMap replaces the old one for serialisation's sake
         copyOnInheritThreadLocal.set(newMap);
+    }
+
+    @Override
+    public void pushByKey(String key, String value) {
+        threadLocalMapOfDeques.pushByKey(key, value);
+    }
+
+    @Override
+    public String popByKey(String key) {
+        return threadLocalMapOfDeques.popByKey(key);
+    }
+
+    @Override
+    public Deque<String> getCopyOfDequeByKey(String key) {
+        return threadLocalMapOfDeques.getCopyOfDequeByKey(key);
+    }
+
+    @Override
+    public void clearDequeByKey(String key) {
+        threadLocalMapOfDeques.clearDequeByKey(key);
     }
 }

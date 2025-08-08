@@ -2,7 +2,7 @@ package com.github.sparkzxl.datasource.provider;
 
 import cn.hutool.core.text.StrFormatter;
 import com.baomidou.dynamic.datasource.creator.DataSourceCreator;
-import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DataSourceProperty;
+import com.baomidou.dynamic.datasource.creator.DataSourceProperty;
 import com.github.sparkzxl.datasource.support.TenantException;
 import com.github.sparkzxl.core.util.ArgumentAssert;
 import com.github.sparkzxl.datasource.loadbalancer.DataSourceLoadBalancer;

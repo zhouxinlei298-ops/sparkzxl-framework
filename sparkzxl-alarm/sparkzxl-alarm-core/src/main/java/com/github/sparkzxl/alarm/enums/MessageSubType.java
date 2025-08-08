@@ -1,5 +1,7 @@
 package com.github.sparkzxl.alarm.enums;
 
+import lombok.Getter;
+
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -9,6 +11,7 @@ import java.util.Objects;
  * @author zhouxinlei
  * @since 2022-05-18 09:53:48
  */
+@Getter
 public enum MessageSubType {
 
     /**
@@ -49,11 +52,4 @@ public enum MessageSubType {
         return Arrays.stream(MessageSubType.values()).anyMatch(e -> Objects.equals(e.name(), value));
     }
 
-    public boolean isSupport() {
-        return support;
-    }
-
-    public String getCode() {
-        return code;
-    }
 }

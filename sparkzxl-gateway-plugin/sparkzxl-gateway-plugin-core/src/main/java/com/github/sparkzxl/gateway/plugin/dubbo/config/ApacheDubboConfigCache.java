@@ -13,7 +13,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.Nonnull;
+
+import jakarta.annotation.Nonnull;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.config.ApplicationConfig;

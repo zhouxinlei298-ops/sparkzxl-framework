@@ -13,6 +13,8 @@ import lombok.Setter;
  * @author zhouxinlei
  * @since 2022-05-19 10:35:31
  */
+@Setter
+@Getter
 public class DingTalkActionCard extends DingTalkMessage {
 
     /**
@@ -26,14 +28,6 @@ public class DingTalkActionCard extends DingTalkMessage {
 
     public DingTalkActionCard(ActionCard actionCard) {
         this();
-        this.actionCard = actionCard;
-    }
-
-    public ActionCard getActionCard() {
-        return actionCard;
-    }
-
-    public void setActionCard(ActionCard actionCard) {
         this.actionCard = actionCard;
     }
 

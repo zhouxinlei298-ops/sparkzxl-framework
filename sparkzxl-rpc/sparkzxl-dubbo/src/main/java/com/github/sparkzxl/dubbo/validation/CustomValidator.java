@@ -34,13 +34,13 @@ import javassist.bytecode.annotation.LongMemberValue;
 import javassist.bytecode.annotation.MemberValue;
 import javassist.bytecode.annotation.ShortMemberValue;
 import javassist.bytecode.annotation.StringMemberValue;
-import javax.validation.Constraint;
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.ValidationException;
-import javax.validation.ValidatorFactory;
-import javax.validation.groups.Default;
-import javax.validation.metadata.ConstraintDescriptor;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidationException;
+import jakarta.validation.ValidatorFactory;
+import jakarta.validation.groups.Default;
+import jakarta.validation.metadata.ConstraintDescriptor;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.bytecode.ClassGenerator;
 import org.apache.dubbo.common.logger.Logger;
@@ -67,7 +67,7 @@ public class CustomValidator implements Validator {
 
     private final Map<String, Class> methodClassMap;
 
-    private final javax.validation.Validator validator;
+    private final jakarta.validation.Validator validator;
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public CustomValidator(URL url) {
@@ -336,5 +336,10 @@ public class CustomValidator implements Validator {
                 violations.addAll(validator.validate(arg, groups));
             }
         }
+    }
+
+    @Override
+    public boolean isSupport() {
+        return true;
     }
 }

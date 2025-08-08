@@ -6,7 +6,7 @@ import com.github.sparkzxl.gateway.properties.GatewayPluginProperties;
 import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.Map;
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 import lombok.Getter;
 import org.apache.commons.collections4.MapUtils;

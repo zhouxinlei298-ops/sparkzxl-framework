@@ -1,8 +1,9 @@
 package com.github.sparkzxl.mybatis.dto;
 
-import io.swagger.annotations.ApiModelProperty;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 /**
@@ -13,11 +14,11 @@ import lombok.Data;
 @Data
 public class PageDTO {
 
-    @ApiModelProperty(value = "当前页", example = "1")
+    @Schema(description = "当前页", example = "1")
     @Min(1)
     private Integer pageNum;
 
-    @ApiModelProperty(value = "分页大小", example = "10")
+    @Schema(description = "分页大小", example = "10")
     @Max(value = 2000)
     private Integer pageSize;
 

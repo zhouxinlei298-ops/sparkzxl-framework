@@ -15,7 +15,7 @@ import com.github.sparkzxl.mybatis.echo.manager.LoadKey;
 import com.github.sparkzxl.mybatis.echo.properties.EchoProperties;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.LoadingCache;
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -515,7 +515,7 @@ public class EchoServiceImpl implements EchoService, EnvironmentCapable, Initial
                     if (clazz == null) {
                         continue;
                     }
-                    ApiModel apiModel = clazz.getAnnotation(ApiModel.class);
+                    Schema apiModel = clazz.getAnnotation(Schema.class);
                     if (apiModel == null) {
                         continue;
                     }

@@ -1,6 +1,9 @@
 package com.github.sparkzxl.alarm.dingtalk.entity;
 
 import com.github.sparkzxl.alarm.entity.BaseLink;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.Map;
 
@@ -10,6 +13,8 @@ import java.util.Map;
  * @author zhouxinlei
  * @since 2022-05-19 10:35:31
  */
+@Setter
+@Getter
 public class DingTalkLink extends DingTalkMessage {
 
     /**
@@ -23,14 +28,6 @@ public class DingTalkLink extends DingTalkMessage {
 
     public DingTalkLink(Link link) {
         this();
-        this.link = link;
-    }
-
-    public Link getLink() {
-        return link;
-    }
-
-    public void setLink(Link link) {
         this.link = link;
     }
 

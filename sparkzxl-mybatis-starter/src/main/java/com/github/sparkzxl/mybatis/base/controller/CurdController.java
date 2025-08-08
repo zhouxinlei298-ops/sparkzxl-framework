@@ -14,18 +14,10 @@ import com.github.sparkzxl.mybatis.base.listener.ImportDataListener;
 import com.github.sparkzxl.mybatis.dto.DeleteDTO;
 import com.github.sparkzxl.mybatis.dto.PageParams;
 import com.google.common.collect.Lists;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
-import java.io.IOException;
-import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import javax.servlet.http.HttpServletResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -34,15 +26,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * description: curd 接口自动生成类
@@ -59,7 +53,7 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
      * @param saveDTO 保存参数
      * @return 实体
      */
-    @ApiOperation(value = "新增数据")
+    @Operation(description = "新增数据")
     @PostMapping("/save")
     default boolean save(@RequestBody @Validated SaveDTO saveDTO) {
         boolean result = handlerSave(saveDTO);
@@ -87,7 +81,7 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
      * @param updateDTO 更新参数
      * @return boolean
      */
-    @ApiOperation(value = "修改数据")
+    @Operation(description = "修改数据")
     @PutMapping("/update")
     default boolean update(@RequestBody @Validated UpdateDTO updateDTO) {
         boolean result = handlerUpdate(updateDTO);
@@ -115,7 +109,7 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
      * @param deleteDTO ids
      * @return boolean
      */
-    @ApiOperation(value = "删除数据")
+    @Operation(description = "删除数据")
     @DeleteMapping("/delete")
     default boolean delete(@RequestBody DeleteDTO<Id> deleteDTO) {
         if (CollectionUtils.isEmpty(deleteDTO.getIds())) {
@@ -174,8 +168,8 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
      * @param id 主键
      * @return Entity
      */
-    @ApiImplicitParams({@ApiImplicitParam(name = "id", value = "主键", dataType = "long", paramType = "query")})
-    @ApiOperation(value = "查询数据", notes = "查询")
+    @Parameters({@Parameter(name = "id", description = "主键")})
+    @Operation(description = "查询数据")
     @GetMapping("/get")
     default Entity get(@RequestParam(value = "id") Id id) {
         Entity entity = getBaseService().getById(id);
@@ -189,7 +183,7 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
      * @param params 分页参数
      * @return PageInfo<?>
      */
-    @ApiOperation(value = "分页列表查询")
+    @Operation(description = "分页列表查询")
     @PostMapping(value = "/page")
     default Page<?> page(@RequestBody @Validated PageParams<QueryDTO> params) {
         return query(params);
@@ -269,7 +263,7 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
      * @param data list查询
      * @return 查询结果
      */
-    @ApiOperation(value = "列表查询", notes = "列表查询")
+    @Operation(description = "列表查询")
     @PostMapping("/list")
     default List<Entity> query(@RequestBody QueryDTO data) {
         Entity model = BeanUtil.toBean(data, getEntityClass());
@@ -283,7 +277,7 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
      * @param multipartFile 文件
      * @return 导入记录数
      */
-    @ApiOperation("导入数据")
+    @Operation(description = "导入数据")
     @PostMapping("/import")
     default Integer importData(@RequestParam("file") MultipartFile multipartFile) {
         ImportDataListener<?> importDataListener = getImportDataListener();
@@ -330,7 +324,7 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
      * @param response 响应
      * @throws IOException IO异常
      */
-    @ApiOperation("导出数据")
+    @Operation(description = "导出数据")
     @GetMapping("/export")
     @RequestMapping(value = "/export", method = RequestMethod.POST, produces = "application/octet-stream")
     default void exportData(@RequestBody QueryDTO queryDTO, HttpServletResponse response) throws IOException {

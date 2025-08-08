@@ -2,6 +2,8 @@ package com.github.sparkzxl.core.spring;
 
 import cn.hutool.core.util.ArrayUtil;
 import java.util.Map;
+
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -13,16 +15,8 @@ import org.springframework.context.ApplicationContextAware;
  */
 public class SpringContextUtils implements ApplicationContextAware {
 
+    @Getter
     private static ApplicationContext applicationContext;
-
-    /**
-     * 获取applicationContext
-     *
-     * @return ApplicationContext
-     */
-    public static ApplicationContext getApplicationContext() {
-        return applicationContext;
-    }
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) {

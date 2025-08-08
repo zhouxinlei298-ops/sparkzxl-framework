@@ -1,6 +1,9 @@
 package com.github.sparkzxl.alarm.dingtalk.entity;
 
 import com.google.common.collect.Lists;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
@@ -11,6 +14,8 @@ import java.util.Set;
  * @author zhouxinlei
  * @since 2022-05-18 13:49:46
  */
+@Setter
+@Getter
 public class Message extends DingTalkMessage implements Serializable {
 
     private At at;
@@ -19,14 +24,6 @@ public class Message extends DingTalkMessage implements Serializable {
     }
 
     public Message(At at) {
-        this.at = at;
-    }
-
-    public At getAt() {
-        return at;
-    }
-
-    public void setAt(At at) {
         this.at = at;
     }
 

@@ -82,7 +82,7 @@ public class ForwardAuthFilter extends AbstractGlobalFilter {
         }
         ForwardAuthConfig forwardAuthConfig = JsonUtils.getJson().toJavaObject(filterData.getConfig(), ForwardAuthConfig.class);
         String requestMethod = forwardAuthConfig.getRequestMethod();
-        HttpMethod httpMethod = HttpMethod.resolve(requestMethod);
+        HttpMethod httpMethod = HttpMethod.valueOf(requestMethod);
         if (Objects.requireNonNull(httpMethod) == HttpMethod.GET) {
             Mono<ClientResponse> responseMono = webClient.get().uri(forwardAuthConfig.getUri()).headers((header) -> {
                 List<String> requestHeaders = forwardAuthConfig.getRequestHeaders();
@@ -94,8 +94,7 @@ public class ForwardAuthFilter extends AbstractGlobalFilter {
                 }
             }).exchange();
             return responseMono.flatMap((response) -> {
-                HttpStatus httpStatus = response.statusCode();
-                if (httpStatus == HttpStatus.OK) {
+                if (response.statusCode().is2xxSuccessful()) {
                     return response.bodyToMono(String.class)
                             .flatMap(body -> {
                                 R<Boolean> resultData = JsonUtils.getJson().toJavaObject(body, new TypeReference<R<Boolean>>() {

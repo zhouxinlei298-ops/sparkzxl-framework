@@ -2,6 +2,7 @@ package com.github.sparkzxl.mongodb.dynamic;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
 
@@ -21,16 +22,16 @@ public class DynamicMongoTransactionManager extends MongoTransactionManager {
     }
 
     @Override
-    public MongoDatabaseFactory getDbFactory() {
+    public MongoDatabaseFactory getDatabaseFactory() {
         MongoDatabaseFactory databaseFactory = mongoDatabaseFactoryContext.determineMongoDatabaseFactory();
         if (ObjectUtils.isEmpty(databaseFactory)) {
-            return super.getDbFactory();
+            return super.getDatabaseFactory();
         }
         return databaseFactory;
     }
 
     @Override
-    public MongoDatabaseFactory getResourceFactory() {
+    public @NotNull MongoDatabaseFactory getResourceFactory() {
         MongoDatabaseFactory databaseFactory = mongoDatabaseFactoryContext.determineMongoDatabaseFactory();
         if (ObjectUtils.isEmpty(databaseFactory)) {
             return super.getResourceFactory();

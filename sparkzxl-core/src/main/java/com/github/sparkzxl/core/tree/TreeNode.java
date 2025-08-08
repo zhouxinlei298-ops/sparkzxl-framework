@@ -1,6 +1,8 @@
 package com.github.sparkzxl.core.tree;
 
 import com.google.common.collect.Lists;
+import lombok.Getter;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -9,6 +11,7 @@ import java.util.List;
  *
  * @author zhouxinlei
  */
+@Getter
 public class TreeNode<E, T extends Serializable> implements Cloneable, Serializable {
 
     /**
@@ -39,17 +42,9 @@ public class TreeNode<E, T extends Serializable> implements Cloneable, Serializa
 
     }
 
-    public T getId() {
-        return this.id;
-    }
-
     public TreeNode<E, T> setId(T id) {
         this.id = id;
         return this;
-    }
-
-    public String getLabel() {
-        return this.label;
     }
 
     public TreeNode<E, T> setLabel(String label) {
@@ -57,26 +52,14 @@ public class TreeNode<E, T extends Serializable> implements Cloneable, Serializa
         return this;
     }
 
-    public T getParentId() {
-        return this.parentId;
-    }
-
     public TreeNode<E, T> setParentId(T parentId) {
         this.parentId = parentId;
         return this;
     }
 
-    public Integer getSort() {
-        return this.sort;
-    }
-
     public TreeNode<E, T> setSort(Integer sort) {
         this.sort = sort;
         return this;
-    }
-
-    public List<E> getChildren() {
-        return this.children;
     }
 
     public TreeNode<E, T> setChildren(List<E> children) {

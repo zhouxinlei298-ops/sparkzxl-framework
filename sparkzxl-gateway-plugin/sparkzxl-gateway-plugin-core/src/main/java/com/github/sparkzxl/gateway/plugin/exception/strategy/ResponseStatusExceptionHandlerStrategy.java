@@ -25,7 +25,7 @@ public class ResponseStatusExceptionHandlerStrategy implements ExceptionHandlerS
     public ExceptionHandlerResult handleException(Throwable throwable) {
         log.error("ResponseStatusException：", throwable);
         ResponseStatusException responseStatusException = (ResponseStatusException) throwable;
-        HttpStatus exceptionStatus = responseStatusException.getStatus();
+        HttpStatus exceptionStatus = HttpStatus.resolve(responseStatusException.getStatusCode().value());
         R result;
         switch (exceptionStatus) {
             case NOT_FOUND:

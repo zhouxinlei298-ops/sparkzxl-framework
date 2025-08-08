@@ -5,7 +5,7 @@ import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

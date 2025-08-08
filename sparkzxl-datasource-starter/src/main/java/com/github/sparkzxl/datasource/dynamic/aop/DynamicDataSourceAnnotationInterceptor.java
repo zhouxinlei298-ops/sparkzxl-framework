@@ -15,6 +15,7 @@
  */
 package com.github.sparkzxl.datasource.dynamic.aop;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.dynamic.datasource.processor.DsProcessor;
 import com.baomidou.dynamic.datasource.support.DataSourceClassResolver;
 import com.github.sparkzxl.datasource.dynamic.DynamicDataSourceContextHolder;
@@ -37,6 +38,12 @@ public class DynamicDataSourceAnnotationInterceptor implements MethodInterceptor
     private final DataSourceClassResolver dataSourceClassResolver;
     private final DsProcessor dsProcessor;
 
+    /**
+     * init
+     *
+     * @param allowedPublicOnly allowedPublicOnly
+     * @param dsProcessor       dsProcessor
+     */
     public DynamicDataSourceAnnotationInterceptor(Boolean allowedPublicOnly, DsProcessor dsProcessor) {
         dataSourceClassResolver = new DataSourceClassResolver(allowedPublicOnly);
         this.dsProcessor = dsProcessor;
@@ -53,8 +60,14 @@ public class DynamicDataSourceAnnotationInterceptor implements MethodInterceptor
         }
     }
 
+    /**
+     * Determine the key of the datasource
+     *
+     * @param invocation MethodInvocation
+     * @return dsKey
+     */
     private String determineDatasourceKey(MethodInvocation invocation) {
-        String key = dataSourceClassResolver.findKey(invocation.getMethod(), invocation.getThis());
+        String key = dataSourceClassResolver.findKey(invocation.getMethod(), invocation.getThis(), DS.class);
         return key.startsWith(DYNAMIC_PREFIX) ? dsProcessor.determineDatasource(invocation, key) : key;
     }
 }

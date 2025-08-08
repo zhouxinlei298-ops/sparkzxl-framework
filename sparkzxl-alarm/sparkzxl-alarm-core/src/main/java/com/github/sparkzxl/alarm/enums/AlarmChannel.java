@@ -1,11 +1,14 @@
 package com.github.sparkzxl.alarm.enums;
 
+import lombok.Getter;
+
 /**
  * description: 告警渠道
  *
  * @author zhouxinlei
  * @since 2022-05-18 10:01:59
  */
+@Getter
 public enum AlarmChannel {
 
     /**
@@ -33,18 +36,6 @@ public enum AlarmChannel {
         this.type = type;
         this.robotUrl = robotUrl;
         this.enabled = enabled;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getRobotUrl() {
-        return robotUrl;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
     }
 
 }

@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.sparkzxl</groupId>
         <artifactId>sparkzxl-framework</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>3.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>sparkzxl-signature</artifactId>

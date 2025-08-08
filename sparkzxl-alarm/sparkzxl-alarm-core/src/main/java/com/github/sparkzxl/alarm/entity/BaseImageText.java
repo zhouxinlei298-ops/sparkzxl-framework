@@ -1,11 +1,16 @@
 package com.github.sparkzxl.alarm.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * description: 告警图文类型实体
  *
  * @author zhouxinlei
  * @since 2022-05-19 10:19:05
  */
+@Setter
+@Getter
 public class BaseImageText {
 
     /**
@@ -44,35 +49,4 @@ public class BaseImageText {
         return new BaseImageText(title, description, url, picUrl);
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getPicUrl() {
-        return picUrl;
-    }
-
-    public void setPicUrl(String picUrl) {
-        this.picUrl = picUrl;
-    }
 }

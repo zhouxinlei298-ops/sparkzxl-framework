@@ -3,7 +3,7 @@ package com.github.sparkzxl.user.resolver;
 import com.github.sparkzxl.user.EnableLoginUser;
 import com.github.sparkzxl.user.manager.UserStateManager;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;

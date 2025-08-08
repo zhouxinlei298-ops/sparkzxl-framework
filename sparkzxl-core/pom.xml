@@ -4,12 +4,16 @@
     <parent>
         <groupId>com.github.sparkzxl</groupId>
         <artifactId>sparkzxl-framework</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>3.0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>sparkzxl-core</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.github.sparkzxl</groupId>
             <artifactId>sparkzxl-annotation</artifactId>
@@ -43,10 +47,6 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
         </dependency>
@@ -75,7 +75,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15to18</artifactId>
-            <version>1.72</version>
+            <version>1.81</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>

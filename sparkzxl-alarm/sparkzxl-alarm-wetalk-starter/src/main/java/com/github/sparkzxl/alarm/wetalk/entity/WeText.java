@@ -1,6 +1,9 @@
 package com.github.sparkzxl.alarm.wetalk.entity;
 
 import com.google.common.collect.Lists;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +15,8 @@ import java.util.Set;
  * @author zhouxinlei
  * @since 2022-05-18 17:14:18
  */
+@Setter
+@Getter
 public class WeText extends WeTalkMessage {
 
     private Text text;
@@ -21,19 +26,12 @@ public class WeText extends WeTalkMessage {
         this.text = text;
     }
 
-    public Text getText() {
-        return text;
-    }
-
-    public void setText(Text text) {
-        this.text = text;
-    }
-
     @Override
     public void transfer(Map<String, Object> params) {
         this.text.content = replaceContent(this.text.content, params);
     }
 
+    @Getter
     public static class Text implements Serializable {
 
         /**
@@ -64,24 +62,12 @@ public class WeText extends WeTalkMessage {
             this.content = content;
         }
 
-        public String getContent() {
-            return content;
-        }
-
         public void setContent(String content) {
             this.content = content;
         }
 
-        public List<String> getMentioned_list() {
-            return mentioned_list;
-        }
-
         public void setMentioned_list(List<String> mentioned_list) {
             this.mentioned_list = mentioned_list;
-        }
-
-        public List<String> getMentioned_mobile_list() {
-            return mentioned_mobile_list;
         }
 
         public void setMentioned_mobile_list(Set<String> mentionedMobileList) {

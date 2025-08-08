@@ -25,7 +25,7 @@ import org.springframework.expression.common.TemplateParserContext;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
 import javax.annotation.Nonnull;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;

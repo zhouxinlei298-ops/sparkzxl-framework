@@ -1,12 +1,12 @@
 package com.github.sparkzxl.mybatis.dto;
 
 import com.github.sparkzxl.mybatis.constant.EntityConstant;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-import java.util.HashMap;
-import java.util.Map;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * description: 分页参数
@@ -15,16 +15,16 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@ApiModel(value = "PageParams", description = "分页参数")
+@Schema(description = "分页参数")
 public class PageParams<T> extends PageDTO {
 
-    @ApiModelProperty(value = "查询参数", required = true)
+    @Schema(description = "查询参数", requiredMode = Schema.RequiredMode.REQUIRED)
     private T model;
 
-    @ApiModelProperty(value = "排序,默认createTime", allowableValues = "id,createTime,updateTime", example = "id")
+    @Schema(description = "排序,默认createTime", allowableValues = "id,createTime,updateTime", example = "id")
     private String sort = EntityConstant.ID;
 
-    @ApiModelProperty("扩展参数")
+    @Schema(description = "扩展参数")
     private Map<String, String> extra = new HashMap<>(16);
 
 }

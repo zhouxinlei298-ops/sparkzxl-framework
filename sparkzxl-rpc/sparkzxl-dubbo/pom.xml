@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.github.sparkzxl</groupId>
         <artifactId>sparkzxl-rpc</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>3.0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,17 +13,15 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dubbo.version>3.1.7</dubbo.version>
         <javax.el.version>3.0.1-b12</javax.el.version>
-        <hibernate-validator.version>7.0.4.Final</hibernate-validator.version>
-        <validation-api.version>2.0.1.Final</validation-api.version>
+        <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
+        <validation-api.version>3.1.1</validation-api.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo</artifactId>
-            <version>${dubbo.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
@@ -35,15 +33,16 @@
             <artifactId>dubbo-spring-boot-actuator</artifactId>
             <version>${dubbo.version}</version>
         </dependency>
-        <!-- 参数校验相关依赖 -->
+        <!-- JSR 参数校验规范 API -->
         <dependency>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId> <!-- JSR 参数校验规范 API -->
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
             <version>${validation-api.version}</version>
         </dependency>
+        <!-- JSR 参数校验规范实现，我们使用 hibernate-validator -->
         <dependency>
             <groupId>org.hibernate.validator</groupId>
-            <artifactId>hibernate-validator</artifactId> <!-- JSR 参数校验规范实现，我们使用 hibernate-validator -->
+            <artifactId>hibernate-validator</artifactId>
             <version>${hibernate-validator.version}</version>
         </dependency>
         <!-- 可能涉及到 EL 表达，所以引入，否则 hibernate-validator 在初始化会报错 -->

@@ -1,7 +1,7 @@
 package com.github.sparkzxl.user.manager;
 
 import java.time.Duration;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * description: 用户状态管理

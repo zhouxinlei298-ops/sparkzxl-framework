@@ -41,7 +41,7 @@ import java.util.function.Function;
 @Aspect
 public class SignMethodAspect {
 
-    public static final DefaultParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
+    public static final DefaultParameterNameDiscoverer PARAMETER_NAME_DISCOVERER = new DefaultParameterNameDiscoverer();
 
     @Autowired
     private SignatureExecutorContext signatureExecutorContext;

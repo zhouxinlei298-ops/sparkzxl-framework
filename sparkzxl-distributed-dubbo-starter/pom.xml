@@ -4,15 +4,11 @@
     <parent>
         <groupId>com.github.sparkzxl</groupId>
         <artifactId>sparkzxl-framework</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>3.0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>sparkzxl-distributed-dubbo-starter</artifactId>
-
-    <properties>
-        <dubbo.version>3.1.7</dubbo.version>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -46,7 +42,7 @@
         <dependency>
             <groupId>com.github.sparkzxl</groupId>
             <artifactId>sparkzxl-dubbo</artifactId>
-            <version>2.0.1-SNAPSHOT</version>
+            <version>3.0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

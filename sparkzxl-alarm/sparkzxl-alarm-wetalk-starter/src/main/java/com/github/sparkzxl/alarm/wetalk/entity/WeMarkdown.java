@@ -1,5 +1,8 @@
 package com.github.sparkzxl.alarm.wetalk.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.Map;
 
@@ -9,6 +12,8 @@ import java.util.Map;
  * @author zhouxinlei
  * @since 2022-05-19 10:16:43
  */
+@Setter
+@Getter
 public class WeMarkdown extends WeTalkMessage {
 
     private Markdown markdown;
@@ -18,19 +23,13 @@ public class WeMarkdown extends WeTalkMessage {
         this.markdown = markdown;
     }
 
-    public Markdown getMarkdown() {
-        return markdown;
-    }
-
-    public void setMarkdown(Markdown markdown) {
-        this.markdown = markdown;
-    }
-
     @Override
     public void transfer(Map<String, Object> params) {
         this.markdown.content = replaceContent(this.markdown.content, params);
     }
 
+    @Setter
+    @Getter
     public static class Markdown implements Serializable {
 
         /**
@@ -45,12 +44,5 @@ public class WeMarkdown extends WeTalkMessage {
             this.content = content;
         }
 
-        public String getContent() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
-        }
     }
 }

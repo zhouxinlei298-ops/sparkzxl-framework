@@ -37,7 +37,6 @@ import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.baomidou.mybatisplus.annotation.DbType;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.support.incrementer.PostgreSQLSequenceMaxValueIncrementer;
 
 /**
  * description: 替换SQL

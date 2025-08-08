@@ -3,6 +3,9 @@ package com.github.sparkzxl.alarm.wetalk.entity;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.TypeReference;
 import com.github.sparkzxl.alarm.entity.BaseImageText;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +16,8 @@ import java.util.Map;
  * @author zhouxinlei
  * @since 2022-05-19 10:21:27
  */
+@Setter
+@Getter
 public class WeNews extends WeTalkMessage {
 
     /**
@@ -27,14 +32,6 @@ public class WeNews extends WeTalkMessage {
     public WeNews(List<News.Article> articles) {
         this();
         this.news = new News(articles);
-    }
-
-    public News getNews() {
-        return news;
-    }
-
-    public void setNews(News news) {
-        this.news = news;
     }
 
     @Override
