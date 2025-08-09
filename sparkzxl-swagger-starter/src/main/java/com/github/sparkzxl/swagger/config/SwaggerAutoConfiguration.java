@@ -2,6 +2,7 @@ package com.github.sparkzxl.swagger.config;
 
 import cn.hutool.core.collection.CollUtil;
 import com.github.sparkzxl.swagger.properties.SwaggerProperties;
+import com.github.xiaoymin.knife4j.spring.configuration.Knife4jAutoConfiguration;
 import com.github.xiaoymin.knife4j.spring.configuration.Knife4jProperties;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -12,41 +13,51 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.customizers.GlobalOperationCustomizer;
 import org.springdoc.core.properties.SpringDocConfigProperties;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import java.util.List;
 
 /**
- * swagger 包扫描配置
+ * description: swagger 包扫描配置
  *
- * @author zuihou
- * @date 2018/11/18 9:22
+ * @author zhouxinlei
+ * @since 2025-08-09 15:24:26
  */
+@Configuration
 @Import({
         Swagger2Configuration.class
 })
+@AutoConfigureAfter(value = Knife4jAutoConfiguration.class)
 @ConditionalOnProperty(prefix = "knife4j", name = "enable", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(SwaggerProperties.class)
 public class SwaggerAutoConfiguration {
     private final SwaggerProperties swaggerProperties;
 
-    private final Knife4jProperties properties;
 
-    public SwaggerAutoConfiguration(Knife4jProperties properties, SwaggerProperties swaggerProperties) {
+    public SwaggerAutoConfiguration(
+            SwaggerProperties swaggerProperties) {
         this.swaggerProperties = swaggerProperties;
-        this.properties = properties;
+    }
+
+    @Bean
+    public Knife4jProperties knife4jProperties() {
+        return new Knife4jProperties();
     }
 
     /**
      * 增强自定义配置
-     * @return
+     *
+     * @return MyKnife4jOpenApiCustomizer
      */
     @Bean
-    public MyKnife4jOpenApiCustomizer knife4jOpenApiCustomizer(SpringDocConfigProperties docProperties) {
-        return new MyKnife4jOpenApiCustomizer(this.properties, docProperties);
+    public MyKnife4jOpenApiCustomizer knife4jOpenApiCustomizer(SpringDocConfigProperties docProperties,
+                                                               Knife4jProperties knife4jProperties) {
+        return new MyKnife4jOpenApiCustomizer(knife4jProperties, docProperties);
     }
 
     /**

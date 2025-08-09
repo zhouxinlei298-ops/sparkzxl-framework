@@ -13,11 +13,7 @@ import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.*;
 import com.github.sparkzxl.core.constant.enums.MultiTenantType;
 import com.github.sparkzxl.mybatis.annotation.DataScope;
 import com.github.sparkzxl.mybatis.aop.DataScopeAnnotationAdvisor;
@@ -25,9 +21,6 @@ import com.github.sparkzxl.mybatis.aop.DataScopeInterceptor;
 import com.github.sparkzxl.mybatis.handler.KingbaseLocalDateTimeTypeHandler;
 import com.github.sparkzxl.mybatis.mybatis.hander.MetaDataHandler;
 import com.github.sparkzxl.mybatis.mybatis.injector.BaseSqlInjector;
-import com.github.sparkzxl.mybatis.plugins.DataScopeInnerInterceptor;
-import com.github.sparkzxl.mybatis.plugins.DataScopeLineHandler;
-import com.github.sparkzxl.mybatis.plugins.DefaultDataScopeLineHandler;
 import com.github.sparkzxl.mybatis.plugins.DynamicSchemaInterceptor;
 import com.github.sparkzxl.mybatis.plugins.GlobalLineHandlerInterceptor;
 import com.github.sparkzxl.mybatis.plugins.SlowSqlMonitorInterceptor;
@@ -37,13 +30,9 @@ import com.github.sparkzxl.mybatis.send.SendNoticeService;
 import com.github.sparkzxl.mybatis.support.DataBaseExceptionHandler;
 import com.google.common.collect.Lists;
 import com.p6spy.engine.spy.P6DataSource;
-import java.util.Arrays;
-import java.util.List;
-import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.ibatis.type.LocalDateTimeTypeHandler;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -51,6 +40,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.*;
 import org.springframework.core.Ordered;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+
+import javax.sql.DataSource;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * description: mybatis全局配置
@@ -79,11 +72,10 @@ public class MyBatisAutoConfiguration {
     /**
      * 多租户插件配置,一缓和二缓遵循mybatis的规则,需要设置 MybatisConfiguration#useDeprecatedExecutor = false 避免缓存万一出现问题
      *
-     * @param dataScopeLineHandler 数据权限处理
      * @return MybatisPlusInterceptor
      */
     @Bean
-    public MybatisPlusInterceptor mybatisPlusInterceptor(DataScopeLineHandler dataScopeLineHandler) {
+    public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         // 乐观锁插件
         interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
@@ -119,9 +111,6 @@ public class MyBatisAutoConfiguration {
         //防止全表更新与删除插件
         if (dataProperties.getIsBlockAttack()) {
             interceptor.addInnerInterceptor(new BlockAttackInnerInterceptor());
-        }
-        if (dataProperties.isEnableDataScope()) {
-            interceptor.addInnerInterceptor(new DataScopeInnerInterceptor(dataScopeLineHandler, dataProperties.getDbType()));
         }
         // sql性能规范插件
         if (dataProperties.getIsIllegalSql()) {
@@ -229,8 +218,4 @@ public class MyBatisAutoConfiguration {
         return new DataScopeAnnotationAdvisor(dataScopeInterceptor, DataScope.class, Ordered.HIGHEST_PRECEDENCE);
     }
 
-    @Bean
-    public DataScopeLineHandler dataScopeLineHandler() {
-        return new DefaultDataScopeLineHandler(dataProperties.getDataScopeList());
-    }
 }

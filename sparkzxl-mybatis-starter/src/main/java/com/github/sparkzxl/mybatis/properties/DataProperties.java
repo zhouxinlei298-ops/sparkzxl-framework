@@ -91,19 +91,6 @@ public class DataProperties {
     private DefaultId defaultId = new DefaultId();
     private HuToolId hutoolId = new HuToolId();
 
-
-    /**
-     * 使用数据权限
-     */
-    private boolean enableDataScope;
-
-    /**
-     * 多列数据权限
-     */
-    @NestedConfigurationProperty
-    private List<DataScopeConfig> dataScopeList;
-
-
     @Data
     public static class HuToolId {
 

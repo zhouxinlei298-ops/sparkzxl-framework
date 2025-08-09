@@ -23,7 +23,7 @@
         <spring-boot.version>3.5.4</spring-boot.version>
         <spring-cloud-dependencies.version>2025.0.0</spring-cloud-dependencies.version>
         <spring-cloud-alibaba-dependencies.version>2023.0.3.3</spring-cloud-alibaba-dependencies.version>
-        <nacos.version>2.5.1</nacos.version>
+        <nacos.version>3.0.2</nacos.version>
 
         <knife4j.version>4.5.0</knife4j.version>
         <knife4j-swagger-models-v3.version>2.2.28</knife4j-swagger-models-v3.version>
@@ -34,8 +34,9 @@
         <mybatis.version>3.5.19</mybatis.version>
         <mysql.version>8.0.33</mysql.version>
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
-        <dynamic-datasource.version>4.3.1</dynamic-datasource.version>
+        <dynamic-datasource.version>4.3.1.1</dynamic-datasource.version>
         <druid.version>1.2.25</druid.version>
+        <hikaricp.version>7.0.1</hikaricp.version>
         <p6spy.version>3.9.1</p6spy.version>
         <logstash.version>8.1</logstash.version>
         <vavr.version>0.10.4</vavr.version>
@@ -81,6 +82,8 @@
         <commons-compress.version>1.21</commons-compress.version>
         <commons-io.version>2.10.0</commons-io.version>
         <xstream.version>1.4.20</xstream.version>
+        <okio.version>2.10.0</okio.version>
+        <okhttp3.version>4.10.0</okhttp3.version>
     </properties>
 
     <licenses>
@@ -232,6 +235,11 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>druid</artifactId>
                 <version>${druid.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>${hikaricp.version}</version>
             </dependency>
             <dependency>
                 <groupId>p6spy</groupId>
@@ -488,11 +496,11 @@
                 <version>${logback-kafka-appender.version}</version>
             </dependency>
 
-            <dependency>
+            <!--<dependency>
                 <groupId>com.github.jsqlparser</groupId>
                 <artifactId>jsqlparser</artifactId>
                 <version>${jsqlparser.version}</version>
-            </dependency>
+            </dependency>-->
             <dependency>
                 <groupId>com.github.houbb</groupId>
                 <artifactId>sensitive-word</artifactId>
@@ -758,6 +766,21 @@
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio</artifactId>
+                <version>${okio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>logging-interceptor</artifactId>
+                <version>${okhttp3.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
