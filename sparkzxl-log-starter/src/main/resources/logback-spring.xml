@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false" scan="false">
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="logback/spring-property.xml"/>
+    <include resource="logback/log-pattern.xml"/>
+    <include resource="logback/console.xml"/>
+    <include resource="logback/file.xml"/>
+
+
+    <!--nacos 心跳 INFO 屏蔽-->
+    <logger name="com.alibaba.nacos" level="OFF">
+        <appender-ref ref="error"/>
+    </logger>
+    <!-- 同步记录，建议本地使用 -->
+    <root level="${log.level.console}">
+        <appender-ref ref="ASYNC_CONSOLE_APPENDER"/>
+        <appender-ref ref="ASYNC_FILE_APPENDER"/>
+    </root>
+</configuration>

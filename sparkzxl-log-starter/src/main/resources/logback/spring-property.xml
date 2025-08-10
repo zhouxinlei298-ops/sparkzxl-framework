@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<included>
+
+    <!-- 应用名称 -->
+    <springProperty name="springAppName" scope="context" source="spring.application.name" defaultValue="application"/>
+    <!-- 日志文件保存路径 -->
+    <springProperty name="logHome" scope="context" source="logging.file.path" defaultValue="${user.home}/logs"/>
+
+    <!-- 日志显隐控制方式 -->
+    <springProperty name="enableConsole" scope="context" source="logging.enable-console" defaultValue="true"/>
+    <springProperty name="enableBizPoint" scope="context" source="logging.enable-biz-point" defaultValue="true"/>
+    <springProperty name="enableJson" scope="context" source="logging.file.enable-json" defaultValue="false"/>
+    <springProperty name="enableAlarm" scope="context" source="logging.alarm.enabled" defaultValue="false"/>
+    <springProperty name="robotId" scope="context" source="logging.alarm.robotId" defaultValue=""/>
+
+    <springProperty name="enableFile" scope="context" source="logging.file.enable" defaultValue="false"/>
+    <springProperty name="maxHistory" scope="context" source="logging.file.maxHistory" defaultValue="7"/>
+    <springProperty name="maxFileSize" scope="context" source="logging.file.maxFileSize" defaultValue="10MB"/>
+    <springProperty name="totalSizeCap" scope="context" source="logging.file.totalSizeCap" defaultValue="10GB"/>
+
+    <springProperty scope="context" name="log.level.console" source="logging.level.console" defaultValue="INFO"/>
+
+    <!--阿里云日志服务配置 正式环境-->
+    <springProperty name="enableAliYunLog" scope="context" source="logging.aliYunLog.enabled"
+                    defaultValue="false"/>
+    <springProperty name="endpoint" scope="context" source="logging.aliYunLog.endpoint"
+                    defaultValue=""/>
+    <springProperty name="accessKeyId" scope="context" source="logging.aliYunLog.accessKeyId" defaultValue=""/>
+    <springProperty name="accessKeySecret" scope="context" source="logging.aliYunLog.accessKeySecret"
+                    defaultValue=""/>
+    <springProperty name="project" scope="context" source="logging.aliYunLog.project"
+                    defaultValue="gongbaojin"/>
+    <springProperty name="logStore" scope="context" source="logging.aliYunLog.logStore" defaultValue=""/>
+    <springProperty name="totalSizeInBytes" scope="context" source="aliYunLog.config.totalSizeInBytes"
+                    defaultValue="104857600"/>
+    <springProperty name="maxBlockMs" scope="context" source="logging.aliYunLog.maxBlockMs" defaultValue="0"/>
+    <springProperty name="ioThreadCount" scope="context" source="logging.aliYunLog.ioThreadCount"
+                    defaultValue="8"/>
+    <springProperty name="batchSizeThresholdInBytes" scope="context"
+                    source="logging.aliYunLog.batchSizeThresholdInBytes" defaultValue="524288"/>
+    <springProperty name="batchCountThreshold" scope="context" source="logging.aliYunLog.batchCountThreshold"
+                    defaultValue="4096"/>
+    <springProperty name="lingerMs" scope="context" source="logging.aliYunLog.lingerMs" defaultValue="2000"/>
+    <springProperty name="retries" scope="context" source="logging.aliYunLog.retries" defaultValue="10"/>
+    <springProperty name="baseRetryBackoffMs" scope="context" source="logging.aliYunLog.baseRetryBackoffMs"
+                    defaultValue="100"/>
+    <springProperty name="maxRetryBackoffMs" scope="context" source="logging.aliYunLog.maxRetryBackoffMs"
+                    defaultValue="50000"/>
+    <springProperty name="timeFormat" scope="context" source="logging.aliYunLog.timeFormat"
+                    defaultValue="yyyy-MM-dd HH:mm:ss.SSS"/>
+    <springProperty name="timeZone" scope="context" source="logging.aliYunLog.timeZone"
+                    defaultValue="Asia/Shanghai"/>
+
+    <!--plumelog服务配置-->
+    <springProperty name="enablePlumeLog" scope="context" source="logging.plumelog.enabled" defaultValue="false"/>
+    <springProperty name="plumelogType" scope="context" source="logging.plumelog.type" defaultValue="redis"/>
+    <springProperty name="plumelog.env" scope="context" source="spring.profiles.active"/>
+    <springProperty name="plumelog.runModel" scope="context" source="logging.plumelog.runModel"  defaultValue="1"/>
+    <springProperty name="plumelog.expand" scope="context" source="logging.plumelog.expand" defaultValue=""/>
+    <springProperty name="plumelog.maxCount" scope="context" source="logging.plumelog.maxCount" defaultValue="100"/>
+    <springProperty name="plumelog.logQueueSize" scope="context" source="logging.plumelog.logQueueSize" defaultValue="10000"/>
+    <springProperty name="plumelog.threadPoolSize" scope="context" source="logging.plumelog.threadPoolSize" defaultValue="1"/>
+    <springProperty name="plumelog.compressor" scope="context" source="logging.plumelog.compressor" defaultValue="false"/>
+    <!--plumelog redis服务配置-->
+    <springProperty name="plumelog.redisHost" scope="context" source="logging.plumelog.redis.redisHost" defaultValue=""/>
+    <springProperty name="plumelog.redisPort" scope="context" source="logging.plumelog.redis.redisPort" defaultValue="6379"/>
+    <springProperty name="plumelog.redisAuth" scope="context" source="logging.plumelog.redis.redisAuth" defaultValue=""/>
+    <springProperty name="plumelog.model" scope="context" source="logging.plumelog.redis.model" defaultValue="standalone"/>
+    <springProperty name="plumelog.masterName" scope="context" source="logging.plumelog.redis.masterName" defaultValue=""/>
+    <springProperty name="plumelog.redisDb" scope="context" source="logging.plumelog.redis.redisDb" defaultValue="0"/>
+
+    <!--plumelog kafka服务配置-->
+    <springProperty name="plumelog.kafkaHosts" scope="context" source="logging.plumelog.kafka.kafkaHosts" defaultValue=""/>
+
+</included>
