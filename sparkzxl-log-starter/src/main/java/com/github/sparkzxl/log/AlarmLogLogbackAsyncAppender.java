@@ -12,12 +12,13 @@ import com.github.sparkzxl.log.entity.AlarmLogInfo;
 import com.github.sparkzxl.log.queue.AlarmTaskInfo;
 import com.github.sparkzxl.log.queue.AlarmTaskQueue;
 import com.github.sparkzxl.log.utils.ThrowableUtils;
-import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
+
+import java.util.Objects;
 
 /**
  * description: 日志告警Appender
@@ -28,10 +29,14 @@ import org.slf4j.MDC;
 @Setter
 public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
 
+    private boolean enabled;
     private String robotId;
 
     @Override
     public void doAppend(ILoggingEvent eventObject) {
+        if (!enabled) {
+            return;
+        }
         if (eventObject instanceof LoggingEvent) {
             LoggingEvent loggingEvent = (LoggingEvent) eventObject;
             Level level = loggingEvent.getLevel();

@@ -24,11 +24,6 @@ public class LogProperties {
     public static final String LOG_PREFIX = "logging";
 
     /**
-     * 是否开启控制台输出
-     */
-    private boolean enableConsole = true;
-
-    /**
      * 是否开启埋点日志
      */
     private boolean enableBizPoint = true;
