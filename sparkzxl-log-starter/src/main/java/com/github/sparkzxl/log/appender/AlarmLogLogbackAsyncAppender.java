@@ -1,4 +1,4 @@
-package com.github.sparkzxl.log;
+package com.github.sparkzxl.log.appender;
 
 import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.Level;
@@ -8,6 +8,7 @@ import ch.qos.logback.classic.spi.ThrowableProxy;
 import com.github.sparkzxl.alarm.entity.AlarmRequest;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
+import com.github.sparkzxl.log.AlarmLogContext;
 import com.github.sparkzxl.log.entity.AlarmLogInfo;
 import com.github.sparkzxl.log.queue.AlarmTaskInfo;
 import com.github.sparkzxl.log.queue.AlarmTaskQueue;
@@ -25,8 +26,8 @@ import java.util.Objects;
  *
  * @author zhoux
  */
-@Getter
 @Setter
+@Getter
 public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
 
     private boolean enabled;
@@ -37,8 +38,7 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
         if (!enabled) {
             return;
         }
-        if (eventObject instanceof LoggingEvent) {
-            LoggingEvent loggingEvent = (LoggingEvent) eventObject;
+        if (eventObject instanceof LoggingEvent loggingEvent) {
             Level level = loggingEvent.getLevel();
             ThrowableProxy throwableProxy = (ThrowableProxy) loggingEvent.getThrowableProxy();
             if (Objects.nonNull(throwableProxy)) {

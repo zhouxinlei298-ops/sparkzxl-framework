@@ -35,10 +35,6 @@
             <groupId>org.apache.skywalking</groupId>
             <artifactId>apm-toolkit-trace</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-        </dependency>
         <!-- logback-kafka-appender -->
         <dependency>
             <groupId>com.github.danielwegener</groupId>
