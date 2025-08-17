@@ -30,7 +30,6 @@ public class Resilience4jFeignAutoConfiguration {
     public Feign.Builder feignResilience4jBuilder(CircuitBreakerRegistry circuitBreakerRegistry,
                                                   List<RequestInterceptor> requestInterceptorList) {
         return Resilience4jFeign.builder(circuitBreakerRegistry)
-                .requestInterceptors(requestInterceptorList)
-                .decode404();
+                .requestInterceptors(requestInterceptorList);
     }
 }
