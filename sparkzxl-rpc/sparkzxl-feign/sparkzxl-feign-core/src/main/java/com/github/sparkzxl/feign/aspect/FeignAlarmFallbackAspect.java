@@ -35,7 +35,6 @@ import java.util.Optional;
 @Slf4j
 public class FeignAlarmFallbackAspect extends SimpleAspect {
 
-
     public static final String MARKDOWN_FALLBACK_TEMPLATE =
             "> · 应用： <font color=\"#1890ff\">#{[applicationName]}</font>\n" +
                     "> · 环境： <font color=\"#1890ff\">#{[environment]}</font>\n" +
