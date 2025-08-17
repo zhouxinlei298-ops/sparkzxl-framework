@@ -17,6 +17,7 @@ import static feign.Util.checkNotNull;
  * description: resilience4j 重写DecoratorInvocationHandler
  *
  * @author zhouxinlei
+ * @see io.github.resilience4j.feign.DecoratorInvocationHandler
  * @since 2025-08-17 17:00:34
  */
 public class FeignDecoratorInvocationHandler implements InvocationHandler {
