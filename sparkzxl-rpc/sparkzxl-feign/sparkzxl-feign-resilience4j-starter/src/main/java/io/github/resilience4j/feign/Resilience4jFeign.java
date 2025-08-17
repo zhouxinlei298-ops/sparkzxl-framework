@@ -1,9 +1,11 @@
 package io.github.resilience4j.feign;
 
-import feign.Contract;
 import feign.Feign;
 import feign.InvocationHandlerFactory;
 import feign.Target;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.cloud.openfeign.FallbackFactory;
@@ -17,31 +19,38 @@ import org.springframework.util.StringUtils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
- * description: 重写Resilience4jFeign，支持FeignClient注解的降级类
+ * description: 重写Resilience4jFeign，支持FeignClient注解的降级类,同时支持熔断
  *
  * @author zhouxinlei
  * @since 2025-08-17 15:13:44
  */
+@SuppressWarnings(value = "all")
 public class Resilience4jFeign {
 
-    public static Builder builder(FeignDecorators.Builder decoratorsBuilder) {
-        return new Builder(decoratorsBuilder);
+    public static Builder builder(CircuitBreakerRegistry circuitBreakerRegistry) {
+        return new Builder(circuitBreakerRegistry);
     }
 
     public static final class Builder extends Feign.Builder
             implements ApplicationContextAware {
 
+        private final CircuitBreakerRegistry circuitBreakerRegistry;
         private final FeignDecorators.Builder decoratorsBuilder;
+        private final ConcurrentHashMap<String, CircuitBreakerConfig> circuitBreakerConfigConfigs = new ConcurrentHashMap<>();
+        private final Function<String, CircuitBreakerConfig> defaultCircuitBreakerConfig;
 
         private ApplicationContext applicationContext;
 
         private FeignContext feignContext;
 
-        public Builder(FeignDecorators.Builder decoratorsBuilder) {
-            this.decoratorsBuilder = decoratorsBuilder;
+        public Builder(CircuitBreakerRegistry circuitBreakerRegistry) {
+            this.circuitBreakerRegistry = circuitBreakerRegistry;
+            this.defaultCircuitBreakerConfig = id -> circuitBreakerRegistry.getDefaultConfig();
+            this.decoratorsBuilder = FeignDecorators.builder();
         }
 
         @Override
@@ -58,14 +67,10 @@ public class Resilience4jFeign {
                 public InvocationHandler create(Target target,
                                                 Map<Method, MethodHandler> dispatch) {
 
-                    GenericApplicationContext gctx = (GenericApplicationContext) Builder.this.applicationContext;
-                    BeanDefinition def = gctx.getBeanDefinition(target.type().getName());
+                    GenericApplicationContext genericApplicationContext = (GenericApplicationContext) Builder.this.applicationContext;
+                    BeanDefinition beanDefinition = genericApplicationContext.getBeanDefinition(target.type().getName());
 
-                    /**
-                     * Due to the change of the initialization sequence, BeanFactory.getBean will cause a circular dependency.
-                     * So FeignClientFactoryBean can only be obtained from BeanDefinition
-                     */
-                    FeignClientFactoryBean feignClientFactoryBean = (FeignClientFactoryBean) def.getAttribute("feignClientsRegistrarFactoryBean");
+                    FeignClientFactoryBean feignClientFactoryBean = (FeignClientFactoryBean) beanDefinition.getAttribute("feignClientsRegistrarFactoryBean");
 
                     Class fallback = feignClientFactoryBean.getFallback();
                     Class fallbackFactory = feignClientFactoryBean.getFallbackFactory();
@@ -74,23 +79,23 @@ public class Resilience4jFeign {
                     if (!StringUtils.hasText(beanName)) {
                         beanName = feignClientFactoryBean.getName();
                     }
-
+                    CircuitBreakerConfig circuitBreakerConfig = circuitBreakerConfigConfigs.computeIfAbsent(beanName, defaultCircuitBreakerConfig);
+                    CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(beanName, circuitBreakerConfig);
+                    decoratorsBuilder.withCircuitBreaker(circuitBreaker);
                     Object fallbackInstance;
                     FallbackFactory fallbackFactoryInstance;
                     // check fallback and fallbackFactory properties
                     if (void.class != fallback) {
                         fallbackInstance = getFromContext(beanName, "fallback", fallback,
                                 target.type());
-                        FeignDecorators invocationDecorator = decoratorsBuilder.withFallback(fallbackInstance).build();
-                        return new DecoratorInvocationHandler(target, dispatch, invocationDecorator);
+                        decoratorsBuilder.withFallback(fallbackInstance);
                     }
                     if (void.class != fallbackFactory) {
                         fallbackFactoryInstance = (FallbackFactory) getFromContext(
                                 beanName, "fallbackFactory", fallbackFactory,
                                 FallbackFactory.class);
                         Function<Exception, ?> function = fallbackFactoryInstance::create;
-                        FeignDecorators invocationDecorator = decoratorsBuilder.withFallbackFactory(function).build();
-                        return new DecoratorInvocationHandler(target, dispatch, invocationDecorator);
+                        decoratorsBuilder.withFallbackFactory(function);
                     }
                     FeignDecorators invocationDecorator = decoratorsBuilder.build();
                     return new DecoratorInvocationHandler(target, dispatch, invocationDecorator);
