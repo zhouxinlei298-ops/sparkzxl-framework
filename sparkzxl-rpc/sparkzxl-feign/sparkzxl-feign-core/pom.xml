@@ -42,5 +42,10 @@
             <groupId>com.github.sparkzxl</groupId>
             <artifactId>sparkzxl-alarm-starter</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib</artifactId>
+            <version>3.2.7</version>
+        </dependency>
     </dependencies>
 </project>
