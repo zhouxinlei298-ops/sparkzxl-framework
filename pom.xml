@@ -60,7 +60,6 @@
         <module>sparkzxl-uid</module>
         <module>sparkzxl-user-starter</module>
         <module>sparkzxl-web-starter</module>
-        <module>sparkzxl-trace-logger</module>
         <module>sparkzxl-oss</module>
         <module>sparkzxl-annotation</module>
         <module>sparkzxl-signature</module>

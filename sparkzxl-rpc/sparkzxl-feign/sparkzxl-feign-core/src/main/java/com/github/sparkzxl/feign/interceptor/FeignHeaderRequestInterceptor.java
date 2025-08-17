@@ -12,17 +12,16 @@ import com.google.common.net.HttpHeaders;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import io.seata.core.context.RootContext;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * description: feign client 拦截器， 实现将 feign 调用方的 请求头封装到 被调用方的请求头
@@ -36,6 +35,7 @@ public class FeignHeaderRequestInterceptor implements RequestInterceptor {
             BaseContextConstants.TENANT_ID,
             BaseContextConstants.VERSION,
             BaseContextConstants.JWT_TOKEN_HEADER,
+            BaseContextConstants.TRACE_ID,
             "X-Real-IP",
             HttpHeaders.X_FORWARDED_FOR
     );

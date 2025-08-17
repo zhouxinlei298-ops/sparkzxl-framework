@@ -1,12 +1,7 @@
-package com.github.sparkzxl.feign.resilience4j.autoconfigure;
+package com.github.sparkzxl.feign;
 
-import com.github.sparkzxl.feign.resilience4j.CircuitBreakerExtractor;
-import com.github.sparkzxl.feign.resilience4j.FeignRequestCircuitBreakerExtractor;
-import com.github.sparkzxl.feign.resilience4j.WebClientRequestCircuitBreakerExtractor;
-import com.github.sparkzxl.feign.resilience4j.loadbalancer.SameZoneOnlyServiceInstanceListSupplier;
-import com.github.sparkzxl.feign.resilience4j.loadbalancer.TracedCircuitBreakerRoundRobinLoadBalancer;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import java.util.Objects;
+import com.github.sparkzxl.feign.loadbalancer.SameZoneOnlyServiceInstanceListSupplier;
+import com.github.sparkzxl.feign.loadbalancer.TracedRoundRobinLoadBalancer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
@@ -24,6 +19,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+
+import java.util.Objects;
 
 /**
  * description: 默认负载均衡配置
@@ -106,46 +103,17 @@ public class DefaultLoadBalancerConfiguration {
                                 new DiscoveryClientServiceInstanceListSupplier(reactiveDiscoveryClient, env),
                                 zoneConfig
                         )
-                        , cacheManagerProvider.getIfAvailable()
+                        , Objects.requireNonNull(cacheManagerProvider.getIfAvailable())
                 );
-    }
-
-
-    /**
-     * {@link @ConditionalOnClass(name = "org.springframework.web.servlet.DispatcherServlet")}代表有spring-mvc 依赖
-     *
-     * @return CircuitBreakerExtractor
-     */
-    @Bean
-    @ConditionalOnClass(name = "org.springframework.web.servlet.DispatcherServlet")
-    public CircuitBreakerExtractor feignRequestCircuitBreakerExtractor() {
-        return new FeignRequestCircuitBreakerExtractor();
-    }
-
-    /**
-     * {@link @ConditionalOnMissingClass("org.springframework.web.servlet.DispatcherServlet")}代表没有spring-mvc 依赖
-     * {@link @ConditionalOnClass("org.springframework.web.reactive.DispatcherHandler")}代表spring-webflux 依赖
-     *
-     * @return CircuitBreakerExtractor
-     */
-    @Bean
-    @ConditionalOnMissingClass("org.springframework.web.servlet.DispatcherServlet")
-    @ConditionalOnClass(name = "org.springframework.web.reactive.DispatcherHandler")
-    public CircuitBreakerExtractor webClientCircuitBreakerExtractor() {
-        return new WebClientRequestCircuitBreakerExtractor();
     }
 
 
     @Bean
     public ReactorLoadBalancer<ServiceInstance> reactorServiceInstanceLoadBalancer(
             Environment environment,
-            ServiceInstanceListSupplier serviceInstanceListSupplier,
-            CircuitBreakerExtractor circuitBreakerExtractor,
-            CircuitBreakerRegistry circuitBreakerRegistry
+            ServiceInstanceListSupplier serviceInstanceListSupplier
     ) {
         String name = environment.getProperty(LoadBalancerClientFactory.PROPERTY_NAME);
-        return new TracedCircuitBreakerRoundRobinLoadBalancer(
-                serviceInstanceListSupplier, name, circuitBreakerExtractor, circuitBreakerRegistry
-        );
+        return new TracedRoundRobinLoadBalancer(serviceInstanceListSupplier, name);
     }
 }
