@@ -3,10 +3,8 @@ package com.github.sparkzxl.feign.resilience4j;
 import feign.Feign;
 import feign.InvocationHandlerFactory;
 import feign.Target;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.github.resilience4j.feign.FeignDecorators;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.cloud.openfeign.FallbackFactory;
@@ -20,7 +18,6 @@ import org.springframework.util.StringUtils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -32,104 +29,112 @@ import java.util.function.Function;
 @SuppressWarnings(value = "all")
 public class Resilience4jFeign {
 
+    // 构建器入口：传入熔断器注册中心
     public static Builder builder(CircuitBreakerRegistry circuitBreakerRegistry) {
         return new Builder(circuitBreakerRegistry);
     }
 
-    public static final class Builder extends Feign.Builder
-            implements ApplicationContextAware {
+    public static final class Builder extends Feign.Builder implements ApplicationContextAware {
 
-        private final CircuitBreakerRegistry circuitBreakerRegistry;
-        private final FeignDecorators.Builder decoratorsBuilder;
-        private final ConcurrentHashMap<String, CircuitBreakerConfig> circuitBreakerConfigConfigs = new ConcurrentHashMap<>();
-        private final Function<String, CircuitBreakerConfig> defaultCircuitBreakerConfig;
+        private final CircuitBreakerRegistry circuitBreakerRegistry; // 熔断器注册中心
+        private final Function<String, CircuitBreakerConfig> defaultCircuitBreakerConfig; // 默认熔断配置
 
-        private ApplicationContext applicationContext;
+        private ApplicationContext applicationContext; // Spring上下文
+        private FeignContext feignContext; // Feign客户端专属上下文
 
-        private FeignContext feignContext;
-
+        // 构造器：初始化默认熔断配置
         public Builder(CircuitBreakerRegistry circuitBreakerRegistry) {
             this.circuitBreakerRegistry = circuitBreakerRegistry;
             this.defaultCircuitBreakerConfig = id -> circuitBreakerRegistry.getDefaultConfig();
-            this.decoratorsBuilder = FeignDecorators.builder();
         }
 
+        // 禁止自定义调用处理器工厂（强制使用当前类的熔断逻辑）
         @Override
-        public Feign.Builder invocationHandlerFactory(
-                InvocationHandlerFactory invocationHandlerFactory) {
-            throw new UnsupportedOperationException();
+        public Feign.Builder invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
+            throw new UnsupportedOperationException("不支持自定义InvocationHandlerFactory，需使用内置熔断逻辑");
         }
 
+        // 构建Feign实例：核心逻辑是创建方法级熔断的调用处理器
         @Override
         public Feign build() {
             super.invocationHandlerFactory(new InvocationHandlerFactory() {
-
                 @Override
-                public InvocationHandler create(Target target,
-                                                Map<Method, MethodHandler> dispatch) {
-
-                    GenericApplicationContext genericApplicationContext = (GenericApplicationContext) Builder.this.applicationContext;
+                public InvocationHandler create(Target target, Map<Method, MethodHandler> dispatch) {
+                    // 1. 从Spring上下文获取FeignClient的配置信息（fallback、fallbackFactory等）
+                    GenericApplicationContext genericApplicationContext = (GenericApplicationContext) applicationContext;
                     BeanDefinition beanDefinition = genericApplicationContext.getBeanDefinition(target.type().getName());
-
                     FeignClientFactoryBean feignClientFactoryBean = (FeignClientFactoryBean) beanDefinition.getAttribute("feignClientsRegistrarFactoryBean");
 
-                    Class fallback = feignClientFactoryBean.getFallback();
-                    Class fallbackFactory = feignClientFactoryBean.getFallbackFactory();
-                    String beanName = feignClientFactoryBean.getContextId();
+                    // 2. 提取FeignClient的唯一标识（contextId/服务名）和降级配置
+                    String feignClientName = StringUtils.hasText(feignClientFactoryBean.getContextId())
+                            ? feignClientFactoryBean.getContextId()
+                            : feignClientFactoryBean.getName();
+                    Class<?> fallbackClass = feignClientFactoryBean.getFallback();
+                    Class<?> fallbackFactoryClass = feignClientFactoryBean.getFallbackFactory();
 
-                    if (!StringUtils.hasText(beanName)) {
-                        beanName = feignClientFactoryBean.getName();
-                    }
-                    CircuitBreakerConfig circuitBreakerConfig = circuitBreakerConfigConfigs.computeIfAbsent(beanName, defaultCircuitBreakerConfig);
-                    CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(beanName, circuitBreakerConfig);
-                    decoratorsBuilder.withCircuitBreaker(circuitBreaker);
-                    Object fallbackInstance;
-                    FallbackFactory fallbackFactoryInstance;
-                    // check fallback and fallbackFactory properties
-                    if (void.class != fallback) {
-                        fallbackInstance = getFromContext(beanName, "fallback", fallback,
-                                target.type());
-                        decoratorsBuilder.withFallback(fallbackInstance);
-                    }
-                    if (void.class != fallbackFactory) {
-                        fallbackFactoryInstance = (FallbackFactory) getFromContext(
-                                beanName, "fallbackFactory", fallbackFactory,
-                                FallbackFactory.class);
-                        Function<Exception, ?> function = fallbackFactoryInstance::create;
-                        decoratorsBuilder.withFallbackFactory(function);
-                    }
-                    FeignDecorators invocationDecorator = decoratorsBuilder.build();
-                    return new FeignDecoratorInvocationHandler(target, dispatch, invocationDecorator);
-                }
+                    // 3. 解析降级实例或降级工厂
+                    FallbackFactory<?> fallbackFactory = resolveFallbackFactory(feignClientName, fallbackClass, fallbackFactoryClass, target.type());
 
-                private Object getFromContext(String name, String type,
-                                              Class fallbackType, Class targetType) {
-                    Object fallbackInstance = feignContext.getInstance(name,
-                            fallbackType);
-                    if (fallbackInstance == null) {
-                        throw new IllegalStateException(String.format(
-                                "No %s instance of type %s found for feign client %s",
-                                type, fallbackType, name));
-                    }
-
-                    if (!targetType.isAssignableFrom(fallbackType)) {
-                        throw new IllegalStateException(String.format(
-                                "Incompatible %s instance. Fallback/fallbackFactory of type %s is not assignable to %s for feign client %s",
-                                type, fallbackType, targetType, name));
-                    }
-                    return fallbackInstance;
+                    // 4. 创建方法级熔断的调用处理器
+                    return new FeignDecoratorInvocationHandler(
+                            target,
+                            dispatch,
+                            circuitBreakerRegistry,
+                            fallbackFactory,
+                            feignClientName
+                    );
                 }
             });
             return super.build();
         }
 
-        @Override
-        public void setApplicationContext(ApplicationContext applicationContext)
-                throws BeansException {
-            this.applicationContext = applicationContext;
-            feignContext = this.applicationContext.getBean(FeignContext.class);
+        /**
+         * 解析fallback或fallbackFactory，优先使用fallbackFactory
+         *
+         * @param feignClientName      feign客户端名称
+         * @param fallbackClass        降级类
+         * @param fallbackFactoryClass 降级工厂类
+         * @param targetType           目标类型
+         * @return FallbackFactory<?>
+         */
+        private FallbackFactory<?> resolveFallbackFactory(String feignClientName, Class<?> fallbackClass, Class<?> fallbackFactoryClass, Class<?> targetType) {
+            // 若配置了fallbackFactory，优先使用
+            if (fallbackFactoryClass != void.class) {
+                return (FallbackFactory<?>) getFromContext(feignClientName, "fallbackFactory", fallbackFactoryClass, FallbackFactory.class);
+            }
+            // 若配置了fallback，包装为默认FallbackFactory
+            if (fallbackClass != void.class) {
+                Object fallbackInstance = getFromContext(feignClientName, "fallback", fallbackClass, targetType);
+                return new FallbackFactory.Default<>(fallbackInstance);
+            }
+            // 未配置降级，返回null（不启用降级）
+            return null;
         }
 
+        private <T> T getFromContext(String name, String type,
+                                     Class fallbackType, Class targetType) {
+            Object fallbackInstance = feignContext.getInstance(name,
+                    fallbackType);
+            if (fallbackInstance == null) {
+                throw new IllegalStateException(String.format(
+                        "No %s instance of type %s found for feign client %s",
+                        type, fallbackType, name));
+            }
+
+            if (!targetType.isAssignableFrom(fallbackType)) {
+                throw new IllegalStateException(String.format(
+                        "Incompatible %s instance. Fallback/fallbackFactory of type %s is not assignable to %s for feign client %s",
+                        type, fallbackType, targetType, name));
+            }
+            return (T) fallbackInstance;
+        }
+
+        // 注入Spring上下文
+        @Override
+        public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+            this.applicationContext = applicationContext;
+            this.feignContext = applicationContext.getBean(FeignContext.class);
+        }
     }
 
 }
