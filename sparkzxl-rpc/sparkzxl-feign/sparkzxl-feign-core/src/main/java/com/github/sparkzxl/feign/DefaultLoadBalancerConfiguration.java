@@ -109,10 +109,8 @@ public class DefaultLoadBalancerConfiguration {
 
 
     @Bean
-    public ReactorLoadBalancer<ServiceInstance> reactorServiceInstanceLoadBalancer(
-            Environment environment,
-            ServiceInstanceListSupplier serviceInstanceListSupplier
-    ) {
+    public ReactorLoadBalancer<ServiceInstance> reactorServiceInstanceLoadBalancer(Environment environment,
+                                                                                   ServiceInstanceListSupplier serviceInstanceListSupplier) {
         String name = environment.getProperty(LoadBalancerClientFactory.PROPERTY_NAME);
         return new TracedRoundRobinLoadBalancer(serviceInstanceListSupplier, name);
     }

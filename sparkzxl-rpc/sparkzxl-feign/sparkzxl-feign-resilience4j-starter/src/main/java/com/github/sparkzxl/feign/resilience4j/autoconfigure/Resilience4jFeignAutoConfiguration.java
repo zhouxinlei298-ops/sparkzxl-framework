@@ -3,6 +3,7 @@ package com.github.sparkzxl.feign.resilience4j.autoconfigure;
 import com.github.sparkzxl.feign.resilience4j.Resilience4jFeign;
 import feign.Feign;
 import feign.RequestInterceptor;
+import feign.codec.Encoder;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -28,8 +29,10 @@ public class Resilience4jFeignAutoConfiguration {
     @Scope("prototype")
     @ConditionalOnMissingBean
     public Feign.Builder feignResilience4jBuilder(CircuitBreakerRegistry circuitBreakerRegistry,
-                                                  List<RequestInterceptor> requestInterceptorList) {
+                                                  List<RequestInterceptor> requestInterceptorList,
+                                                  Encoder encoder) {
         return Resilience4jFeign.builder(circuitBreakerRegistry)
-                .requestInterceptors(requestInterceptorList);
+                .requestInterceptors(requestInterceptorList)
+                .encoder(encoder);
     }
 }
