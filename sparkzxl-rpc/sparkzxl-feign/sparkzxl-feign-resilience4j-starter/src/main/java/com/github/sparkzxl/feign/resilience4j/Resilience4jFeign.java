@@ -1,4 +1,4 @@
-package io.github.resilience4j.feign;
+package com.github.sparkzxl.feign.resilience4j;
 
 import feign.Feign;
 import feign.InvocationHandlerFactory;
@@ -6,6 +6,7 @@ import feign.Target;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.feign.FeignDecorators;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.cloud.openfeign.FallbackFactory;
@@ -98,7 +99,7 @@ public class Resilience4jFeign {
                         decoratorsBuilder.withFallbackFactory(function);
                     }
                     FeignDecorators invocationDecorator = decoratorsBuilder.build();
-                    return new DecoratorInvocationHandler(target, dispatch, invocationDecorator);
+                    return new FeignDecoratorInvocationHandler(target, dispatch, invocationDecorator);
                 }
 
                 private Object getFromContext(String name, String type,

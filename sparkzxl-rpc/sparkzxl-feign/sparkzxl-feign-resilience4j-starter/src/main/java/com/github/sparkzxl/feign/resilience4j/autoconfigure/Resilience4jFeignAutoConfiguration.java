@@ -1,9 +1,9 @@
 package com.github.sparkzxl.feign.resilience4j.autoconfigure;
 
+import com.github.sparkzxl.feign.resilience4j.Resilience4jFeign;
 import feign.Feign;
 import feign.RequestInterceptor;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.github.resilience4j.feign.Resilience4jFeign;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
