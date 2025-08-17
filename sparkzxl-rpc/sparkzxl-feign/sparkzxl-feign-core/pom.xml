@@ -38,5 +38,9 @@
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>com.github.sparkzxl</groupId>
+            <artifactId>sparkzxl-alarm-starter</artifactId>
+        </dependency>
     </dependencies>
 </project>
