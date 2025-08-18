@@ -2,6 +2,7 @@ package com.github.sparkzxl.feign.aspect;
 
 import cn.hutool.aop.aspects.SimpleAspect;
 import cn.hutool.core.annotation.AnnotationUtil;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.map.MapUtil;
 import com.alibaba.fastjson.JSONArray;
@@ -39,6 +40,7 @@ public class FeignAlarmFallbackAspect extends SimpleAspect {
             "> · 应用： <font color=\"#1890ff\">#{[applicationName]}</font>\n" +
                     "> · 环境： <font color=\"#1890ff\">#{[environment]}</font>\n" +
                     "> · 租户ID：<font color=\"#1890ff\">#{[tenantId]}</font>\n" +
+                    "> · 请求时间：#{[date]}\n" +
                     "> · 请求地址：#{[url]}\n" +
                     "> · 请求服务：<font color=\"#1890ff\">#{[serviceName]}</font>\n" +
                     "> · 请求方法名称：#{[classMethod]}\n" +
@@ -50,6 +52,7 @@ public class FeignAlarmFallbackAspect extends SimpleAspect {
             "应用： #{[applicationName]}" +
                     "环境： #{[environment]}\n" +
                     "租户ID：#{[tenantId]}\n" +
+                    "请求时间：#{[date]}\n" +
                     "请求地址：#{[url]}\n" +
                     "请求服务：#{[serviceName]}\n" +
                     "请求方法名称：#{[classMethod]}\n" +
@@ -94,7 +97,6 @@ public class FeignAlarmFallbackAspect extends SimpleAspect {
             }
         }
         String expressionJson = annotation.expressionJson();
-        alarmParamMap.put("applicationName", applicationName);
         if (StringUtils.isNotBlank(expressionJson)) {
             List<ExpressionTemplate> expressionTemplateList = JSONArray.parseArray(expressionJson, ExpressionTemplate.class);
             for (ExpressionTemplate expressionTemplate : expressionTemplateList) {
@@ -105,6 +107,7 @@ public class FeignAlarmFallbackAspect extends SimpleAspect {
         RequestTemplate requestTemplate = exception.request().requestTemplate();
         alarmParamMap.put("applicationName", applicationName);
         alarmParamMap.put("environment", environment);
+        alarmParamMap.put("date", DateUtil.now());
         if (requestTemplate != null) {
             String name = requestTemplate.feignTarget().name();
             String serviceName = StringUtils.isEmpty(name) ? "unKnownServer" : name;
