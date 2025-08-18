@@ -1,4 +1,4 @@
-package com.github.sparkzxl.feign;
+package com.github.sparkzxl.distributed.cloud.config;
 
 import org.springframework.cloud.loadbalancer.annotation.LoadBalancerClients;
 import org.springframework.context.annotation.Configuration;

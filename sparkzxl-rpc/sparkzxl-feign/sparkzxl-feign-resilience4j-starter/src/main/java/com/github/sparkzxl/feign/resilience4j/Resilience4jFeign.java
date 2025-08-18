@@ -3,10 +3,10 @@ package com.github.sparkzxl.feign.resilience4j;
 import feign.Feign;
 import feign.InvocationHandlerFactory;
 import feign.Target;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.cloud.openfeign.CircuitBreakerNameResolver;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.cloud.openfeign.FeignClientFactoryBean;
 import org.springframework.cloud.openfeign.FeignContext;
@@ -18,7 +18,6 @@ import org.springframework.util.StringUtils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * description: 重写Resilience4jFeign，支持FeignClient注解的降级类,同时支持熔断
@@ -30,22 +29,23 @@ import java.util.function.Function;
 public class Resilience4jFeign {
 
     // 构建器入口：传入熔断器注册中心
-    public static Builder builder(CircuitBreakerRegistry circuitBreakerRegistry) {
-        return new Builder(circuitBreakerRegistry);
+    public static Builder builder(CircuitBreakerFactory circuitBreakerFactory, boolean circuitBreakerGroupEnabled, CircuitBreakerNameResolver circuitBreakerNameResolver) {
+        return new Builder(circuitBreakerFactory, circuitBreakerGroupEnabled, circuitBreakerNameResolver);
     }
 
     public static final class Builder extends Feign.Builder implements ApplicationContextAware {
 
-        private final CircuitBreakerRegistry circuitBreakerRegistry; // 熔断器注册中心
-        private final Function<String, CircuitBreakerConfig> defaultCircuitBreakerConfig; // 默认熔断配置
-
+        private final CircuitBreakerFactory circuitBreakerFactory; // 熔断器注册中心
+        private final boolean circuitBreakerGroupEnabled;
+        private final CircuitBreakerNameResolver circuitBreakerNameResolver;
         private ApplicationContext applicationContext; // Spring上下文
         private FeignContext feignContext; // Feign客户端专属上下文
 
         // 构造器：初始化默认熔断配置
-        public Builder(CircuitBreakerRegistry circuitBreakerRegistry) {
-            this.circuitBreakerRegistry = circuitBreakerRegistry;
-            this.defaultCircuitBreakerConfig = id -> circuitBreakerRegistry.getDefaultConfig();
+        public Builder(CircuitBreakerFactory circuitBreakerFactory, boolean circuitBreakerGroupEnabled, CircuitBreakerNameResolver circuitBreakerNameResolver) {
+            this.circuitBreakerFactory = circuitBreakerFactory;
+            this.circuitBreakerGroupEnabled = circuitBreakerGroupEnabled;
+            this.circuitBreakerNameResolver = circuitBreakerNameResolver;
         }
 
         // 禁止自定义调用处理器工厂（强制使用当前类的熔断逻辑）
@@ -76,13 +76,9 @@ public class Resilience4jFeign {
                     FallbackFactory<?> fallbackFactory = resolveFallbackFactory(feignClientName, fallbackClass, fallbackFactoryClass, target.type());
 
                     // 4. 创建方法级熔断的调用处理器
-                    return new FeignDecoratorInvocationHandler(
-                            target,
-                            dispatch,
-                            circuitBreakerRegistry,
-                            fallbackFactory,
-                            feignClientName
-                    );
+                    return new FeignCircuitBreakerInvocationHandler(
+                            circuitBreakerFactory, feignClientName, target, dispatch, fallbackFactory,
+                            circuitBreakerGroupEnabled, circuitBreakerNameResolver);
                 }
             });
             return super.build();

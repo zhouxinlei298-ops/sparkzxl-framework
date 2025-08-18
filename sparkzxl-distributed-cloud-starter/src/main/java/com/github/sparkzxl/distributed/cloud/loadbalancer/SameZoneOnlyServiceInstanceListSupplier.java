@@ -1,4 +1,4 @@
-package com.github.sparkzxl.feign.loadbalancer;
+package com.github.sparkzxl.distributed.cloud.loadbalancer;
 
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.loadbalancer.config.LoadBalancerZoneConfig;

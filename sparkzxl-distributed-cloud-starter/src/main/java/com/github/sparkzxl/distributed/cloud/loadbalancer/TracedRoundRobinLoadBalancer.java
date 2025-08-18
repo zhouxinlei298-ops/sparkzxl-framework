@@ -1,4 +1,4 @@
-package com.github.sparkzxl.feign.loadbalancer;
+package com.github.sparkzxl.distributed.cloud.loadbalancer;
 
 import cn.hutool.core.util.IdUtil;
 import com.github.benmanes.caffeine.cache.Caffeine;

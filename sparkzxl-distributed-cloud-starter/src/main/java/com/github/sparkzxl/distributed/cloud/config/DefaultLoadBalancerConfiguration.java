@@ -1,7 +1,7 @@
-package com.github.sparkzxl.feign;
+package com.github.sparkzxl.distributed.cloud.config;
 
-import com.github.sparkzxl.feign.loadbalancer.SameZoneOnlyServiceInstanceListSupplier;
-import com.github.sparkzxl.feign.loadbalancer.TracedRoundRobinLoadBalancer;
+import com.github.sparkzxl.distributed.cloud.loadbalancer.SameZoneOnlyServiceInstanceListSupplier;
+import com.github.sparkzxl.distributed.cloud.loadbalancer.TracedRoundRobinLoadBalancer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;

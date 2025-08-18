@@ -1,1 +1,1 @@
-com.github.sparkzxl.feign.resilience4j.autoconfigure.Resilience4jFeignAutoConfiguration
+com.github.sparkzxl.feign.resilience4j.autoconfigure.Resilience4jFeignClientConfiguration
