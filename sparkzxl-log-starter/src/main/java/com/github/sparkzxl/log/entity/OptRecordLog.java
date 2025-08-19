@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 public class OptRecordLog implements Serializable {
 
-    private static final long serialVersionUID = 4863843332674271909L;
+    private static final long serialVersionUID = -3827211216877219021L;
     /**
      * 请求IP
      */
@@ -75,5 +75,10 @@ public class OptRecordLog implements Serializable {
      * 租户
      */
     private String tenantId;
+
+    /**
+     * 追踪ID
+     */
+    private String traceId;
 
 }

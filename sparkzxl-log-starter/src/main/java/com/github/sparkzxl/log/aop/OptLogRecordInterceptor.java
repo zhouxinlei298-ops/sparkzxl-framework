@@ -73,7 +73,8 @@ public class OptLogRecordInterceptor implements MethodInterceptor {
                 .setOperatorId(userId)
                 .setOperator(name)
                 .setStartTime(LocalDateTime.now())
-                .setTenantId(RequestLocalContextHolder.getTenantId());
+                .setTenantId(RequestLocalContextHolder.getTenantId())
+                .setTraceId(RequestLocalContextHolder.traceId());
         Object proceed;
         try {
             proceed = invocation.proceed();

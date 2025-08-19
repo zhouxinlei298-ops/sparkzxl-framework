@@ -2,13 +2,11 @@ package com.github.sparkzxl.distributed.cloud.http;
 
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
@@ -17,6 +15,10 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * description: 通过 RestTemplate 调用时，传递请求头和线程变量
@@ -39,8 +41,8 @@ public class RestTemplateHeaderInterceptor implements ClientHttpRequestIntercept
     );
 
     @Override
-    public ClientHttpResponse intercept(HttpRequest request, byte[] bytes,
-            ClientHttpRequestExecution execution) throws IOException {
+    public @NotNull ClientHttpResponse intercept(HttpRequest request, byte[] bytes,
+                                                 ClientHttpRequestExecution execution) throws IOException {
 
         HttpHeaders httpHeaders = request.getHeaders();
 

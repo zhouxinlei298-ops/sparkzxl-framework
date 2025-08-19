@@ -1,2 +1,1 @@
-com.github.sparkzxl.feign.resilience4j.autoconfigure.Resilience4jFeignConfiguration
-com.github.sparkzxl.feign.resilience4j.autoconfigure.LoadBalancerAutoConfiguration
+com.github.sparkzxl.feign.resilience4j.autoconfigure.Resilience4jFeignClientConfiguration
