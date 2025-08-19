@@ -8,11 +8,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
+
 import static com.github.sparkzxl.signature.server.properties.SignatureServerProperties.CONFIG_PREFIX;
 
 /**
@@ -43,6 +45,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
             List<String> excludePatterns = signatureServerProperties.getExcludePatterns();
             excludePatterns.addAll(Constant.EXCLUDE_STATIC_PATTERNS);
             registry.addInterceptor(signAuthInterceptor())
+                    .order(Ordered.HIGHEST_PRECEDENCE + 2)
                     .addPathPatterns(signatureServerProperties.getIncludePatterns())
                     .excludePathPatterns(excludePatterns);
         }

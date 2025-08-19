@@ -42,6 +42,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Role;
 import org.springframework.context.expression.BeanFactoryResolver;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -95,7 +96,8 @@ public class DynamicDataSourceAutoConfig implements WebMvcConfigurer, Initializi
         if (dynamicDataProperties.isEnabled()) {
             DynamicDataSourceInterceptor dynamicDataSourceInterceptor = dynamicDataSourceInterceptor();
             Optional.of(dynamicDataSourceInterceptor).ifPresent(interceptor -> {
-                registry.addInterceptor(interceptor);
+                registry.addInterceptor(interceptor)
+                        .order(Ordered.HIGHEST_PRECEDENCE + 1);
                 log.info("已加载拦截器：[{}]", ClassUtils.getName(interceptor));
             });
         }

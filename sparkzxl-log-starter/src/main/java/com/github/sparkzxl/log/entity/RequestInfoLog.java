@@ -16,8 +16,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class RequestInfoLog implements Serializable {
 
-    private static final long serialVersionUID = -4039189147020220726L;
-
+    private static final long serialVersionUID = -6298052867608966956L;
     /**
      * 业务分类
      */
@@ -92,5 +91,10 @@ public class RequestInfoLog implements Serializable {
      * 租户
      */
     private String tenantId;
+
+    /**
+     * 追踪ID
+     */
+    private String traceId;
 
 }

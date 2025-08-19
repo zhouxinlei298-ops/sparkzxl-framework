@@ -1,12 +1,13 @@
 package com.github.sparkzxl.log.event;
 
 
+import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.log.entity.OptRecordLog;
-import com.github.sparkzxl.log.utils.BizPointLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 
@@ -39,7 +40,8 @@ public class OptLogListener {
                     optRecordLog.getTenantId(), optRecordLog.getRequestUrl(), optRecordLog.getOperator(),
                     optRecordLog.getCategory(), optRecordLog.getDetail());
         }
-        BizPointLog.log(optRecordLog);
+        MDC.put(BaseContextConstants.TENANT_ID, optRecordLog.getTenantId());
+        MDC.put(BaseContextConstants.TRACE_ID, optRecordLog.getTraceId());
         consumer.accept(optRecordLog);
     }
 
