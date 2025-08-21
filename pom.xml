@@ -34,6 +34,7 @@
         <module>sparkzxl-cache-starter</module>
         <module>sparkzxl-common</module>
         <module>sparkzxl-core</module>
+        <module>sparkzxl-data-scope</module>
         <module>sparkzxl-mybatis-starter</module>
         <module>sparkzxl-data-sync</module>
         <module>sparkzxl-datasource-starter</module>

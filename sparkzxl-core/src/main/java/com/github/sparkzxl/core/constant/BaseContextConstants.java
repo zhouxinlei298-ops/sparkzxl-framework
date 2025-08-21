@@ -111,4 +111,14 @@ public class BaseContextConstants {
     public static final String DATA_SCOPE = "data_scope";
     public static final String MULTI_DATA_SCOPE = "multiDataScope";
     public static final String RPC_TYPE = "rpc_type";
+
+    /**
+     * 数据权限列集合
+     */
+    public static final String DATA_SCOPE_CONF_LIST = "dataScopeConfList";
+
+    /**
+     * 数据权限启用标识
+     */
+    public static final String ENABLE_DATA_SCOPE = "enable_data_scope";
 }

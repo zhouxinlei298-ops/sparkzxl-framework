@@ -176,4 +176,22 @@ public class RequestLocalContextHolder {
         }
         return dataList;
     }
+
+    public static <T> List<T> getList(String key, Class<T> type) {
+        Map<String, Object> map = getLocalMap();
+        Object o = map.get(key);
+        if (o == null) {
+            return Collections.emptyList();
+        }
+        List<T> dataList = Lists.newArrayList();
+        if (o instanceof Collection) {
+            List<Object> list = (List<Object>) o;
+            for (Object val : list) {
+                dataList.add(Convert.convert(type, val));
+            }
+        } else {
+            dataList = Lists.newArrayList(Convert.convert(type, o));
+        }
+        return dataList;
+    }
 }
