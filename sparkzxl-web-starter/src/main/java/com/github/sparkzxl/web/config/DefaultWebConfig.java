@@ -64,6 +64,7 @@ public class DefaultWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(webRequestInterceptor())
+                .order(Ordered.HIGHEST_PRECEDENCE)
                 .addPathPatterns("/**")
                 .excludePathPatterns(Constant.EXCLUDE_STATIC_PATTERNS);
     }

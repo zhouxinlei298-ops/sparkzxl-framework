@@ -15,9 +15,6 @@ import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.*;
 import com.github.sparkzxl.core.constant.enums.MultiTenantType;
-import com.github.sparkzxl.mybatis.annotation.DataScope;
-import com.github.sparkzxl.mybatis.aop.DataScopeAnnotationAdvisor;
-import com.github.sparkzxl.mybatis.aop.DataScopeInterceptor;
 import com.github.sparkzxl.mybatis.handler.KingbaseLocalDateTimeTypeHandler;
 import com.github.sparkzxl.mybatis.mybatis.hander.MetaDataHandler;
 import com.github.sparkzxl.mybatis.mybatis.injector.BaseSqlInjector;
@@ -32,18 +29,21 @@ import com.google.common.collect.Lists;
 import com.p6spy.engine.spy.P6DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.*;
-import org.springframework.core.Ordered;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * description: mybatis全局配置
@@ -72,10 +72,11 @@ public class MyBatisAutoConfiguration {
     /**
      * 多租户插件配置,一缓和二缓遵循mybatis的规则,需要设置 MybatisConfiguration#useDeprecatedExecutor = false 避免缓存万一出现问题
      *
+     * @param interceptorMap 数据权限处理
      * @return MybatisPlusInterceptor
      */
     @Bean
-    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+    public MybatisPlusInterceptor mybatisPlusInterceptor(@Autowired(required = false) Map<String, InnerInterceptor> interceptorMap) {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         // 乐观锁插件
         interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
@@ -115,6 +116,12 @@ public class MyBatisAutoConfiguration {
         // sql性能规范插件
         if (dataProperties.getIsIllegalSql()) {
             interceptor.addInnerInterceptor(new IllegalSQLInnerInterceptor());
+        }
+        List<InnerInterceptor> innerInterceptorList = new ArrayList<>(interceptorMap.values());
+        if (CollectionUtils.isNotEmpty(innerInterceptorList)) {
+            for (InnerInterceptor innerInterceptor : innerInterceptorList) {
+                interceptor.addInnerInterceptor(innerInterceptor);
+            }
         }
         return interceptor;
     }
@@ -205,17 +212,4 @@ public class MyBatisAutoConfiguration {
         slowSqlMonitorInterceptor.setApplicationContext(applicationContext);
         return slowSqlMonitorInterceptor;
     }
-
-    @Bean
-    @ConditionalOnProperty(value = "mybatis-plus.data.enable-data-scope", havingValue = "true")
-    public DataScopeInterceptor dataScopeInterceptor() {
-        return new DataScopeInterceptor();
-    }
-
-    @Bean
-    @ConditionalOnProperty(value = "mybatis-plus.data.enable-data-scope", havingValue = "true")
-    public DataScopeAnnotationAdvisor dataScopeAnnotationAdvisor(DataScopeInterceptor dataScopeInterceptor) {
-        return new DataScopeAnnotationAdvisor(dataScopeInterceptor, DataScope.class, Ordered.HIGHEST_PRECEDENCE);
-    }
-
 }

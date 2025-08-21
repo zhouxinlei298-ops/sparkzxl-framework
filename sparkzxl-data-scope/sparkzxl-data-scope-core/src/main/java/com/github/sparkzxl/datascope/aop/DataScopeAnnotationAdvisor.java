@@ -1,6 +1,5 @@
-package com.github.sparkzxl.mybatis.aop;
+package com.github.sparkzxl.datascope.aop;
 
-import java.lang.annotation.Annotation;
 import lombok.NonNull;
 import org.aopalliance.aop.Advice;
 import org.springframework.aop.Pointcut;
@@ -10,8 +9,10 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 
+import java.lang.annotation.Annotation;
+
 /**
- * description: 多列数据权限aop通知
+ * description: 数据权限aop通知
  *
  * @author zhouxinlei
  * @since 2022-05-27 12:25:59
