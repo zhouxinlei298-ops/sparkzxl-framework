@@ -19,18 +19,18 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-core</artifactId>
-            <version>3.5.3</version>
-        </dependency>
-        <dependency>
             <groupId>com.github.sparkzxl</groupId>
             <artifactId>sparkzxl-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-extension</artifactId>
-            <version>3.5.3</version>
+            <version>3.5.12</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>3.5.12</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

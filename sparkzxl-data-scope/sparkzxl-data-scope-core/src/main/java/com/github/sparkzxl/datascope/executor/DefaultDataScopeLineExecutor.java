@@ -10,9 +10,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
+import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.util.cnfexpression.MultiAndExpression;
 import org.apache.commons.collections4.CollectionUtils;
@@ -123,7 +123,7 @@ public class DefaultDataScopeLineExecutor implements DataScopeLineExecutor {
             return new MultiAndExpression(expressionList);
         }
         if (currentExpression instanceof OrExpression) {
-            return new AndExpression(new Parenthesis(currentExpression), new MultiAndExpression(expressionList));
+            return new AndExpression(new ParenthesedExpressionList(currentExpression), new MultiAndExpression(expressionList));
         } else {
             return new AndExpression(currentExpression, new MultiAndExpression(expressionList));
         }

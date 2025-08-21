@@ -3,7 +3,6 @@ package com.github.sparkzxl.datascope.expression;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.ValueListExpression;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.schema.Column;
@@ -33,12 +32,14 @@ public class INExpressionStrategy implements ExpressionStrategy {
             if (valList.size() == 1) {
                 return getEqualsTo(column, valList.get(0));
             } else {
-                ValueListExpression valueListExpression = new ValueListExpression();
-                List<Expression> inExpressionList = valList.stream().map(StringValue::new).collect(Collectors.toList());
-                valueListExpression.setExpressionList(new ExpressionList(inExpressionList));
+                // JSQLParser 5.1中使用ExpressionList直接作为右表达式
+                ExpressionList expressionList = new ExpressionList(
+                        valList.stream().map(StringValue::new).collect(Collectors.toList())
+                );
                 InExpression inExpression = new InExpression();
                 inExpression.setLeftExpression(column);
-                inExpression.setRightExpression(valueListExpression);
+                // 使用setRightExpression方法设置表达式列表
+                inExpression.setRightExpression(expressionList);
                 return inExpression;
             }
         } else {
