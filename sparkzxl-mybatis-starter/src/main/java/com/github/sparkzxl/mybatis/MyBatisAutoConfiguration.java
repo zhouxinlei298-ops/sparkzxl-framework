@@ -1,6 +1,7 @@
 package com.github.sparkzxl.mybatis;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.ReflectUtil;
 import com.baidu.fsg.uid.UidGenerator;
 import com.baidu.fsg.uid.buffer.RejectedPutBufferHandler;
@@ -117,10 +118,12 @@ public class MyBatisAutoConfiguration {
         if (dataProperties.getIsIllegalSql()) {
             interceptor.addInnerInterceptor(new IllegalSQLInnerInterceptor());
         }
-        List<InnerInterceptor> innerInterceptorList = new ArrayList<>(interceptorMap.values());
-        if (CollectionUtils.isNotEmpty(innerInterceptorList)) {
-            for (InnerInterceptor innerInterceptor : innerInterceptorList) {
-                interceptor.addInnerInterceptor(innerInterceptor);
+        if (MapUtil.isNotEmpty(interceptorMap)) {
+            List<InnerInterceptor> innerInterceptorList = new ArrayList<>(interceptorMap.values());
+            if (CollectionUtils.isNotEmpty(innerInterceptorList)) {
+                for (InnerInterceptor innerInterceptor : innerInterceptorList) {
+                    interceptor.addInnerInterceptor(innerInterceptor);
+                }
             }
         }
         return interceptor;
