@@ -256,7 +256,7 @@
                 <timeFormat>${timeFormat}</timeFormat>
                 <!-- 可选项 设置 time 字段呈现的时区 -->
                 <timeZone>${timeZone}</timeZone>
-                <mdcFields>THREAD_ID,MDC_KEY</mdcFields>
+                <mdcFields>tenantId,traceId</mdcFields>
             </appender>
             <appender name="AsyncAaLiYunLog" class="ch.qos.logback.classic.AsyncAppender">
                 <discardingThreshold>0</discardingThreshold>
