@@ -169,17 +169,32 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
         uploadFileLimit(objectName);
         CustomMinioClient minioClient = obtainClient();
         File tempFile = new File(filePath);
+        BufferedInputStream tempInputStream = null;
         try {
             long fileSize = tempFile.length();
+            tempInputStream = FileUtil.getInputStream(tempFile);
             String mimeType = FileUtil.getType(tempFile);
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
-                    .object(objectName).stream(FileUtil.getInputStream(tempFile), fileSize, -1)
+                    .object(objectName).stream(tempInputStream, fileSize, -1)
                     .contentType(mimeType)
                     .build();
-            minioClient.putObject(putObjectArgs);
+            CompletableFuture<ObjectWriteResponse> completableFuture = minioClient.putObject(putObjectArgs);
+            ObjectWriteResponse writeResponse = completableFuture.get();
+            log.info("文件上传成功，ETag: {}", writeResponse.etag());
         } catch (Exception e) {
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
+        } finally {
+            if (tempInputStream != null) {
+                try {
+                    tempInputStream.close();
+                } catch (IOException e) {
+                    log.error("关闭文件流失败：{}", e.getMessage());
+                }
+            }
+            if (!tempFile.delete()) {
+                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+            }
         }
     }
 
@@ -187,51 +202,76 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     public void putObject(String bucketName, String objectName, URL url) {
         uploadFileLimit(objectName);
         CustomMinioClient minioClient = obtainClient();
-        long executeTime;
-        Stopwatch dbStopwatch = Stopwatch.createStarted();
+        Stopwatch stopwatch = Stopwatch.createStarted();
         File tempFile = null;
-        HttpURLConnection conn = null;
+        HttpURLConnection connection = null;
+        InputStream tempInputStream = null;
         try {
-            conn = (HttpURLConnection) url.openConnection();
-            System.out.println("HTTP下载文件开始======");
-            long millis = TimeUtil.toMillis(5, TimeUnit.SECONDS);
-            conn.setConnectTimeout((int) millis);
-            int responseCode = conn.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                BufferedInputStream in = new BufferedInputStream(conn.getInputStream());
-                tempFile = FileUtil.createTempFile();
-                FileOutputStream fos = new FileOutputStream(tempFile);
-                int bytesRead;
-                byte[] buffer = new byte[4096];
-                while ((bytesRead = in.read(buffer)) != -1) {
-                    fos.write(buffer, 0, bytesRead);
-                }
-                fos.close();
-                in.close();
-                System.out.println("HTTP下载文件结束，开始上传======");
-                long fileSize = tempFile.length();
-                String mimeType = FileUtil.getMimeType(url.getPath());
-                PutObjectArgs putObjectArgs = PutObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(objectName)
-                        .stream(FileUtil.getInputStream(tempFile), fileSize, -1)
-                        .contentType(mimeType)
-                        .build();
-                minioClient.putObject(putObjectArgs);
-                executeTime = dbStopwatch.elapsed(TimeUnit.SECONDS);
-                System.out.println("上传耗时：[" + executeTime + "]秒");
-            } else {
-                log.error("文件无法下载:{}", url);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(60000);
+            connection.setReadTimeout(300000);
+            connection.setRequestProperty("Accept", "*/*");
+            int responseCode = connection.getResponseCode();
+            // 2. 检查响应状态，非200则抛出异常
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                String errorMsg = String.format("文件下载失败，URL: %s，响应码: %d，响应信息: %s",
+                        url, responseCode, connection.getResponseMessage());
+                log.error(errorMsg);
+                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR.getErrorCode(), errorMsg);
             }
+            log.info("HTTP下载文件[{}]:开始======", url);
+
+            try (BufferedInputStream in = new BufferedInputStream(connection.getInputStream())) {
+                tempFile = FileUtil.createTempFile();
+                // 注册JVM退出时自动删除临时文件（双重保障）
+                tempFile.deleteOnExit();
+
+                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                    }
+                }
+            }
+            log.info("HTTP下载文件[{}]:结束======", url);
+            // 4. 上传到MinIO
+            long fileSize = tempFile.length();
+            // 从响应头获取准确的MIME类型
+            String mimeType = connection.getContentType();
+            // 处理可能的null（默认使用二进制流类型）
+            if (mimeType == null) {
+                mimeType = "application/octet-stream";
+            }
+
+            tempInputStream = FileUtil.getInputStream(tempFile);
+            PutObjectArgs putObjectArgs = PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .stream(tempInputStream, fileSize, -1)
+                    .contentType(mimeType).build();
+            CompletableFuture<ObjectWriteResponse> completableFuture = minioClient.putObject(putObjectArgs);
+            ObjectWriteResponse writeResponse = completableFuture.get();
+            log.info("文件上传成功，ETag: {}", writeResponse.etag());
+            long totalTime = stopwatch.elapsed(TimeUnit.SECONDS);
+            log.info("文件下载并上传完成，总耗时：[{}]", totalTime);
         } catch (Exception e) {
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            // 使用完毕后删除临时文件
-            if (conn != null) {
-                conn.disconnect();
+            // 关闭HTTP连接
+            if (connection != null) {
+                connection.disconnect();
             }
+            if (tempInputStream != null) {
+                try {
+                    tempInputStream.close();
+                } catch (IOException e) {
+                    log.error("关闭文件流失败：{}", e.getMessage());
+                }
+            }
+            // 删除临时文件（双重保障：主动删除+JVM退出删除）
             if (tempFile != null && !tempFile.delete()) {
-                log.info("无法删除临时文件:{}", tempFile);
+                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
             }
         }
     }
