@@ -1,5 +1,7 @@
 package com.github.sparkzxl.alarm.executor;
 
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.map.MapUtil;
 import com.github.sparkzxl.alarm.callback.AlarmAsyncCallback;
 import com.github.sparkzxl.alarm.callback.AlarmExceptionCallback;
@@ -12,11 +14,17 @@ import com.github.sparkzxl.alarm.loadbalancer.AlarmLoadBalancer;
 import com.github.sparkzxl.alarm.properties.AlarmProperties;
 import com.github.sparkzxl.alarm.send.AlarmCallback;
 import com.github.sparkzxl.alarm.support.AlarmIdGenerator;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import javax.annotation.Resource;
+
+import com.github.sparkzxl.core.util.DateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 
@@ -45,12 +53,31 @@ public abstract class AbstractAlarmExecutor implements AlarmExecutor {
     public AbstractAlarmExecutor() {
     }
 
+    public void cleanDataVariables(Map<String, Object> variables) {
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            Object value = entry.getValue();
+            String formattedDate = null;
+            if (value instanceof LocalDateTime) {
+                formattedDate = LocalDateTimeUtil.format((LocalDateTime) value, DatePattern.CHINESE_DATE_TIME_PATTERN);
+            } else if (value instanceof Date) {
+                formattedDate = DateUtils.format((Date) value, DatePattern.CHINESE_DATE_TIME_PATTERN);
+            } else if (value instanceof LocalDate) {
+                formattedDate = LocalDateTimeUtil.format((LocalDate) value, DatePattern.CHINESE_DATE_PATTERN);
+            }
+            // 若转换成功，更新值
+            if (formattedDate != null) {
+                entry.setValue(formattedDate);
+            }
+        }
+    }
+
     @Override
     public <T extends MsgType> AlarmResponse send(T message, Map<String, Object> variables) {
         // 告警唯一id
         String alarmId = alarmIdGenerator.nextAlarmId();
         AlarmChannel alarmChannel = message.getAlarmChannel();
         if (MapUtil.isNotEmpty(variables)) {
+            cleanDataVariables(variables);
             message.transfer(variables);
         }
         AlarmProperties.AlarmConfig alarmConfig = getAlarmConfig(alarmChannel, (configs) -> alarmLoadBalancer.choose(configs));
@@ -67,6 +94,7 @@ public abstract class AbstractAlarmExecutor implements AlarmExecutor {
         String alarmId = alarmIdGenerator.nextAlarmId();
         AlarmChannel alarmChannel = message.getAlarmChannel();
         if (MapUtil.isNotEmpty(variables)) {
+            cleanDataVariables(variables);
             message.transfer(variables);
         }
         AlarmProperties.AlarmConfig alarmConfig = getAlarmConfig(alarmChannel,
