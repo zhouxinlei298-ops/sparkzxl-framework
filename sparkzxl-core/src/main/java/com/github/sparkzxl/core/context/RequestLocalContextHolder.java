@@ -117,6 +117,10 @@ public class RequestLocalContextHolder {
         return get(BaseContextConstants.TENANT_ID, String.class, StrPool.EMPTY);
     }
 
+    public static void setTraceId(String traceId) {
+        set(BaseContextConstants.TRACE_ID_HEADER, traceId);
+    }
+
     public static String traceId() {
         return get(BaseContextConstants.TRACE_ID_HEADER, String.class, "N/A");
     }

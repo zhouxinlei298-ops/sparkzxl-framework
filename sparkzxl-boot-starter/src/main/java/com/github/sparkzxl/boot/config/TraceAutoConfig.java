@@ -29,7 +29,7 @@ public class TraceAutoConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "spring.trace.type", havingValue = "local")
+    @ConditionalOnProperty(name = "spring.trace.type", havingValue = "local", matchIfMissing = true)
     public TraceIdContext localTraceIdContext() {
         return new LocalTraceIdContext();
     }

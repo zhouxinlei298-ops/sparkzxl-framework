@@ -72,6 +72,7 @@ public class WebRequestInterceptor implements AsyncHandlerInterceptor {
         if (StringUtils.isEmpty(traceId)) {
             traceId = SpringContextUtils.getTraceId();
         }
+        RequestLocalContextHolder.setTraceId(traceId);
         MDC.put(BaseContextConstants.LOG_TRACE_ID, traceId);
         try {
             for (InnerInterceptor innerInterceptor : innerInterceptorList) {
