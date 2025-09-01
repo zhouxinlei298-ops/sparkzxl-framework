@@ -69,7 +69,7 @@ public class WebRequestInterceptor implements AsyncHandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         RequestLocalContextHolder.set(BaseContextConstants.RPC_TYPE, RpcType.HTTP.getCode());
         String traceId = HttpRequestUtils.getHeader(request, BaseContextConstants.TRACE_ID_HEADER);
-        if (StringUtils.isEmpty(traceId)) {
+        if (StringUtils.isEmpty(traceId) || "N/A".equalsIgnoreCase(traceId)) {
             traceId = SpringContextUtils.getTraceId();
         }
         RequestLocalContextHolder.setTraceId(traceId);
