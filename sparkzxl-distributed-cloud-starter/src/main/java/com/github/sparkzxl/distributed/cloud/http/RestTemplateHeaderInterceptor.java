@@ -33,7 +33,7 @@ public class RestTemplateHeaderInterceptor implements ClientHttpRequestIntercept
             BaseContextConstants.JWT_KEY_ACCOUNT,
             BaseContextConstants.JWT_KEY_NAME,
             BaseContextConstants.VERSION,
-            BaseContextConstants.TRACE_ID,
+            BaseContextConstants.TRACE_ID_HEADER,
             BaseContextConstants.JWT_TOKEN_HEADER, "X-Real-IP",
             com.google.common.net.HttpHeaders.X_FORWARDED_FOR
     );

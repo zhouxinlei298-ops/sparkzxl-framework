@@ -7,6 +7,7 @@ import com.github.sparkzxl.log.entity.OptRecordLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.skywalking.apm.toolkit.trace.ConsumerWrapper;
 import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -41,8 +42,8 @@ public class OptLogListener {
                     optRecordLog.getCategory(), optRecordLog.getDetail());
         }
         MDC.put(BaseContextConstants.TENANT_ID, optRecordLog.getTenantId());
-        MDC.put(BaseContextConstants.TRACE_ID, optRecordLog.getTraceId());
-        consumer.accept(optRecordLog);
+        MDC.put(BaseContextConstants.LOG_TRACE_ID, optRecordLog.getTraceId());
+        ConsumerWrapper.of(consumer).accept(optRecordLog);
     }
 
 }

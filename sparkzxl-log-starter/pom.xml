@@ -59,11 +59,6 @@
             <artifactId>aliyun-log-logback-appender</artifactId>
             <version>${aliyun-log-logback.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.plumelog</groupId>
-            <artifactId>plumelog-logback</artifactId>
-            <version>3.5.3</version>
-        </dependency>
         <!-- 自定义的元数据依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -40,7 +40,7 @@
     <springProperty name="accessKeySecret" scope="context" source="logging.aliYunLog.accessKeySecret"
                     defaultValue=""/>
     <springProperty name="project" scope="context" source="logging.aliYunLog.project"
-                    defaultValue="gongbaojin"/>
+                    defaultValue="sparkzxl"/>
     <springProperty name="logStore" scope="context" source="logging.aliYunLog.logStore" defaultValue=""/>
     <springProperty name="totalSizeInBytes" scope="context" source="aliYunLog.config.totalSizeInBytes"
                     defaultValue="104857600"/>
@@ -62,36 +62,12 @@
     <springProperty name="timeZone" scope="context" source="logging.aliYunLog.timeZone"
                     defaultValue="Asia/Shanghai"/>
 
-    <!--plumelog服务配置-->
-    <springProperty name="enablePlumeLog" scope="context" source="logging.plumelog.enabled" defaultValue="false"/>
-    <springProperty name="plumelogType" scope="context" source="logging.plumelog.type" defaultValue="redis"/>
-    <springProperty name="plumelog.env" scope="context" source="spring.profiles.active"/>
-    <springProperty name="plumelog.runModel" scope="context" source="logging.plumelog.runModel"  defaultValue="1"/>
-    <springProperty name="plumelog.expand" scope="context" source="logging.plumelog.expand" defaultValue=""/>
-    <springProperty name="plumelog.maxCount" scope="context" source="logging.plumelog.maxCount" defaultValue="100"/>
-    <springProperty name="plumelog.logQueueSize" scope="context" source="logging.plumelog.logQueueSize" defaultValue="10000"/>
-    <springProperty name="plumelog.threadPoolSize" scope="context" source="logging.plumelog.threadPoolSize" defaultValue="1"/>
-    <springProperty name="plumelog.compressor" scope="context" source="logging.plumelog.compressor" defaultValue="false"/>
-    <!--plumelog redis服务配置-->
-    <springProperty name="plumelog.redisHost" scope="context" source="logging.plumelog.redis.redisHost" defaultValue=""/>
-    <springProperty name="plumelog.redisPort" scope="context" source="logging.plumelog.redis.redisPort" defaultValue="6379"/>
-    <springProperty name="plumelog.redisAuth" scope="context" source="logging.plumelog.redis.redisAuth" defaultValue=""/>
-    <springProperty name="plumelog.model" scope="context" source="logging.plumelog.redis.model" defaultValue="standalone"/>
-    <springProperty name="plumelog.masterName" scope="context" source="logging.plumelog.redis.masterName" defaultValue=""/>
-    <springProperty name="plumelog.redisDb" scope="context" source="logging.plumelog.redis.redisDb" defaultValue="0"/>
-
-    <!--plumelog kafka服务配置-->
-    <springProperty name="plumelog.kafkaHosts" scope="context" source="logging.plumelog.kafka.kafkaHosts" defaultValue=""/>
-
-
     <!-- 控制台 日志格式化 -->
     <property name="CONSOLE_LOG_PATTERN"
-              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %yellow([tenantId: %X{tenantId:-N/A},areaCode: %X{areaCode:-N/A},traceId: %X{traceId:-N/A},exceptionClass: %X{exceptionClass:-N/A}]) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} [%X{tid}] %yellow([tenantId: %X{tenantId:-N/A}]) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <property name="FILE_LOG_PATTERN"
-              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [tenantId: %X{tenantId:-N/A},areaCode :%X{areaCode:-N/A}] traceId: %X{traceId:-N/A},exceptionClass: %X{exceptionClass:-N/A}]) ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
-
-    <property name="BIZ_POINT_LOG_PATTERN" value="%m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{tid}] [tenantId: %X{tenantId:-N/A}]) ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <!-- 控制台 Appender -->
     <appender name="CONSOLE_OUTPUT_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
@@ -126,8 +102,7 @@
                                 "application": "${applicationName}",
                                 "environment": "${environment:-N/A}",
                                 "tenantId": "%X{tenantId:-N/A}",
-                                "traceId": "%X{traceId:-N/A}",
-                                "exceptionClass": "%X{exceptionClass:-N/A}",
+                                "traceId": "%X{tid}",
                                 "pid": "${PID:-N/A}",
                                 "thread": "%thread",
                                 "class": "%logger{15}",
@@ -147,22 +122,6 @@
         </if>
     </appender>
 
-    <appender name="BIZ_POINT_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${logHome}/biz-point.log</file>
-        <immediateFlush>false</immediateFlush>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${logHome}/biz-point-%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
-            <maxHistory>${maxHistory}</maxHistory>
-            <maxFileSize>${maxFileSize}</maxFileSize>
-            <totalSizeCap>${totalSizeCap}</totalSizeCap>
-        </rollingPolicy>
-        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
-            <layout class="ch.qos.logback.classic.PatternLayout">
-                <pattern>%msg%n</pattern>
-            </layout>
-        </encoder>
-    </appender>
-
     <!-- 日志信息发送kafka -->
     <appender name="KAFKA_APPENDER" class="com.github.danielwegener.logback.kafka.KafkaAppender">
         <encoder>
@@ -172,7 +131,7 @@
                 "application": "${applicationName}",
                 "environment": "${environment:-N/A}",
                 "tenantId": "%X{tenantId:-N/A}",
-                "traceId": "%X{traceId:-N/A}",
+                "traceId": "%X{tid}",
                 "pid": "${PID:-N/A}",
                 "thread": "%thread",
                 "class": "%logger{15}",
@@ -217,11 +176,6 @@
                 <!-- sls 项目配置 -->
                 <project>${project}</project>
                 <logStore>${logStore}</logStore>
-                <!--必选项 (end)-->
-
-                <!-- 可选项 -->
-                <!--<topic>lws-log</topic>-->
-
                 <!-- 可选项 详见 '参数说明'-->
                 <!--单个 producer 实例能缓存的日志大小上限，默认为 100MB。-->
                 <totalSizeInBytes>${totalSizeInBytes}</totalSizeInBytes>
@@ -267,55 +221,6 @@
         </then>
     </if>
 
-    <!--PlumeLog置-->
-    <if condition='property("enablePlumeLog").contains("true")'>
-        <then>
-            <!--使用redis启用下面配置-->
-            <if condition='property("plumelogType").contains("redis")'>
-                <then>
-                    <appender name="plumelog" class="com.plumelog.logback.appender.RedisAppender">
-                        <appName>${applicationName}</appName>
-                        <env>${plumelog.env}</env>
-                        <redisHost>${plumelog.redisHost}</redisHost>
-                        <redisPort>${plumelog.redisPort}</redisPort>
-                        <redisAuth>${plumelog.redisAuth}</redisAuth>
-                        <model>${plumelog.model}</model>
-                        <masterName>${plumelog.masterName}</masterName>
-                        <redisDb>${plumelog.redisDb}</redisDb>
-                        <runModel>${plumelog.runModel}</runModel>
-                        <expand>${plumelog.expand}</expand>
-                        <maxCount>${plumelog.maxCount}</maxCount>
-                        <logQueueSize>${plumelog.logQueueSize}</logQueueSize>
-                        <threadPoolSize>${plumelog.threadPoolSize}</threadPoolSize>
-                        <compressor>${plumelog.compressor}</compressor>
-                    </appender>
-                </then>
-            </if>
-            <!--使用kafka启用下面配置-->
-            <if condition='property("plumelogType").contains("kafka")'>
-                <then>
-                    <appender name="plumelog" class="com.plumelog.logback.appender.KafkaAppender">
-                        <appName>${applicationName}</appName>
-                        <env>${plumelog.env}</env>
-                        <kafkaHosts>${plumelog.kafkaHosts}</kafkaHosts>
-                        <runModel>${plumelog.runModel}</runModel>
-                        <expand>${plumelog.expand}</expand>
-                        <maxCount>${plumelog.maxCount}</maxCount>
-                        <logQueueSize>${plumelog.logQueueSize}</logQueueSize>
-                        <threadPoolSize>${plumelog.threadPoolSize}</threadPoolSize>
-                        <compressor>${plumelog.compressor}</compressor>
-                    </appender>
-                </then>
-            </if>
-            <appender name="AsyncPlumeLog" class="ch.qos.logback.classic.AsyncAppender">
-                <discardingThreshold>0</discardingThreshold>
-                <queueSize>100</queueSize>
-                <neverBlock>true</neverBlock>
-                <appender-ref ref="plumelog"/>
-            </appender>
-        </then>
-    </if>
-
     <!-- 异步控制台打印 -->
     <appender name="AsyncConsole" class="ch.qos.logback.classic.AsyncAppender">
         <discardingThreshold>0</discardingThreshold>
@@ -341,14 +246,6 @@
         <appender-ref ref="KAFKA_APPENDER"/>
     </appender>
 
-    <!-- 异步输出埋点日志文件 -->
-    <appender name="AsyncBizPoint" class="ch.qos.logback.classic.AsyncAppender">
-        <discardingThreshold>0</discardingThreshold>
-        <queueSize>50</queueSize>
-        <neverBlock>true</neverBlock>
-        <appender-ref ref="BIZ_POINT_APPENDER"/>
-    </appender>
-
     <appender name="AlarmLog" class="com.github.sparkzxl.log.AlarmLogLogbackAsyncAppender">
         <robotId>${robotId}</robotId>
         <appender-ref ref="CONSOLE_OUTPUT_APPENDER"/>
@@ -369,11 +266,6 @@
                 <appender-ref ref="AsyncFile"/>
             </then>
         </if>
-        <if condition='property("enableBizPoint").contains("true")'>
-            <then>
-                <appender-ref ref="AsyncBizPoint"/>
-            </then>
-        </if>
         <if condition='property("enableKafka").contains("true")'>
             <then>
                 <appender-ref ref="AsyncKafka"/>
@@ -387,11 +279,6 @@
         <if condition='property("enableAliYunLog").contains("true")'>
             <then>
                 <appender-ref ref="AsyncAaLiYunLog"/>
-            </then>
-        </if>
-        <if condition='property("enablePlumeLog").contains("true")'>
-            <then>
-                <appender-ref ref="plumelog"/>
             </then>
         </if>
     </root>

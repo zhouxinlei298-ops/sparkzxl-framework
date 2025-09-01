@@ -4,7 +4,9 @@ import cn.hutool.core.text.StrFormatter;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.constant.enums.RpcType;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
+import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.support.LoginExpireException;
+import com.github.sparkzxl.core.util.HttpRequestUtils;
 import com.github.sparkzxl.spi.ExtensionLoader;
 import com.github.sparkzxl.web.properties.InterceptorProperties;
 import com.github.sparkzxl.web.properties.WebProperties;
@@ -12,6 +14,8 @@ import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.AsyncHandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -64,6 +68,11 @@ public class WebRequestInterceptor implements AsyncHandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         RequestLocalContextHolder.set(BaseContextConstants.RPC_TYPE, RpcType.HTTP.getCode());
+        String traceId = HttpRequestUtils.getHeader(request, BaseContextConstants.TRACE_ID_HEADER);
+        if (StringUtils.isEmpty(traceId)) {
+            traceId = SpringContextUtils.getTraceId();
+        }
+        MDC.put(BaseContextConstants.LOG_TRACE_ID, traceId);
         try {
             for (InnerInterceptor innerInterceptor : innerInterceptorList) {
                 innerInterceptor.preHandle(request, response, handler);

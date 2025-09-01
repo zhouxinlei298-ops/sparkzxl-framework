@@ -2,6 +2,10 @@ package com.github.sparkzxl.core.spring;
 
 import cn.hutool.core.util.ArrayUtil;
 import java.util.Map;
+
+import com.github.sparkzxl.core.context.TraceIdContext;
+import lombok.Getter;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -13,16 +17,8 @@ import org.springframework.context.ApplicationContextAware;
  */
 public class SpringContextUtils implements ApplicationContextAware {
 
+    @Getter
     private static ApplicationContext applicationContext;
-
-    /**
-     * 获取applicationContext
-     *
-     * @return ApplicationContext
-     */
-    public static ApplicationContext getApplicationContext() {
-        return applicationContext;
-    }
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) {
@@ -139,6 +135,20 @@ public class SpringContextUtils implements ApplicationContextAware {
 
     public static void publishEvent(Object event) {
         applicationContext.publishEvent(event);
+    }
+
+    /**
+     * 获取当前的环境配置，当有多个环境配置时，只获取第一个
+     *
+     * @return 当前的环境配置
+     * @since 5.3.3
+     */
+    public static String getTraceId() {
+        TraceIdContext traceIdContext = applicationContext.getBean(TraceIdContext.class);
+        if (ObjectUtils.isNotEmpty(traceIdContext)) {
+            return traceIdContext.getTraceId();
+        }
+        return "";
     }
 
 }

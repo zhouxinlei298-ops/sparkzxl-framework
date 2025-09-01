@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.autoconfigure.task.TaskExecutionProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -25,7 +24,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  */
 @EnableAsync
 @Configuration
-@EnableConfigurationProperties(TaskExecutionProperties.class)
 @AutoConfigureBefore(value = TaskExecutionAutoConfiguration.class)
 @Slf4j
 public class ThreadPoolAutoConfig {

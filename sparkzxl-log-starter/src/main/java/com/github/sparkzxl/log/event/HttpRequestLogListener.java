@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.skywalking.apm.toolkit.trace.ConsumerWrapper;
 import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -40,8 +41,8 @@ public class HttpRequestLogListener {
                     requestInfoLog.getRequestUrl(), requestInfoLog.getConsumingTime());
         }
         MDC.put(BaseContextConstants.TENANT_ID, requestInfoLog.getTenantId());
-        MDC.put(BaseContextConstants.TRACE_ID, requestInfoLog.getTraceId());
-        consumer.accept(requestInfoLog);
+        MDC.put(BaseContextConstants.LOG_TRACE_ID, requestInfoLog.getTraceId());
+        ConsumerWrapper.of(consumer).accept(requestInfoLog);
     }
 
 }

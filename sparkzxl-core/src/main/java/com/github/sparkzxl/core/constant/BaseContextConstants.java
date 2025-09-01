@@ -81,9 +81,13 @@ public class BaseContextConstants {
      */
     public static final String IS_BOOT = "boot";
     /**
-     * 日志链路追踪id
+     * 日志链路追踪id信息头
      */
-    public static final String TRACE_ID = "traceId";
+    public static final String TRACE_ID_HEADER = "traceId";
+    /**
+     * 日志链路追踪id日志标志
+     */
+    public static final String LOG_TRACE_ID = "tid";
     /**
      * 角色资源常量
      */

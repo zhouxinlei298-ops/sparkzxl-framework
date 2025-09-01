@@ -138,7 +138,8 @@ public class HttpRequestLogAspect {
                 .setHttpMethod(request.getMethod())
                 .setClassMethod(String.format("%s.%s", signature.getDeclaringTypeName(), signature.getName()))
                 .setStartTime(LocalDateTime.now())
-                .setTenantId(RequestLocalContextHolder.getTenantId());
+                .setTenantId(RequestLocalContextHolder.getTenantId())
+                .setTraceId(RequestLocalContextHolder.traceId());
         if (httpRequestLog.request()) {
             Map<String, Object> parameterMap = AopUtil.getParameterMap(joinPoint, joinPoint.getArgs(), httpRequestLog.excludeClass());
             if (MapUtil.isNotEmpty(parameterMap)) {

@@ -35,7 +35,7 @@ public class FeignHeaderRequestInterceptor implements RequestInterceptor {
             BaseContextConstants.TENANT_ID,
             BaseContextConstants.VERSION,
             BaseContextConstants.JWT_TOKEN_HEADER,
-            BaseContextConstants.TRACE_ID,
+            BaseContextConstants.TRACE_ID_HEADER,
             "X-Real-IP",
             HttpHeaders.X_FORWARDED_FOR
     );

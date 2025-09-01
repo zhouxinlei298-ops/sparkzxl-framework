@@ -6,8 +6,6 @@ import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.util.HttpRequestUtils;
 import com.github.sparkzxl.spi.Join;
 import com.github.sparkzxl.web.annotation.ResponseResult;
-import com.plumelog.core.TraceId;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.ModelAndView;
@@ -30,14 +28,6 @@ public class RequestContextInnerInterceptor extends AbstractInnerInterceptor {
         if (!(handler instanceof HandlerMethod)) {
             return;
         }
-
-        String traceId = HttpRequestUtils.getHeader(request, BaseContextConstants.TRACE_ID);
-        if (StringUtils.isEmpty(traceId)) {
-            TraceId.set();
-        } else {
-            TraceId.logTraceID.set(traceId);
-        }
-        MDC.put(BaseContextConstants.TRACE_ID, traceId);
         //设置当前请求线程全局信息
         RequestLocalContextHolder.setTenantId(request.getHeader(BaseContextConstants.TENANT_ID));
         RequestLocalContextHolder.setUserId(request.getHeader(BaseContextConstants.JWT_KEY_USER_ID));
