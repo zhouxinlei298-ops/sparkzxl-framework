@@ -13,7 +13,7 @@
     <springProperty name="enableConsole" scope="context" source="logging.enable-console" defaultValue="true"/>
     <springProperty name="enableBizPoint" scope="context" source="logging.enable-biz-point" defaultValue="true"/>
     <springProperty name="enableJson" scope="context" source="logging.file.enable-json" defaultValue="false"/>
-    <springProperty name="enableAlarm" scope="context" source="logging.alarm.enabled" defaultValue="false"/>
+    <springProperty name="alarmEnabled" scope="context" source="logging.alarm.enabled" defaultValue="false"/>
     <springProperty name="robotId" scope="context" source="logging.alarm.robotId" defaultValue=""/>
 
     <springProperty name="enableFile" scope="context" source="logging.file.enable" defaultValue="false"/>
@@ -32,7 +32,7 @@
     <springProperty scope="context" name="log.level.console" source="logging.level.console" defaultValue="INFO"/>
 
     <!--阿里云日志服务配置 正式环境-->
-    <springProperty name="enableAliYunLog" scope="context" source="logging.aliYunLog.enabled"
+    <springProperty name="aliYunLogEnabled" scope="context" source="logging.aliYunLog.enabled"
                     defaultValue="false"/>
     <springProperty name="endpoint" scope="context" source="logging.aliYunLog.endpoint"
                     defaultValue=""/>
@@ -64,13 +64,13 @@
 
     <!-- 控制台 日志格式化 -->
     <property name="CONSOLE_LOG_PATTERN"
-              value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} [%X{tid}] %yellow([tenantId: %X{tenantId:-N/A}]) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{tid}] %yellow([tenantId: %X{tenantId:-N/A}]) %highlight(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{15}){boldCyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <property name="FILE_LOG_PATTERN"
-              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{tid}] [tenantId: %X{tenantId:-N/A}]) ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+              value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{tid}] [tenantId: %X{tenantId:-N/A}] ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <!-- 控制台 Appender -->
-    <appender name="CONSOLE_OUTPUT_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <withJansi>true</withJansi>
         <!-- 日志的格式化 -->
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
@@ -82,7 +82,7 @@
     </appender>
 
     <!--每天记录日志到文件appender-->
-    <appender name="FILE_OUTPUT_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${logHome}/${applicationName}.log</file>
         <immediateFlush>false</immediateFlush>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -99,11 +99,10 @@
                             <pattern>
                                 {"date": "%d{yyyy-MM-dd HH:mm:ss.SSS}",
                                 "level": "%level",
-                                "application": "${applicationName}",
-                                "environment": "${environment:-N/A}",
+                                "application": "${springAppName}",
                                 "tenantId": "%X{tenantId:-N/A}",
                                 "traceId": "%X{tid}",
-                                "pid": "${PID:-N/A}",
+                                "pid": "${PID:-}",
                                 "thread": "%thread",
                                 "class": "%logger{15}",
                                 "message": "%message"}
@@ -164,77 +163,85 @@
         </encoder>
     </appender>
 
-    <if condition='property("enableAliYunLog").contains("true")'>
-        <then>
-            <appender name="ALIYUN_SLS_LOG" class="com.aliyun.openservices.log.logback.LoghubAppender">
-                <!--必选项-->
-                <!-- 账号及网络配置 -->
-                <endpoint>${endpoint}</endpoint>
-                <accessKeyId>${accessKeyId}</accessKeyId>
-                <accessKeySecret>${accessKeySecret}</accessKeySecret>
+    <appender name="ALIYUN_SLS_LOG_APPENDER" class="com.github.sparkzxl.log.appender.AliYunLogAppender">
+        <enabled>${aliYunLogEnabled}</enabled>
+        <!--必选项-->
+        <!-- 账号及网络配置 -->
+        <endpoint>${endpoint}</endpoint>
+        <accessKeyId>${accessKeyId}</accessKeyId>
+        <accessKeySecret>${accessKeySecret}</accessKeySecret>
 
-                <!-- sls 项目配置 -->
-                <project>${project}</project>
-                <logStore>${logStore}</logStore>
-                <!-- 可选项 详见 '参数说明'-->
-                <!--单个 producer 实例能缓存的日志大小上限，默认为 100MB。-->
-                <totalSizeInBytes>${totalSizeInBytes}</totalSizeInBytes>
-                <!--如果 producer 可用空间不足，调用者在 send 方法上的最大阻塞时间，默认为 60 秒。为了不阻塞打印日志的线程
-                ，强烈建议将该值设置成 0。-->
-                <maxBlockMs>${maxBlockMs}</maxBlockMs>
-                <!--执行日志发送任务的线程池大小，默认为可用处理器个数。-->
-                <ioThreadCount>${ioThreadCount}</ioThreadCount>
-                <!--当一个 ProducerBatch 中缓存的日志大小大于等于 batchSizeThresholdInBytes 时，
-                该 batch 将被发送，默认为 512 KB，最大可设置成 5MB。-->
-                <batchSizeThresholdInBytes>${batchSizeThresholdInBytes}</batchSizeThresholdInBytes>
-                <!--当一个 ProducerBatch 中缓存的日志条数大于等于 batchCountThreshold 时，
-                该 batch 将被发送，默认为 4096，最大可设置成 40960。-->
-                <batchCountThreshold>${batchCountThreshold}</batchCountThreshold>
-                <!-- 一个 ProducerBatch 从创建到可发送的逗留时间，默认为 2 秒，最小可设置成 100 毫秒。-->
-                <lingerMs>${lingerMs}</lingerMs>
-                <!--  如果某个 ProducerBatch 首次发送失败，能够对其重试的次数，默认为 10 次。
-                #如果 retries 小于等于 0，该 ProducerBatch 首次发送失败后将直接进入失败队列。-->
-                <retries>${retries}</retries>
-                <!-- 首次重试的退避时间，默认为 100 毫秒。-->
-                <baseRetryBackoffMs>${baseRetryBackoffMs}</baseRetryBackoffMs>
-                <!--重试的最大退避时间，默认为 50 秒。-->
-                <maxRetryBackoffMs>${maxRetryBackoffMs}</maxRetryBackoffMs>
+        <!-- sls 项目配置 -->
+        <project>${project}</project>
+        <logStore>${logStore}</logStore>
+        <!--必选项 (end)-->
+
+        <!-- 可选项 -->
+        <!--<topic>lws-log</topic>-->
+
+        <!-- 可选项 详见 '参数说明'-->
+        <!--单个 producer 实例能缓存的日志大小上限，默认为 100MB。-->
+        <totalSizeInBytes>${totalSizeInBytes}</totalSizeInBytes>
+        <!--如果 producer 可用空间不足，调用者在 send 方法上的最大阻塞时间，默认为 60 秒。为了不阻塞打印日志的线程
+        ，强烈建议将该值设置成 0。-->
+        <maxBlockMs>${maxBlockMs}</maxBlockMs>
+        <!--执行日志发送任务的线程池大小，默认为可用处理器个数。-->
+        <ioThreadCount>${ioThreadCount}</ioThreadCount>
+        <!--当一个 ProducerBatch 中缓存的日志大小大于等于 batchSizeThresholdInBytes 时，
+        该 batch 将被发送，默认为 512 KB，最大可设置成 5MB。-->
+        <batchSizeThresholdInBytes>${batchSizeThresholdInBytes}</batchSizeThresholdInBytes>
+        <!--当一个 ProducerBatch 中缓存的日志条数大于等于 batchCountThreshold 时，
+        该 batch 将被发送，默认为 4096，最大可设置成 40960。-->
+        <batchCountThreshold>${batchCountThreshold}</batchCountThreshold>
+        <!-- 一个 ProducerBatch 从创建到可发送的逗留时间，默认为 2 秒，最小可设置成 100 毫秒。-->
+        <lingerMs>${lingerMs}</lingerMs>
+        <!--  如果某个 ProducerBatch 首次发送失败，能够对其重试的次数，默认为 10 次。
+        #如果 retries 小于等于 0，该 ProducerBatch 首次发送失败后将直接进入失败队列。-->
+        <retries>${retries}</retries>
+        <!-- 首次重试的退避时间，默认为 100 毫秒。-->
+        <baseRetryBackoffMs>${baseRetryBackoffMs}</baseRetryBackoffMs>
+        <!--重试的最大退避时间，默认为 50 秒。-->
+        <maxRetryBackoffMs>${maxRetryBackoffMs}</maxRetryBackoffMs>
 
 
-                <!-- 可选项 通过配置 encoder 的 pattern 自定义 log 的格式 -->
-                <encoder>
-                    <pattern>%d %-5level [%thread] %logger{0}: %msg</pattern>
-                </encoder>
+        <!-- 可选项 通过配置 encoder 的 pattern 自定义 log 的格式 -->
+        <encoder>
+            <pattern>%d %-5level [%thread] %logger{0}: %msg</pattern>
+        </encoder>
 
-                <!-- 可选项 设置 time 字段呈现的格式 -->
-                <timeFormat>${timeFormat}</timeFormat>
-                <!-- 可选项 设置 time 字段呈现的时区 -->
-                <timeZone>${timeZone}</timeZone>
-                <mdcFields>tenantId,traceId</mdcFields>
-            </appender>
-            <appender name="AsyncAaLiYunLog" class="ch.qos.logback.classic.AsyncAppender">
-                <discardingThreshold>0</discardingThreshold>
-                <queueSize>100</queueSize>
-                <neverBlock>true</neverBlock>
-                <appender-ref ref="ALIYUN_SLS_LOG"/>
-            </appender>
-        </then>
-    </if>
+        <!-- 可选项 设置 time 字段呈现的格式 -->
+        <timeFormat>${timeFormat}</timeFormat>
+        <!-- 可选项 设置 time 字段呈现的时区 -->
+        <timeZone>${timeZone}</timeZone>
+        <mdcFields>tenantId,traceId</mdcFields>
+    </appender>
+    <appender name="ASYNC_ALIYUN_SLS_LOG_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>256</queueSize>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="ALIYUN_SLS_LOG_APPENDER"/>
+    </appender>
 
     <!-- 异步控制台打印 -->
-    <appender name="AsyncConsole" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="ASYNC_CONSOLE_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
         <discardingThreshold>0</discardingThreshold>
-        <queueSize>100</queueSize>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>1024</queueSize>
         <neverBlock>true</neverBlock>
-        <appender-ref ref="CONSOLE_OUTPUT_APPENDER"/>
+        <appender-ref ref="CONSOLE_APPENDER"/>
     </appender>
 
     <!-- 异步输出文件 -->
-    <appender name="AsyncFile" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="ASYNC_FILE_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
         <discardingThreshold>0</discardingThreshold>
-        <queueSize>100</queueSize>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>256</queueSize>
         <neverBlock>true</neverBlock>
-        <appender-ref ref="FILE_OUTPUT_APPENDER"/>
+        <appender-ref ref="FILE_APPENDER"/>
     </appender>
 
     <!-- 异步传递策略，建议选择异步，不然连接kafka失败，会阻挡服务启动 -->
@@ -246,40 +253,20 @@
         <appender-ref ref="KAFKA_APPENDER"/>
     </appender>
 
-    <appender name="AlarmLog" class="com.github.sparkzxl.log.AlarmLogLogbackAsyncAppender">
+    <appender name="AlarmLog" class="com.github.sparkzxl.log.appender.AlarmLogLogbackAsyncAppender">
+        <enabled>${alarmEnabled}</enabled>
         <robotId>${robotId}</robotId>
-        <appender-ref ref="CONSOLE_OUTPUT_APPENDER"/>
+        <appender-ref ref="CONSOLE_APPENDER"/>
     </appender>
 
     <logger name="springfox.documentation" level="ERROR"/>
     <logger name="com.alibaba.nacos" level="ERROR"/>
 
     <root level="${log.level.console}">
+        <appender-ref ref="CONSOLE_APPENDER"/>
         <appender-ref ref="grpc-log"/>
-        <if condition='property("enableConsole").contains("true")'>
-            <then>
-                <appender-ref ref="AsyncConsole"/>
-            </then>
-        </if>
-        <if condition='property("enableFile").contains("true")'>
-            <then>
-                <appender-ref ref="AsyncFile"/>
-            </then>
-        </if>
-        <if condition='property("enableKafka").contains("true")'>
-            <then>
-                <appender-ref ref="AsyncKafka"/>
-            </then>
-        </if>
-        <if condition='property("enableAlarm").contains("true")'>
-            <then>
-                <appender-ref ref="AlarmLog"/>
-            </then>
-        </if>
-        <if condition='property("enableAliYunLog").contains("true")'>
-            <then>
-                <appender-ref ref="AsyncAaLiYunLog"/>
-            </then>
-        </if>
+        <appender-ref ref="ASYNC_FILE_APPENDER"/>
+        <appender-ref ref="AlarmLog"/>
+        <appender-ref ref="ASYNC_ALIYUN_SLS_LOG_APPENDER"/>
     </root>
 </configuration>

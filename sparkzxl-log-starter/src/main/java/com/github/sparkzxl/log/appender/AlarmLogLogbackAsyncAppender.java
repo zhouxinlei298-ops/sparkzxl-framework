@@ -1,4 +1,4 @@
-package com.github.sparkzxl.log;
+package com.github.sparkzxl.log.appender;
 
 import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.Level;
@@ -8,16 +8,18 @@ import ch.qos.logback.classic.spi.ThrowableProxy;
 import com.github.sparkzxl.alarm.entity.AlarmRequest;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
+import com.github.sparkzxl.log.AlarmLogContext;
 import com.github.sparkzxl.log.entity.AlarmLogInfo;
 import com.github.sparkzxl.log.queue.AlarmTaskInfo;
 import com.github.sparkzxl.log.queue.AlarmTaskQueue;
 import com.github.sparkzxl.log.utils.ThrowableUtils;
-import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
+
+import java.util.Objects;
 
 /**
  * description: 日志告警Appender
@@ -28,14 +30,21 @@ import org.slf4j.MDC;
 @Setter
 public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
 
+    private boolean enabled;
     private String robotId;
 
     @Override
     public void doAppend(ILoggingEvent eventObject) {
+        if (!enabled) {
+            return;
+        }
         if (eventObject instanceof LoggingEvent) {
             LoggingEvent loggingEvent = (LoggingEvent) eventObject;
             Level level = loggingEvent.getLevel();
             ThrowableProxy throwableProxy = (ThrowableProxy) loggingEvent.getThrowableProxy();
+            if (level.equals(Level.INFO)) {
+                return;
+            }
             if (Objects.nonNull(throwableProxy)) {
                 AlarmRequest alarmRequest = new AlarmRequest();
                 alarmRequest.setTitle("服务系统异常告警");
@@ -54,8 +63,10 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
                             .traceId(traceId).build();
                     if (ArrayUtils.isNotEmpty(stackTraceElements)) {
                         StackTraceElement stackTraceElement = stackTraceElements[0];
-                        alarmLogInfo.setClassName(stackTraceElement.getClassName()).setFileName(stackTraceElement.getFileName())
-                                .setMethodName(stackTraceElement.getMethodName()).setLineNumber(stackTraceElement.getLineNumber());
+                        alarmLogInfo.setClassName(stackTraceElement.getClassName())
+                                .setFileName(stackTraceElement.getFileName())
+                                .setMethodName(stackTraceElement.getMethodName())
+                                .setLineNumber(stackTraceElement.getLineNumber());
                     }
                     String message = ThrowableUtils.dingTalkMarkdownContent(alarmLogInfo, throwable);
                     sendLogAlarm(alarmRequest, message);
