@@ -13,11 +13,7 @@ public class LocalTraceIdContext implements TraceIdContext {
 
     @Override
     public String getTraceId() {
-        String traceId = RequestLocalContextHolder.traceId();
-        if (traceId == null) {
-            return IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
-        }
-        return traceId;
+        return IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
     }
 
     @Override
