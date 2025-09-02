@@ -58,7 +58,7 @@
 
         <elasticsearch.version>7.17.1</elasticsearch.version>
         <lombok.version>1.18.8</lombok.version>
-        <apm-toolkit-trace.version>8.9.0</apm-toolkit-trace.version>
+        <apm-toolkit-trace.version>9.5.0</apm-toolkit-trace.version>
         <ip2region.version>2.6.5</ip2region.version>
         <caffeine.version>2.9.3</caffeine.version>
         <fastjson.version>1.2.83</fastjson.version>
