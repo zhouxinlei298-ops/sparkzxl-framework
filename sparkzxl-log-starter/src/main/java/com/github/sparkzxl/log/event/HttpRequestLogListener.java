@@ -40,7 +40,7 @@ public class HttpRequestLogListener {
                     requestInfoLog.getRequestUrl(), requestInfoLog.getConsumingTime());
         }
         MDC.put(BaseContextConstants.TENANT_ID, requestInfoLog.getTenantId());
-        MDC.put(BaseContextConstants.TRACE_ID, requestInfoLog.getTraceId());
+        MDC.put(BaseContextConstants.LOG_TRACE_ID, requestInfoLog.getTraceId());
         consumer.accept(requestInfoLog);
     }
 

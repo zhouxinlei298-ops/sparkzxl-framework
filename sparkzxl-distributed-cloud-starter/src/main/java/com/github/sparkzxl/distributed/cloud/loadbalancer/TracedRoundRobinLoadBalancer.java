@@ -106,7 +106,7 @@ public class TracedRoundRobinLoadBalancer implements ReactorServiceInstanceLoadB
             return IdUtil.fastSimpleUUID();
         }
 
-        String traceId = context.getClientRequest().getHeaders().getFirst(BaseContextConstants.TRACE_ID);
+        String traceId = context.getClientRequest().getHeaders().getFirst(BaseContextConstants.TRACE_ID_HEADER);
         if (StringUtils.isEmpty(traceId)) {
             return traceId = IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
         }

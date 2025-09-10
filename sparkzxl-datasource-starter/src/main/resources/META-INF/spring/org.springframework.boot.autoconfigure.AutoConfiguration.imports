@@ -1,2 +1,2 @@
 com.github.sparkzxl.datasource.autoconfigure.DynamicDataSourceAutoConfig
-com.github.sparkzxl.datasource.autoconfigure.DataSourceProviderAutoConfig
+com.github.sparkzxl.datasource.autoconfigure.DynamicDataSourceNacosListenerAutoConfig

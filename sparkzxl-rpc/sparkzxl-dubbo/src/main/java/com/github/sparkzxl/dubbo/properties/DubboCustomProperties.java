@@ -11,7 +11,7 @@ import org.springframework.boot.logging.LogLevel;
  * @since 2022-08-06 14:23:34
  */
 @Data
-@ConfigurationProperties(prefix = "dubbo.data")
+@ConfigurationProperties(prefix = "dubbo.custom")
 public class DubboCustomProperties {
 
     private boolean requestLog;

@@ -34,10 +34,10 @@ public class MDCFilter implements GlobalFilter, Ordered {
 
         // 将traceId放入请求头
         ServerHttpRequest serverHttpRequest = exchange.getRequest().mutate()
-                .headers(h -> h.add(BaseContextConstants.TRACE_ID, traceId))
+                .headers(h -> h.add(BaseContextConstants.TRACE_ID_HEADER, traceId))
                 .build();
         ServerWebExchange build = exchange.mutate().request(serverHttpRequest).build();
-        MDC.put(BaseContextConstants.TRACE_ID, traceId);
+        MDC.put(BaseContextConstants.TRACE_ID_HEADER, traceId);
         return chain.filter(build);
     }
 

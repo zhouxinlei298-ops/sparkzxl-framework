@@ -21,13 +21,13 @@ public class DataSourceExceptionHandler implements Ordered {
 
     @ExceptionHandler(TenantException.class)
     public R<?> handleTenantException(TenantException e) {
-        log.warn("TenantException异常:", e);
+        log.warn("TenantException异常:{}", e.getMessage());
         return R.failDetail(ExceptionErrorCode.TENANT_EXCEPTION.getErrorCode(), e.getMessage());
     }
 
     @ExceptionHandler(CannotFindDataSourceException.class)
     public R<?> handleCannotFindDataSourceException(CannotFindDataSourceException e) {
-        log.warn("CannotFindDataSourceException异常:", e);
+        log.warn("CannotFindDataSourceException异常:{}", e.getMessage());
         return R.failDetail(ExceptionErrorCode.CAN_NOT_FIND_DATASOURCE_EXCEPTION.getErrorCode(), e.getMessage());
     }
 

@@ -41,7 +41,7 @@ public class OptLogListener {
                     optRecordLog.getCategory(), optRecordLog.getDetail());
         }
         MDC.put(BaseContextConstants.TENANT_ID, optRecordLog.getTenantId());
-        MDC.put(BaseContextConstants.TRACE_ID, optRecordLog.getTraceId());
+        MDC.put(BaseContextConstants.LOG_TRACE_ID, optRecordLog.getTraceId());
         consumer.accept(optRecordLog);
     }
 

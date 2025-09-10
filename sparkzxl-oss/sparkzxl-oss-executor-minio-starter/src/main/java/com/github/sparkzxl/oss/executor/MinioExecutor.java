@@ -259,8 +259,8 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
             // 使用完毕后删除临时文件
-            if (conn != null) {
-                conn.disconnect();
+            if (connection != null) {
+                connection.disconnect();
             }
             if (tempFile != null && !tempFile.delete()) {
                 log.info("无法删除临时文件:{}", tempFile);

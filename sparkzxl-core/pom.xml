@@ -84,9 +84,8 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.plumelog</groupId>
-            <artifactId>plumelog-logback</artifactId>
-            <version>3.5.3</version>
+            <groupId>org.apache.skywalking</groupId>
+            <artifactId>apm-toolkit-trace</artifactId>
         </dependency>
     </dependencies>
 </project>

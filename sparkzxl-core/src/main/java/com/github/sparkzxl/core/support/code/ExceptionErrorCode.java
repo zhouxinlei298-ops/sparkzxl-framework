@@ -50,9 +50,9 @@ public enum ExceptionErrorCode implements IErrorCode {
     TIME_OUT_ERROR("B0100", "服务请求超时"),
     RETRY_ABLE_EXCEPTION("B0100", "【{}】服务请求超时重试异常"),
     OPEN_SERVICE_UNAVAILABLE("B0200", "【{}】服务不可用，请联系管理员！"),
-    SYSTEM_BLOCK("B0310", "系统负载过高，请稍后再试"),
+    SYSTEM_BLOCK("B0310", "系统负载过高，请稍作休息再试"),
     FALLBACK_EXCEPTION("B0220", "系统功能降级"),
-    REQ_LIMIT("B0210", "系统限流，请稍后再试"),
+    REQ_LIMIT("B0210", "系统正在快速处理请求，休息20秒再试会更顺畅哦。"),
     //系统相关 end
 
     // 三方服务
