@@ -26,7 +26,7 @@ public class HttpRequestLogListener {
 
     private final Consumer<RequestInfoLog> consumer;
 
-    @Async
+    @Async("ttlTaskExecutor")
     @EventListener(HttpRequestLogEvent.class)
     public void saveRequestLog(HttpRequestLogEvent event) {
         RequestInfoLog requestInfoLog = (RequestInfoLog) event.getSource();

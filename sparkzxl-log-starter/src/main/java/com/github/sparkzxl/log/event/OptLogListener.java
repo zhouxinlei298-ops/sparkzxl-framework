@@ -27,7 +27,7 @@ public class OptLogListener {
 
     private final Consumer<OptRecordLog> consumer;
 
-    @Async
+    @Async("ttlTaskExecutor")
     @EventListener(OptLogEvent.class)
     public void saveRequestLog(OptLogEvent event) {
         OptRecordLog optRecordLog = (OptRecordLog) event.getSource();
