@@ -362,7 +362,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                                                         DataBufferUtils.release(dataBuffer);
                                                         return new String(bytes, StandardCharsets.UTF_8);
                                                     })
-                                                    .subscribe(content -> fieldContent.append(content));
+                                                    .subscribe(fieldContent::append);
 
                                             // 存储普通字段内容
                                             fileDataMap.put(fieldName, fieldContent.toString());
