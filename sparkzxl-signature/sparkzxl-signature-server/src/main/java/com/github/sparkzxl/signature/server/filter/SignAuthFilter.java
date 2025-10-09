@@ -2,6 +2,7 @@ package com.github.sparkzxl.signature.server.filter;
 
 import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
@@ -346,7 +347,10 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
                                             // 处理文件类型字段
                                             String filename = ((FilePart) part).filename();
                                             if (StringUtils.isNotBlank(filename)) {
-                                                fieldFilenames.add(filename.trim());
+                                                // 不同的操作系统或浏览器在上传文件时，可能会将本地文件的完整路径作为 filename 的值发送；
+                                                // 可能会出现带路径分隔符，这边需要处理截断只保留文件名
+                                                String name = FileNameUtil.getName(filename);
+                                                fieldFilenames.add(name.trim());
                                             }
                                         } else {
                                             // 处理普通表单字段（读取文本内容）
