@@ -4,16 +4,12 @@
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <!-- 彩色日志格式 -->
     <!-- 控制台输出 -->
-    <springProperty scope="context" name="common-pattern-color" source="logging.common-pattern-color"
-                    defaultValue="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${springAppName}){yellow} %highlight([%5p]) %clr(${PID:- }){magenta} %clr([tenantId: %X{tenantId:-N/A},traceId: %X{traceId:-N/A}]){green} %clr(---){faint} %clr([%15.15t:%r]){faint} %clr(%-40.40logger{15}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+    <springProperty scope="context" name="CONSOLE_LOG_PATTERN" source="logging.common-pattern-color"
+                    defaultValue="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${springAppName}){yellow} [%X{tid}] %clr([tenantId: %X{tenantId:-N/A}]){green} %highlight([${LOG_LEVEL_PATTERN:-%5p}]) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t:%r]){faint} %clr(%-40.40logger{15}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <!-- 文件输出 -->
-    <property name="file-log-pattern"
-              value="%d{yyyy-MM-dd HH:mm:ss.SSS}: ${springAppName} [${LOG_LEVEL_PATTERN:-%5p}] ${PID:- } [tenantId: %X{tenantId:-N/A},traceId: %X{traceId:-N/A}] [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
-    <!-- JSON格式输出 -->
-    <property name="json-log-pattern"
-              value="{&quot;date&quot;: &quot;%d{yyyy-MM-dd HH:mm:ss.SSS}&quot;, &quot;level&quot;: &quot;%level&quot;, &quot;application&quot;: &quot;${springAppName}&quot;, &quot;tenantId&quot;: &quot;%X{tenantId:-N/A}&quot;, &quot;traceId&quot;: &quot;%X{tid:-N/A}&quot;, &quot;pid&quot;: &quot;${PID:-}&quot;, &quot;thread&quot;: &quot;%thread&quot;, &quot;class&quot;: &quot;%logger{15}&quot;, &quot;message&quot;: &quot;%message&quot;}"/>
-
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS}: ${springAppName} [%X{tid}] [tenantId: %X{tenantId:-N/A}] [${LOG_LEVEL_PATTERN:-%5p}] ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <!-- 应用名称 -->
     <springProperty name="springAppName" scope="context" source="spring.application.name" defaultValue="application"/>
@@ -67,37 +63,6 @@
     <springProperty name="timeZone" scope="context" source="logging.aliYunLog.timeZone"
                     defaultValue="Asia/Shanghai"/>
 
-    <!--plumelog服务配置-->
-    <springProperty name="enablePlumeLog" scope="context" source="logging.plumelog.enabled" defaultValue="false"/>
-    <springProperty name="plumelogType" scope="context" source="logging.plumelog.type" defaultValue="redis"/>
-    <springProperty name="plumelog.env" scope="context" source="spring.profiles.active"/>
-    <springProperty name="plumelog.runModel" scope="context" source="logging.plumelog.runModel" defaultValue="1"/>
-    <springProperty name="plumelog.expand" scope="context" source="logging.plumelog.expand" defaultValue=""/>
-    <springProperty name="plumelog.maxCount" scope="context" source="logging.plumelog.maxCount" defaultValue="100"/>
-    <springProperty name="plumelog.logQueueSize" scope="context" source="logging.plumelog.logQueueSize"
-                    defaultValue="10000"/>
-    <springProperty name="plumelog.threadPoolSize" scope="context" source="logging.plumelog.threadPoolSize"
-                    defaultValue="1"/>
-    <springProperty name="plumelog.compressor" scope="context" source="logging.plumelog.compressor"
-                    defaultValue="false"/>
-    <!--plumelog redis服务配置-->
-    <springProperty name="plumelog.redisHost" scope="context" source="logging.plumelog.redis.redisHost"
-                    defaultValue=""/>
-    <springProperty name="plumelog.redisPort" scope="context" source="logging.plumelog.redis.redisPort"
-                    defaultValue="6379"/>
-    <springProperty name="plumelog.redisAuth" scope="context" source="logging.plumelog.redis.redisAuth"
-                    defaultValue=""/>
-    <springProperty name="plumelog.model" scope="context" source="logging.plumelog.redis.model"
-                    defaultValue="standalone"/>
-    <springProperty name="plumelog.masterName" scope="context" source="logging.plumelog.redis.masterName"
-                    defaultValue=""/>
-    <springProperty name="plumelog.redisDb" scope="context" source="logging.plumelog.redis.redisDb" defaultValue="0"/>
-
-    <!--plumelog kafka服务配置-->
-    <springProperty name="plumelog.kafkaHosts" scope="context" source="logging.plumelog.kafka.kafkaHosts"
-                    defaultValue=""/>
-
-
     <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>${CONSOLE_LOG_THRESHOLD}</level>
@@ -105,7 +70,7 @@
         <!-- 日志的格式化 -->
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.mdc.TraceIdMDCPatternLogbackLayout">
-                <pattern>${common-pattern-color}</pattern>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
             </layout>
             <charset>${CONSOLE_LOG_CHARSET}</charset>
         </encoder>
@@ -135,7 +100,7 @@
             <totalSizeCap>${totalSizeCap}</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>${file-log-pattern}</pattern>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
             <charset>${CONSOLE_LOG_CHARSET}</charset>
         </encoder>
     </appender>
@@ -204,7 +169,7 @@
         <timeFormat>${timeFormat}</timeFormat>
         <!-- 可选项 设置 time 字段呈现的时区 -->
         <timeZone>${timeZone}</timeZone>
-        <mdcFields>THREAD_ID,MDC_KEY</mdcFields>
+        <mdcFields>tenantId,tid</mdcFields>
     </appender>
     <appender name="ASYNC_ALIYUN_SLS_LOG_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
         <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
@@ -213,8 +178,6 @@
         <queueSize>256</queueSize>
         <appender-ref ref="ALIYUN_SLS_LOG_APPENDER"/>
     </appender>
-
-
 
 
     <!--nacos 心跳 INFO 屏蔽-->

@@ -38,8 +38,7 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
         if (!enabled) {
             return;
         }
-        if (eventObject instanceof LoggingEvent) {
-            LoggingEvent loggingEvent = (LoggingEvent) eventObject;
+        if (eventObject instanceof LoggingEvent loggingEvent) {
             Level level = loggingEvent.getLevel();
             ThrowableProxy throwableProxy = (ThrowableProxy) loggingEvent.getThrowableProxy();
             if (level.equals(Level.INFO)) {
