@@ -1,8 +1,8 @@
 package com.github.sparkzxl.data.sync.admin.listener.websocket;
 
 import cn.hutool.core.convert.Convert;
-import com.alibaba.ttl.TransmittableThreadLocal;
-import java.util.HashMap;
+import com.google.common.collect.Maps;
+
 import java.util.Map;
 
 /**
@@ -13,15 +13,10 @@ import java.util.Map;
  */
 public class WebSocketThreadLocalContext {
 
-    private static final ThreadLocal<Map<String, Object>> THREAD_CONTEXT = new TransmittableThreadLocal<Map<String, Object>>() {
-        @Override
-        protected Map<String, Object> initialValue() {
-            return new HashMap<>(16);
-        }
-    };
+    private static final ThreadLocal<Map<String, Object>> THREAD_CONTEXT = new ThreadLocal<>();
 
     public static void put(final String key, final Object value) {
-        THREAD_CONTEXT.get().put(key, value);
+        getLocalMap().put(key, value);
     }
 
     /**
@@ -30,7 +25,7 @@ public class WebSocketThreadLocalContext {
      * @param key remove key
      */
     public static void remove(final String key) {
-        THREAD_CONTEXT.get().remove(key);
+        getLocalMap().remove(key);
     }
 
     /**
@@ -40,8 +35,17 @@ public class WebSocketThreadLocalContext {
      * @return the Object
      */
     public static <T> T get(final String key, Class<T> type) {
-        Object o = THREAD_CONTEXT.get().get(key);
+        Object o = getLocalMap().get(key);
         return Convert.convert(type, o);
+    }
+
+    public static Map<String, Object> getLocalMap() {
+        Map<String, Object> map = THREAD_CONTEXT.get();
+        if (map == null) {
+            map = Maps.newHashMap();
+            THREAD_CONTEXT.set(map);
+        }
+        return map;
     }
 
     /**

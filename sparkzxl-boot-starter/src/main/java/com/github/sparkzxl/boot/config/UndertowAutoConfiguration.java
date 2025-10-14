@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Import;
  * description:
  *
  * @author zhouxinlei
- * @since 2025-08-08 13:53:33
+ * @since 2025-09-01 09:35:01
  */
 @Configuration(proxyBeanMethods = false)
 @Import(WebServerConfiguration.class)

@@ -33,8 +33,11 @@
         <!-- datasource-->
         <mybatis.version>3.5.19</mybatis.version>
         <mysql.version>8.0.33</mysql.version>
+        <mybatis-plus.version>3.5.3</mybatis-plus.version>
+        <dynamic-datasource.version>4.3.1</dynamic-datasource.version>
+        <druid.version>1.2.8</druid.version>
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
-        <dynamic-datasource.version>4.3.1.final</dynamic-datasource.version>
+        <dynamic-datasource.version>4.3.1</dynamic-datasource.version>
         <druid.version>1.2.25</druid.version>
         <hikaricp.version>7.0.1</hikaricp.version>
         <p6spy.version>3.9.1</p6spy.version>
@@ -626,6 +629,11 @@
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-elasticsearch-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.sparkzxl</groupId>
+                <artifactId>sparkzxl-feign-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

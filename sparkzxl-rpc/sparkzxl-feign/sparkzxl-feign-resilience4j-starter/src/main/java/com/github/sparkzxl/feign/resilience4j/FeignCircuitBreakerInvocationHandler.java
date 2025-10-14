@@ -1,8 +1,10 @@
 package com.github.sparkzxl.feign.resilience4j;
 
+import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import feign.InvocationHandlerFactory;
 import feign.Target;
 import org.apache.skywalking.apm.toolkit.trace.SupplierWrapper;
+import org.slf4j.MDC;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.cloud.client.circuitbreaker.NoFallbackAvailableException;
@@ -111,12 +113,18 @@ public class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
 
     private Supplier<Object> asSupplier(final Method method, final Object[] args) {
         final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        final Map<String, Object> localMap = RequestLocalContextHolder.getLocalMap();
+        final Map<String, String> mdcContextMap = MDC.getCopyOfContextMap();
         final Thread caller = Thread.currentThread();
         return () -> {
             boolean isAsync = caller != Thread.currentThread();
             try {
                 if (isAsync) {
                     RequestContextHolder.setRequestAttributes(requestAttributes);
+                    RequestLocalContextHolder.setLocalMap(localMap);
+                    if (mdcContextMap != null) {
+                        MDC.setContextMap(mdcContextMap);
+                    }
                 }
                 return dispatch.get(method).invoke(args);
             } catch (RuntimeException throwable) {

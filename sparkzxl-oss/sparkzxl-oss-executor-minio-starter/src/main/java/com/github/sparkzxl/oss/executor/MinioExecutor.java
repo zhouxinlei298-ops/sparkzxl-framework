@@ -258,12 +258,20 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
         } catch (Exception e) {
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            // 使用完毕后删除临时文件
+            // 关闭HTTP连接
             if (connection != null) {
                 connection.disconnect();
             }
+            if (tempInputStream != null) {
+                try {
+                    tempInputStream.close();
+                } catch (IOException e) {
+                    log.error("关闭文件流失败：{}", e.getMessage());
+                }
+            }
+            // 删除临时文件（双重保障：主动删除+JVM退出删除）
             if (tempFile != null && !tempFile.delete()) {
-                log.info("无法删除临时文件:{}", tempFile);
+                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
             }
         }
     }

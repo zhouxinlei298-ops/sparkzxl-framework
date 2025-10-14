@@ -15,6 +15,6 @@ public class TenantException extends BaseUncheckedException {
     private static final long serialVersionUID = -2803534562798384761L;
 
     public TenantException(String message) {
-        super(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), message);
+        super(ExceptionErrorCode.FAILURE.getErrorCode(), message);
     }
 }

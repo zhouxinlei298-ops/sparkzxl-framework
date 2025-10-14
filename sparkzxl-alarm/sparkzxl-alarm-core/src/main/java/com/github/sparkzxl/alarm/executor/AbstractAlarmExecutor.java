@@ -77,6 +77,7 @@ public abstract class AbstractAlarmExecutor implements AlarmExecutor {
         String alarmId = alarmIdGenerator.nextAlarmId();
         AlarmChannel alarmChannel = message.getAlarmChannel();
         if (MapUtil.isNotEmpty(variables)) {
+            cleanDataVariables(variables);
             message.transfer(variables);
         }
         AlarmProperties.AlarmConfig alarmConfig = getAlarmConfig(alarmChannel, (configs) -> alarmLoadBalancer.choose(configs));
@@ -93,6 +94,7 @@ public abstract class AbstractAlarmExecutor implements AlarmExecutor {
         String alarmId = alarmIdGenerator.nextAlarmId();
         AlarmChannel alarmChannel = message.getAlarmChannel();
         if (MapUtil.isNotEmpty(variables)) {
+            cleanDataVariables(variables);
             message.transfer(variables);
         }
         AlarmProperties.AlarmConfig alarmConfig = getAlarmConfig(alarmChannel,

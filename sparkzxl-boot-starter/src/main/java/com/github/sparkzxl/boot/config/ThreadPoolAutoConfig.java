@@ -4,12 +4,18 @@ package com.github.sparkzxl.boot.config;
 import com.alibaba.ttl.threadpool.TtlExecutors;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Stream;
+
+import com.github.sparkzxl.core.context.ContextTaskDecorator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.task.TaskExecutionProperties;
+import org.springframework.boot.task.TaskExecutorBuilder;
+import org.springframework.boot.task.TaskExecutorCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
  * description: Spring 线程池配置
@@ -22,33 +28,28 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Slf4j
 public class ThreadPoolAutoConfig {
 
-    public ThreadPoolAutoConfig() {
-        log.info("start init ttl taskExecutor");
+    @Bean
+    public TaskDecorator taskDecorator() {
+        return new ContextTaskDecorator();
     }
 
-    @Bean(name = "ttlTaskExecutor")
-    public Executor ttlTaskExecutor(TaskExecutionProperties taskExecutionProperties) {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        TaskExecutionProperties.Pool pool = taskExecutionProperties.getPool();
-        //核心线程池大小
-        executor.setCorePoolSize(pool.getCoreSize());
-        //最大线程数
-        executor.setMaxPoolSize(pool.getMaxSize());
-        //队列容量
-        executor.setQueueCapacity(pool.getQueueCapacity());
-        //活跃时间
-        executor.setKeepAliveSeconds((int) pool.getKeepAlive().getSeconds());
-        //线程名字前缀
-        executor.setThreadNamePrefix("ttl-task-executor-");
-        TaskExecutionProperties.Shutdown shutdown = taskExecutionProperties.getShutdown();
 
-        // 设置线程池关闭的时候等待所有任务都完成再继续销毁其他的Bean
-        executor.setWaitForTasksToCompleteOnShutdown(shutdown.isAwaitTermination());
-        // 设置这个执行器在关闭时应该阻止的最大秒数
-        executor.setAwaitTerminationSeconds(30);
-        // 线程池对拒绝任务的处理策略,当线程池没有处理能力的时候，该策略会直接在 execute 方法的调用线程中运行被拒绝的任务；如果执行程序已关闭，则会丢弃该任务
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        executor.initialize();
-        return TtlExecutors.getTtlExecutorService(executor.getThreadPoolExecutor());
+    @Bean
+    public TaskExecutorBuilder taskExecutorBuilder(TaskExecutionProperties properties, ObjectProvider<TaskExecutorCustomizer> taskExecutorCustomizers, ObjectProvider<TaskDecorator> taskDecorator) {
+        TaskExecutionProperties.Pool pool = properties.getPool();
+        TaskExecutorBuilder builder = new TaskExecutorBuilder();
+        builder = builder.queueCapacity(pool.getQueueCapacity());
+        builder = builder.corePoolSize(pool.getCoreSize());
+        builder = builder.maxPoolSize(pool.getMaxSize());
+        builder = builder.allowCoreThreadTimeOut(pool.isAllowCoreThreadTimeout());
+        builder = builder.keepAlive(pool.getKeepAlive());
+        TaskExecutionProperties.Shutdown shutdown = properties.getShutdown();
+        builder = builder.awaitTermination(shutdown.isAwaitTermination());
+        builder = builder.awaitTerminationPeriod(shutdown.getAwaitTerminationPeriod());
+        builder = builder.threadNamePrefix("async-task-");
+        Stream stream = taskExecutorCustomizers.orderedStream();
+        builder = builder.customizers(stream::iterator);
+        builder = builder.taskDecorator(taskDecorator.getIfUnique());
+        return builder;
     }
 }

@@ -1,7 +1,6 @@
 package com.github.sparkzxl.log.event;
 
 
-import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.log.entity.RequestInfoLog;
 import java.util.Optional;
@@ -9,7 +8,7 @@ import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
-import org.slf4j.MDC;
+import org.apache.skywalking.apm.toolkit.trace.ConsumerWrapper;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 
@@ -25,7 +24,7 @@ public class HttpRequestLogListener {
 
     private final Consumer<RequestInfoLog> consumer;
 
-    @Async("ttlTaskExecutor")
+    @Async
     @EventListener(HttpRequestLogEvent.class)
     public void saveRequestLog(HttpRequestLogEvent event) {
         RequestInfoLog requestInfoLog = (RequestInfoLog) event.getSource();
@@ -39,9 +38,7 @@ public class HttpRequestLogListener {
                     requestInfoLog.getTenantId(), requestInfoLog.getUserName(),
                     requestInfoLog.getRequestUrl(), requestInfoLog.getConsumingTime());
         }
-        MDC.put(BaseContextConstants.TENANT_ID, requestInfoLog.getTenantId());
-        MDC.put(BaseContextConstants.LOG_TRACE_ID, requestInfoLog.getTraceId());
-        consumer.accept(requestInfoLog);
+        ConsumerWrapper.of(consumer).accept(requestInfoLog);
     }
 
 }

@@ -38,9 +38,13 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
         if (!enabled) {
             return;
         }
-        if (eventObject instanceof LoggingEvent loggingEvent) {
+        if (eventObject instanceof LoggingEvent) {
+            LoggingEvent loggingEvent = (LoggingEvent) eventObject;
             Level level = loggingEvent.getLevel();
             ThrowableProxy throwableProxy = (ThrowableProxy) loggingEvent.getThrowableProxy();
+            if (level.equals(Level.INFO)) {
+                return;
+            }
             if (Objects.nonNull(throwableProxy)) {
                 AlarmRequest alarmRequest = new AlarmRequest();
                 alarmRequest.setTitle("服务系统异常告警");
@@ -59,8 +63,10 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
                             .traceId(traceId).build();
                     if (ArrayUtils.isNotEmpty(stackTraceElements)) {
                         StackTraceElement stackTraceElement = stackTraceElements[0];
-                        alarmLogInfo.setClassName(stackTraceElement.getClassName()).setFileName(stackTraceElement.getFileName())
-                                .setMethodName(stackTraceElement.getMethodName()).setLineNumber(stackTraceElement.getLineNumber());
+                        alarmLogInfo.setClassName(stackTraceElement.getClassName())
+                                .setFileName(stackTraceElement.getFileName())
+                                .setMethodName(stackTraceElement.getMethodName())
+                                .setLineNumber(stackTraceElement.getLineNumber());
                     }
                     String message = ThrowableUtils.dingTalkMarkdownContent(alarmLogInfo, throwable);
                     sendLogAlarm(alarmRequest, message);

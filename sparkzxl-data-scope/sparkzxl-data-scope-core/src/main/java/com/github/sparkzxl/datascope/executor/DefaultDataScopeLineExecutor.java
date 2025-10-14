@@ -35,19 +35,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DefaultDataScopeLineExecutor implements DataScopeLineExecutor {
 
-    private final ThreadLocal<List<DataScopeConfProperties.DataScopeConf>> confListThreadLocal = new TransmittableThreadLocal<List<DataScopeConfProperties.DataScopeConf>>() {
-        @Override
-        protected List<DataScopeConfProperties.DataScopeConf> initialValue() {
-            return Lists.newArrayList();
-        }
-    };
+    private final ThreadLocal<List<DataScopeConfProperties.DataScopeConf>> confListThreadLocal = ThreadLocal.withInitial(Lists::newArrayList);
 
-    private final ThreadLocal<Boolean> enableDataScopeThreadLocal = new TransmittableThreadLocal<Boolean>() {
-        @Override
-        protected Boolean initialValue() {
-            return Boolean.FALSE;
-        }
-    };
+    private final ThreadLocal<Boolean> enableDataScopeThreadLocal = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     private final Map<SqlCondition, ExpressionStrategy> expressionStrategyMap = Maps.newConcurrentMap();
 
