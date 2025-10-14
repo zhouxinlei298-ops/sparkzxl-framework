@@ -2,6 +2,8 @@ package com.github.sparkzxl.log.properties;
 
 import static com.github.sparkzxl.log.properties.LogProperties.LOG_PREFIX;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.List;
 
 import cn.hutool.core.date.DatePattern;
@@ -19,11 +21,15 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  */
 @Data
 @ConfigurationProperties(prefix = LOG_PREFIX)
-public class LogProperties {
+public class LogProperties implements Serializable {
 
     public static final String LOG_PREFIX = "logging";
+    @Serial
+    private static final long serialVersionUID = -399144487553652642L;
 
-    private String commonPatternColor;
+    private String consolePattern;
+
+    private String filePattern;
 
     private FileProperties file = new FileProperties();
 
