@@ -28,12 +28,7 @@ public class RequestContextFilter implements Filter, Filter.Listener {
 
     private static final String REQUEST_LOCAL_CONTEXT = "request-local-context";
 
-    private final ThreadLocal<String> clientType = new TransmittableThreadLocal<String>() {
-        @Override
-        protected String initialValue() {
-            return "";
-        }
-    };
+    private final ThreadLocal<String> clientType = ThreadLocal.withInitial(() -> "");
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {

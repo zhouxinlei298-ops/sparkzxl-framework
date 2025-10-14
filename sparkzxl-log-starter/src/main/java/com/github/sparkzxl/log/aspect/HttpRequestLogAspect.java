@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 public class HttpRequestLogAspect {
 
     public static final int MAX_LENGTH = 65535;
-    private static final ThreadLocal<RequestInfoLog> THREAD_LOCAL = new TransmittableThreadLocal<>();
+    private static final ThreadLocal<RequestInfoLog> THREAD_LOCAL = new ThreadLocal<>();
 
     @Pointcut("@within(com.github.sparkzxl.log.annotation.HttpRequestLog)|| @annotation(com.github.sparkzxl.log.annotation.HttpRequestLog)")
     public void pointCut() {

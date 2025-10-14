@@ -18,12 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class ExcelListener<T, M> extends AnalysisEventListener<T> {
 
-    public ThreadLocal<List<T>> listThreadLocal = new TransmittableThreadLocal<List<T>>() {
-        @Override
-        protected List<T> initialValue() {
-            return Lists.newArrayList();
-        }
-    };
+    public ThreadLocal<List<T>> listThreadLocal = ThreadLocal.withInitial(Lists::newArrayList);
 
     private final ExcelBaseService<M> excelBaseService;
 

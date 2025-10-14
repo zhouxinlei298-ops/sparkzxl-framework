@@ -1,14 +1,12 @@
 package com.github.sparkzxl.log.event;
 
 
-import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.log.entity.OptRecordLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.skywalking.apm.toolkit.trace.ConsumerWrapper;
-import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 
@@ -27,7 +25,7 @@ public class OptLogListener {
 
     private final Consumer<OptRecordLog> consumer;
 
-    @Async("ttlTaskExecutor")
+    @Async
     @EventListener(OptLogEvent.class)
     public void saveRequestLog(OptLogEvent event) {
         OptRecordLog optRecordLog = (OptRecordLog) event.getSource();
@@ -41,8 +39,6 @@ public class OptLogListener {
                     optRecordLog.getTenantId(), optRecordLog.getRequestUrl(), optRecordLog.getOperator(),
                     optRecordLog.getCategory(), optRecordLog.getDetail());
         }
-        MDC.put(BaseContextConstants.TENANT_ID, optRecordLog.getTenantId());
-        MDC.put(BaseContextConstants.LOG_TRACE_ID, optRecordLog.getTraceId());
         ConsumerWrapper.of(consumer).accept(optRecordLog);
     }
 

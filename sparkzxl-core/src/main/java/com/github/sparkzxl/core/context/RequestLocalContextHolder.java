@@ -1,16 +1,13 @@
 package com.github.sparkzxl.core.context;
 
 import cn.hutool.core.convert.Convert;
-import com.alibaba.ttl.TransmittableThreadLocal;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.util.ListUtils;
 import com.github.sparkzxl.core.util.StrPool;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 /**
  * description: 获取当前域中的 用户id, 用户昵称 注意： 用户id 和 用户昵称必须在前端 通过请求头的方法传入。 否则这里无法获取
@@ -19,7 +16,7 @@ import java.util.Map;
  */
 public class RequestLocalContextHolder {
 
-    private static final ThreadLocal<Map<String, Object>> THREAD_LOCAL = new TransmittableThreadLocal<>();
+    private static final ThreadLocal<Map<String, Object>> THREAD_LOCAL = new ThreadLocal<>();
 
     public static void set(String key, Object value) {
         Map<String, Object> map = getLocalMap();
@@ -51,7 +48,13 @@ public class RequestLocalContextHolder {
     }
 
     public static void setLocalMap(Map<String, Object> threadLocalMap) {
-        THREAD_LOCAL.set(threadLocalMap);
+        // 2. 强制创建新副本（即使parentMap为空）
+        Map<String, Object> copy = new HashMap<>();
+        if (threadLocalMap != null) {
+            copy.putAll(threadLocalMap);
+        }
+        // 3. 置新副本
+        THREAD_LOCAL.set(copy);
     }
 
 

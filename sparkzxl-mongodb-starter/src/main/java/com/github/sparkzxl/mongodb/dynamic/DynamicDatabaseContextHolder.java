@@ -16,9 +16,10 @@
 package com.github.sparkzxl.mongodb.dynamic;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
-import org.springframework.util.StringUtils;
 
 /**
  * description: 核心基于ThreadLocal的切换数据源工具类
@@ -35,12 +36,7 @@ public final class DynamicDatabaseContextHolder {
      * 传统的只设置当前线程的方式不能满足此业务需求，必须使用栈，后进先出。
      * </pre>
      */
-    private static final ThreadLocal<Deque<String>> LOOKUP_KEY_HOLDER = new TransmittableThreadLocal<Deque<String>>() {
-        @Override
-        protected Deque<String> initialValue() {
-            return new ArrayDeque<>();
-        }
-    };
+    private static final ThreadLocal<Deque<String>> LOOKUP_KEY_HOLDER = ThreadLocal.withInitial(ArrayDeque::new);
 
     private DynamicDatabaseContextHolder() {
     }

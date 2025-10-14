@@ -58,7 +58,7 @@ public class SlowSqlMonitorInterceptor implements Interceptor {
             new ThreadPoolExecutor(5, 5, 0, TimeUnit.MILLISECONDS,
                     new ArrayBlockingQueue<>(1000), new ThreadPoolExecutor.DiscardPolicy()));
 
-    private static final ThreadLocal<String> CONTEXT = new TransmittableThreadLocal<>();
+    private static final ThreadLocal<String> CONTEXT = new ThreadLocal<>();
     private SendNoticeService sendNoticeService;
 
     /**
