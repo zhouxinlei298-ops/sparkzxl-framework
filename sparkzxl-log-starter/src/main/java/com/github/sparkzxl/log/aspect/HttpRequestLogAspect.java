@@ -23,6 +23,7 @@ import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -93,9 +94,9 @@ public class HttpRequestLogAspect {
     }
 
     private void publishEvent(RequestInfoLog requestInfoLog) {
-        requestInfoLog.setFinishTime(LocalDateTime.now());
-        requestInfoLog.setConsumingTime(
-                DateUtils.formatBetween(requestInfoLog.getStartTime(), requestInfoLog.getFinishTime(), BetweenFormatter.Level.MILLISECOND));
+        LocalDateTime finishTime = LocalDateTime.now();
+        requestInfoLog.setFinishTime(finishTime);
+        requestInfoLog.setConsumingTime(requestInfoLog.getStartTime().until(finishTime, ChronoUnit.MILLIS));
         SpringContextUtils.publishEvent(new HttpRequestLogEvent(requestInfoLog));
         remove();
     }

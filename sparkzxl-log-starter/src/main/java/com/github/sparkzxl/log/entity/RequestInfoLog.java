@@ -85,7 +85,7 @@ public class RequestInfoLog implements Serializable {
     /**
      * 耗时时间
      */
-    private String consumingTime;
+    private Long consumingTime;
 
     /**
      * 租户
