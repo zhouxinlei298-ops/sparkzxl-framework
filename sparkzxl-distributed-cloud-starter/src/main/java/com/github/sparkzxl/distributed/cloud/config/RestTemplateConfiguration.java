@@ -16,7 +16,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.commons.httpclient.OkHttpClientConnectionPoolFactory;
 import org.springframework.cloud.commons.httpclient.OkHttpClientFactory;
-import org.springframework.cloud.openfeign.FeignClientProperties;
 import org.springframework.cloud.openfeign.support.FeignHttpClientProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
@@ -50,13 +49,11 @@ public class RestTemplateConfiguration {
     public okhttp3.OkHttpClient okHttp3Client(
             OkHttpClientFactory httpClientFactory,
             okhttp3.ConnectionPool connectionPool,
-            FeignClientProperties feignClientProperties,
             FeignHttpClientProperties httpClientProperties) {
-        FeignClientProperties.FeignClientConfiguration defaultConfig = feignClientProperties.getConfig().get("default");
+        Duration readTimeout = httpClientProperties.getOkHttp().getReadTimeout();
         return httpClientFactory.createBuilder(httpClientProperties.isDisableSslValidation())
                 .followRedirects(httpClientProperties.isFollowRedirects())
-                .writeTimeout(defaultConfig.getReadTimeout(), TimeUnit.MILLISECONDS)
-                .readTimeout(defaultConfig.getReadTimeout(), TimeUnit.MILLISECONDS)
+                .readTimeout(readTimeout)
                 .connectTimeout(httpClientProperties.getConnectionTimeout(), TimeUnit.MILLISECONDS)
                 .connectionPool(connectionPool)
                 .build();
