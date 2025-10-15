@@ -85,6 +85,7 @@
         <commons-compress.version>1.21</commons-compress.version>
         <commons-io.version>2.10.0</commons-io.version>
         <xstream.version>1.4.20</xstream.version>
+        <snakeyaml.version>2.0</snakeyaml.version>
     </properties>
 
     <licenses>
@@ -812,6 +813,11 @@
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
