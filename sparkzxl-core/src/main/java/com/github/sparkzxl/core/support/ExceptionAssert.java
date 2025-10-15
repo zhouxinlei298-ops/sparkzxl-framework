@@ -23,4 +23,8 @@ public class ExceptionAssert {
         throw new BizException(errorCode);
     }
 
+    public static void argumentError(String message) {
+        throw new ArgumentException(message);
+    }
+
 }
