@@ -71,7 +71,7 @@ public class JwtTokenServiceImpl implements JwtTokenService {
             //签名
             jwsObject.sign(jwsSigner);
         } catch (Exception e) {
-            log.error("创建Rsa token发生异常：{}", e.getMessage());
+            log.error("根据Rsa算法生成token发生异常：{}", e.getMessage());
             return "";
         }
         return jwsObject.serialize();
@@ -140,7 +140,7 @@ public class JwtTokenServiceImpl implements JwtTokenService {
             JWSSigner jwsSigner = new MACSigner(SecretUtil.encryptMd5(jwtProperties.getSecret()));
             jwsObject.sign(jwsSigner);
         } catch (Exception e) {
-            log.error("创建Hmac token发生异常：{}", e.getMessage());
+            log.error("根据Hmac算法生成token发生异常：{}", e.getMessage());
             return "";
         }
         return jwsObject.serialize();
