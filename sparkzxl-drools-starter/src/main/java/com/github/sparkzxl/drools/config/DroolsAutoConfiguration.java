@@ -56,7 +56,7 @@ public class DroolsAutoConfiguration {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
         return kieFileSystem;
     }

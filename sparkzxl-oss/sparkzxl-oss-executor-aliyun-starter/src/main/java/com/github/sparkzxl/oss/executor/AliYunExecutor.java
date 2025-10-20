@@ -150,7 +150,6 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                     e.getErrorMessage(),
                     e.getRequestId(),
                     e.getHostId());
-            e.printStackTrace();
             throw new OssException(OssErrorCode.OSS_ERROR);
         }
     }

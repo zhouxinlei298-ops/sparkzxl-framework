@@ -298,7 +298,6 @@ public interface CurdController<Entity, Id extends Serializable, SaveDTO, Update
                     .sheet(0).doRead();
             return importDataListener.getCount();
         } catch (IOException e) {
-            e.printStackTrace();
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             logger.error("读取Excel发生异常：{}", e.getMessage());
         }

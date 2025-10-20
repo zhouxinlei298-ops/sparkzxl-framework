@@ -193,7 +193,6 @@ public class GsonImpl extends AbstractJSONImpl {
             }
             return GSON.fromJson(json, TypeToken.getParameterized(LinkedHashMap.class, String.class, clazz).getType());
         } catch (Exception e) {
-            e.printStackTrace();
             throw new JsonParseException(e.getMessage());
         }
     }

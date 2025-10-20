@@ -1,6 +1,9 @@
 package com.github.sparkzxl.core.tree;
 
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -10,6 +13,8 @@ import java.util.List;
  * @author zhouxinlei
  */
 public class TreeNode<E, T extends Serializable> implements Cloneable, Serializable {
+
+    private static final Logger logger = LoggerFactory.getLogger(TreeNode.class);
 
     /**
      * 名称
@@ -90,7 +95,7 @@ public class TreeNode<E, T extends Serializable> implements Cloneable, Serializa
         try {
             treeNode = (TreeNode<E, T>) super.clone();
         } catch (CloneNotSupportedException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return treeNode;
     }

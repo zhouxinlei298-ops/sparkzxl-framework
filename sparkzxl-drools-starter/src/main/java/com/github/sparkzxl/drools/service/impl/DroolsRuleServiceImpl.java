@@ -37,8 +37,7 @@ public class DroolsRuleServiceImpl implements DroolsRuleService {
                 kfs.write(ResourceFactory.newClassPathResource(droolsProperties.getRulesPath() + file.getFilename(), "UTF-8"));
             }
         } catch (IOException e) {
-            e.printStackTrace();
-            log.info("reload新规则重载失败：message：[{}]", e.getMessage());
+            log.error("reload新规则重载失败：message：[{}]", e.getMessage());
             return false;
         }
         reloadRules(kieServices, kfs);

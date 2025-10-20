@@ -4,6 +4,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.json.JSONUtil;
 import com.github.sparkzxl.core.json.JsonUtils;
+import com.github.sparkzxl.core.support.BizException;
 import com.github.sparkzxl.core.support.ExceptionAssert;
 import com.github.sparkzxl.core.support.JwtExpireException;
 import com.github.sparkzxl.core.support.JwtInvalidException;
@@ -15,25 +16,20 @@ import com.github.sparkzxl.jwt.entity.JwtUserInfo;
 import com.github.sparkzxl.jwt.properties.JwtProperties;
 import com.github.sparkzxl.jwt.properties.KeyStoreProperties;
 import com.github.sparkzxl.jwt.service.JwtTokenService;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSObject;
-import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.jwk.RSAKey;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
+
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 
 /**
  * description: jwtToken 服务实现类
@@ -75,8 +71,8 @@ public class JwtTokenServiceImpl implements JwtTokenService {
             //签名
             jwsObject.sign(jwsSigner);
         } catch (Exception e) {
-            e.printStackTrace();
-            ExceptionAssert.failure("生成token发生异常：".concat(e.getMessage()));
+            log.error("创建Rsa token发生异常：{}", e.getMessage());
+            return "";
         }
         return jwsObject.serialize();
     }
@@ -144,8 +140,8 @@ public class JwtTokenServiceImpl implements JwtTokenService {
             JWSSigner jwsSigner = new MACSigner(SecretUtil.encryptMd5(jwtProperties.getSecret()));
             jwsObject.sign(jwsSigner);
         } catch (Exception e) {
-            e.printStackTrace();
-            ExceptionAssert.failure("生成token发生异常：".concat(e.getMessage()));
+            log.error("创建Hmac token发生异常：{}", e.getMessage());
+            return "";
         }
         return jwsObject.serialize();
     }
