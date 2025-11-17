@@ -5,6 +5,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.URLUtil;
+import cn.hutool.http.HttpUtil;
 import cn.hutool.http.Method;
 import com.aliyun.oss.ClientException;
 import com.aliyun.oss.HttpMethod;
@@ -223,48 +224,21 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         uploadFileLimit(objectName);
         OSSClient ossClient = obtainClient();
         Stopwatch stopwatch = Stopwatch.createStarted();
-        File tempFile = null;
-        HttpURLConnection connection = null;
+        String fileUrl = url.toString();
+        File tempFile = FileUtil.createTempFile();
+        // 注册JVM退出时自动删除临时文件（双重保障）
+        tempFile.deleteOnExit();
+        InputStream tempInputStream = null;
         try {
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(60000);
-            connection.setReadTimeout(300000);
-            connection.setRequestProperty("Accept", "*/*");
-            int responseCode = connection.getResponseCode();
-            // 2. 检查响应状态，非200则抛出异常
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                String errorMsg = String.format("文件下载失败，URL: %s，响应码: %d，响应信息: %s",
-                        url, responseCode, connection.getResponseMessage());
-                log.error(errorMsg);
-                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR.getErrorCode(), errorMsg);
-            }
-            log.info("HTTP下载文件[{}]:开始======", url);
-
-            try (BufferedInputStream in = new BufferedInputStream(connection.getInputStream())) {
-                tempFile = FileUtil.createTempFile();
-                // 注册JVM退出时自动删除临时文件（双重保障）
-                tempFile.deleteOnExit();
-
-                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                    byte[] buffer = new byte[8192];
-                    int bytesRead;
-                    while ((bytesRead = in.read(buffer)) != -1) {
-                        fos.write(buffer, 0, bytesRead);
-                    }
-                }
-            }
-            log.info("HTTP下载文件[{}]:结束======", url);
-            // 4. 上传到OSS
-            // 从响应头获取准确的MIME类型
-            String mimeType = connection.getContentType();
-            // 处理可能的null（默认使用二进制流类型）
-            if (mimeType == null) {
-                mimeType = "application/octet-stream";
-            }
-            InputStream tempInputStream = FileUtil.getInputStream(tempFile);
+            log.info("HTTP下载文件[{}]:开始======", fileUrl);
+            long downloadFileSize = HttpUtil.downloadFile(fileUrl, tempFile, 600000);
+            log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, downloadFileSize);
+            String mimeType = FileUtil.getMimeType(fileUrl);
+            String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
+            tempInputStream = FileUtil.getInputStream(tempFile);
             ObjectMetadata objectMetadata = new ObjectMetadata();
             objectMetadata.setContentLength(tempFile.length());
-            objectMetadata.setContentType(mimeType);
+            objectMetadata.setContentType(finalMimeType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, tempInputStream, objectMetadata);
             PutObjectResult writeResponse = ossClient.putObject(putObjectRequest);
             log.info("文件上传成功，ETag: {}", writeResponse.getETag());
@@ -282,9 +256,12 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         } catch (Exception e) {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            // 关闭HTTP连接
-            if (connection != null) {
-                connection.disconnect();
+            if (tempInputStream != null) {
+                try {
+                    tempInputStream.close();
+                } catch (IOException e) {
+                    log.error("关闭文件流失败：{}", e.getMessage());
+                }
             }
             // 删除临时文件（双重保障：主动删除+JVM退出删除）
             if (tempFile != null && !tempFile.delete()) {
