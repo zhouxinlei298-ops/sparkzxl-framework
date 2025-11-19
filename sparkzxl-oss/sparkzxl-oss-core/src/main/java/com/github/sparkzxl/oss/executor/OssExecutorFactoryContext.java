@@ -3,7 +3,7 @@ package com.github.sparkzxl.oss.executor;
 import com.github.sparkzxl.core.util.ArgumentAssert;
 import com.github.sparkzxl.oss.ConfigCache;
 import com.github.sparkzxl.oss.client.OssClient;
-import com.github.sparkzxl.oss.client.OssClientManager;
+import com.github.sparkzxl.oss.client.OssClientFactory;
 import com.github.sparkzxl.oss.properties.Configuration;
 import com.github.sparkzxl.oss.provider.OssConfigProvider;
 import com.github.sparkzxl.spi.ExtensionLoader;
@@ -23,12 +23,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
 
     private final Map<String, OssExecutor> executorMap = new ConcurrentHashMap<>();
-    private final OssClientManager ossClientManager;
     private final OssConfigProvider configProvider;
 
-    public OssExecutorFactoryContext(OssClientManager ossClientManager,
-                                     OssConfigProvider configProvider) {
-        this.ossClientManager = ossClientManager;
+    public OssExecutorFactoryContext(OssConfigProvider configProvider) {
         this.configProvider = configProvider;
     }
 
@@ -52,7 +49,7 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
         String cacheKey = cacheKey(configuration.getClientType(), configuration.getClientId());
         return executorMap.computeIfAbsent(cacheKey, key -> {
             log.debug("create OssExecutor for cacheKey: {}", key);
-            OssClient<?> ossClient = ossClientManager.create(configuration);
+            OssClient<?> ossClient = OssClientFactory.buildOssClient(configuration);
             OssExecutorFactory ossExecutorFactory = newInstance(clientType);
             return ossExecutorFactory.create(ossClient);
         });
@@ -64,11 +61,10 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         log.info("OssExecutor start closing ....");
         executorMap.forEach((key, value) -> value.showdown());
         executorMap.clear();
-        ossClientManager.clear();
         log.info("OssExecutor all closed success,bye");
     }
 }

@@ -1,7 +1,6 @@
 package com.github.sparkzxl.oss.config;
 
 import com.github.sparkzxl.oss.OssTemplate;
-import com.github.sparkzxl.oss.client.OssClientManager;
 import com.github.sparkzxl.oss.enums.RegisterMode;
 import com.github.sparkzxl.oss.executor.OssExecutorFactoryContext;
 import com.github.sparkzxl.oss.properties.OssProperties;
@@ -67,18 +66,10 @@ public class OssAutoConfiguration {
         return new FileOssConfigProvider(ossProperties.getPath());
     }
 
-
-    @Bean
-    @ConditionalOnMissingBean(OssClientManager.class)
-    public OssClientManager ossClientManager() {
-        return new OssClientManager();
-    }
-
     @Bean
     @ConditionalOnMissingBean(OssExecutorFactoryContext.class)
-    public OssExecutorFactoryContext ossExecutorFactoryContext(OssClientManager ossClientManager,
-            OssConfigProvider configProvider) {
-        return new OssExecutorFactoryContext(ossClientManager, configProvider);
+    public OssExecutorFactoryContext ossExecutorFactoryContext(OssConfigProvider configProvider) {
+        return new OssExecutorFactoryContext(configProvider);
     }
 
     @Bean
