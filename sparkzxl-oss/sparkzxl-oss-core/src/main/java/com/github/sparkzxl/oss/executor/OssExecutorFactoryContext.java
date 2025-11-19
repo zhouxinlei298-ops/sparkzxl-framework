@@ -27,7 +27,7 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
     private final OssConfigProvider configProvider;
 
     public OssExecutorFactoryContext(OssClientManager ossClientManager,
-            OssConfigProvider configProvider) {
+                                     OssConfigProvider configProvider) {
         this.ossClientManager = ossClientManager;
         this.configProvider = configProvider;
     }
@@ -48,16 +48,14 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
 
     private OssExecutor selectOssExecutor(Configuration configuration) {
         ArgumentAssert.notNull(configuration, "Oss Configuration is not available");
+        String clientType = configuration.getClientType();
         String cacheKey = cacheKey(configuration.getClientType(), configuration.getClientId());
-        OssExecutor ossExecutor = executorMap.get(cacheKey);
-        OssClient<?> ossClient = ossClientManager.create(configuration);
-        if (ossExecutor == null) {
-            OssExecutorFactory ossExecutorFactory = newInstance(configuration.getClientType());
-            ossExecutor = ossExecutorFactory.create(ossClient);
-            executorMap.put(cacheKey, ossExecutor);
-            return ossExecutor;
-        }
-        return ossExecutor;
+        return executorMap.computeIfAbsent(cacheKey, key -> {
+            log.debug("create OssExecutor for cacheKey: {}", key);
+            OssClient<?> ossClient = ossClientManager.create(configuration);
+            OssExecutorFactory ossExecutorFactory = newInstance(clientType);
+            return ossExecutorFactory.create(ossClient);
+        });
     }
 
     @Override
