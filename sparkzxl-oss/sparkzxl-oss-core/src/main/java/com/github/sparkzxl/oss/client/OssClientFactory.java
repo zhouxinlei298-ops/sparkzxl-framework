@@ -17,7 +17,7 @@ import java.text.MessageFormat;
 public class OssClientFactory {
 
     /**
-     * New instance IOssClient.
+     * New instance OssClient.
      *
      * @param clientType the oss client type
      * @return IOssClient
