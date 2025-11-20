@@ -1,6 +1,8 @@
 package com.github.sparkzxl.oss.config;
 
 import com.github.sparkzxl.oss.OssTemplate;
+import com.github.sparkzxl.oss.creator.OssClientCreator;
+import com.github.sparkzxl.oss.creator.OssClientFactory;
 import com.github.sparkzxl.oss.enums.RegisterMode;
 import com.github.sparkzxl.oss.executor.OssExecutorFactoryContext;
 import com.github.sparkzxl.oss.properties.OssProperties;
@@ -12,12 +14,15 @@ import com.github.sparkzxl.oss.support.OssExceptionHandler;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+
+import java.util.List;
 
 /**
  * description: oss自动配置
@@ -67,9 +72,15 @@ public class OssAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(OssClientFactory.class)
+    public OssClientFactory ossClientFactory(@Autowired(required = false) List<OssClientCreator> ossClientCreators) {
+        return new OssClientFactory(ossClientCreators);
+    }
+
+    @Bean
     @ConditionalOnMissingBean(OssExecutorFactoryContext.class)
-    public OssExecutorFactoryContext ossExecutorFactoryContext(OssConfigProvider configProvider) {
-        return new OssExecutorFactoryContext(configProvider);
+    public OssExecutorFactoryContext ossExecutorFactoryContext(OssConfigProvider configProvider, OssClientFactory ossClientFactory) {
+        return new OssExecutorFactoryContext(configProvider, ossClientFactory);
     }
 
     @Bean

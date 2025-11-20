@@ -3,7 +3,7 @@ package com.github.sparkzxl.oss.executor;
 import com.github.sparkzxl.core.util.ArgumentAssert;
 import com.github.sparkzxl.oss.ConfigCache;
 import com.github.sparkzxl.oss.client.OssClient;
-import com.github.sparkzxl.oss.client.OssClientFactory;
+import com.github.sparkzxl.oss.creator.OssClientFactory;
 import com.github.sparkzxl.oss.properties.Configuration;
 import com.github.sparkzxl.oss.provider.OssConfigProvider;
 import com.github.sparkzxl.spi.ExtensionLoader;
@@ -24,9 +24,11 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
 
     private final Map<String, OssExecutor> executorMap = new ConcurrentHashMap<>();
     private final OssConfigProvider configProvider;
+    private final OssClientFactory ossClientFactory;
 
-    public OssExecutorFactoryContext(OssConfigProvider configProvider) {
+    public OssExecutorFactoryContext(OssConfigProvider configProvider, OssClientFactory ossClientFactory) {
         this.configProvider = configProvider;
+        this.ossClientFactory = ossClientFactory;
     }
 
     public static OssExecutorFactory newInstance(final String ossType) {
@@ -49,7 +51,7 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
         String cacheKey = cacheKey(configuration.getClientType(), configuration.getClientId());
         return executorMap.computeIfAbsent(cacheKey, key -> {
             log.debug("create OssExecutor for cacheKey: {}", key);
-            OssClient<?> ossClient = OssClientFactory.buildOssClient(configuration);
+            OssClient<?> ossClient = ossClientFactory.buildOssClient(configuration);
             OssExecutorFactory ossExecutorFactory = newInstance(clientType);
             return ossExecutorFactory.create(ossClient);
         });
