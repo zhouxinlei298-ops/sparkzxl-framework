@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Data
 public class OssPushObjectResponse implements Serializable {
 
-    private static final long serialVersionUID = -2858501448729745495L;
+    private static final long serialVersionUID = -8427457920480997265L;
     /**
      * bucket名称
      */
@@ -24,11 +24,6 @@ public class OssPushObjectResponse implements Serializable {
      * 文件对象名称
      */
     private String objectName;
-
-    /**
-     * 文件名称
-     */
-    private String fileName;
 
     /**
      * 文件大小
