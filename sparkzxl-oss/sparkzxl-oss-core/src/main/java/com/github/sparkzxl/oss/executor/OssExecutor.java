@@ -1,17 +1,17 @@
 package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.net.url.UrlBuilder;
-import com.github.sparkzxl.oss.entity.FileUploadInfo;
-import com.github.sparkzxl.oss.entity.OssObject;
-import com.github.sparkzxl.oss.entity.PartData;
-import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
+import com.github.sparkzxl.core.util.StrPool;
+import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
 
 /**
@@ -59,10 +59,24 @@ public interface OssExecutor {
      * 获取文件访问路径
      *
      * @param bucketName bucket名称
-     * @param objectName oss对象名称
+     * @param objectName 文件名称
      * @return String
      */
-    String getObjectUrl(String bucketName, String objectName);
+    default String getObjectUrl(String bucketName, String objectName) {
+        Configuration configInfo = obtainConfigInfo();
+        if (configInfo == null) {
+            return null;
+        }
+        String domainName = configInfo.getDomain();
+        if (StringUtils.isEmpty(domainName)) {
+            domainName = configInfo.getEndpoint();
+        }
+        return new StringJoiner(StrPool.SLASH)
+                .add(domainName)
+                .add(bucketName)
+                .add(objectName)
+                .toString();
+    }
 
     /**
      * 获取文件
@@ -88,8 +102,9 @@ public interface OssExecutor {
      * @param bucketName    bucket名称
      * @param objectName    文件名称
      * @param multipartFile 文件
+     * @return OssPushObjectResponse
      */
-    void putObject(String bucketName, String objectName, MultipartFile multipartFile);
+    OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile);
 
     /**
      * 上传文件
@@ -97,8 +112,9 @@ public interface OssExecutor {
      * @param bucketName bucket名称
      * @param objectName oss对象名称
      * @param filePath   文件路径
+     * @return OssPushObjectResponse
      */
-    void putObject(String bucketName, String objectName, String filePath);
+    OssPushObjectResponse putObject(String bucketName, String objectName, String filePath);
 
     /**
      * 上传文件
@@ -106,8 +122,9 @@ public interface OssExecutor {
      * @param bucketName bucket名称
      * @param objectName oss对象名称
      * @param url        文件地址
+     * @return OssPushObjectResponse
      */
-    void putObject(String bucketName, String objectName, URL url);
+    OssPushObjectResponse putObject(String bucketName, String objectName, URL url);
 
     /**
      * 分段上传
@@ -163,14 +180,6 @@ public interface OssExecutor {
      * @param consumer   消费
      */
     void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer);
-
-    /**
-     * 文件url前半段
-     *
-     * @param bucketName bucket名称
-     * @return UrlBuilder
-     */
-    UrlBuilder getObjectPrefixUrl(String bucketName);
 
     /**
      * 获取文件上传地址

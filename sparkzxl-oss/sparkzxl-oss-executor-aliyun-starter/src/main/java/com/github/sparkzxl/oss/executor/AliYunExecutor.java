@@ -2,11 +2,8 @@ package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.URLUtil;
 import cn.hutool.http.HttpUtil;
-import cn.hutool.http.Method;
 import com.aliyun.oss.ClientException;
 import com.aliyun.oss.HttpMethod;
 import com.aliyun.oss.OSSClient;
@@ -14,19 +11,14 @@ import com.aliyun.oss.OSSException;
 import com.aliyun.oss.internal.Mimetypes;
 import com.aliyun.oss.model.*;
 import com.github.sparkzxl.core.util.DateUtils;
-import com.github.sparkzxl.core.util.TimeUtil;
 import com.github.sparkzxl.oss.client.OssClient;
-import com.github.sparkzxl.oss.entity.FileUploadInfo;
-import com.github.sparkzxl.oss.entity.OssObject;
-import com.github.sparkzxl.oss.entity.PartData;
-import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
+import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
 import com.github.sparkzxl.oss.support.OssErrorCode;
 import com.github.sparkzxl.oss.support.OssException;
 import com.github.sparkzxl.oss.utils.OssUtils;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +26,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.Charset;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -112,11 +103,6 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public String getObjectUrl(String bucketName, String objectName) {
-        return URLUtil.decode(getObjectPrefixUrl(bucketName).addPath(objectName).build());
-    }
-
-    @Override
     public OssObject getObjectInfo(String bucketName, String objectName) {
         OSSClient ossClient = obtainClient();
         try {
@@ -156,15 +142,27 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, MultipartFile multipartFile) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
         uploadFileLimit(objectName);
         OSSClient ossClient = obtainClient();
         try {
+            long size = multipartFile.getSize();
+            String contentType = multipartFile.getContentType();
             ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentLength(multipartFile.getSize());
-            objectMetadata.setContentType(multipartFile.getContentType());
+            objectMetadata.setContentLength(size);
+            objectMetadata.setContentType(contentType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, multipartFile.getInputStream(), objectMetadata);
-            ossClient.putObject(putObjectRequest);
+            PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(contentType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
+            return pushObjectResponse;
         } catch (OSSException e) {
             log.error("Caught an OSSException, which means your request made it to OSS, "
                             + "but was rejected with an error response for some reason.\n"
@@ -180,7 +178,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, String filePath) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
         uploadFileLimit(objectName);
         OSSClient ossClient = obtainClient();
         File tempFile = new File(filePath);
@@ -188,12 +186,23 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         try {
             tempInputStream = FileUtil.getInputStream(tempFile);
             String mimeType = FileUtil.getType(tempFile);
+            String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
+            long size = FileUtil.size(tempFile);
             ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentLength(tempFile.length());
-            objectMetadata.setContentType(mimeType);
+            objectMetadata.setContentLength(size);
+            objectMetadata.setContentType(finalMimeType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, tempInputStream, objectMetadata);
-            PutObjectResult writeResponse = ossClient.putObject(putObjectRequest);
-            log.info("文件上传成功，ETag: {}", writeResponse.getETag());
+            PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
+            return pushObjectResponse;
         } catch (OSSException e) {
             log.warn("Caught an OSSException, which means your request made it to OSS, "
                             + "but was rejected with an error response for some reason.\n"
@@ -220,7 +229,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, URL url) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
         uploadFileLimit(objectName);
         OSSClient ossClient = obtainClient();
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -231,8 +240,8 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         InputStream tempInputStream = null;
         try {
             log.info("HTTP下载文件[{}]:开始======", fileUrl);
-            long downloadFileSize = HttpUtil.downloadFile(fileUrl, tempFile, 600000);
-            log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, downloadFileSize);
+            long size = HttpUtil.downloadFile(fileUrl, tempFile, 600000);
+            log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, size);
             String mimeType = FileUtil.getMimeType(fileUrl);
             String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
             tempInputStream = FileUtil.getInputStream(tempFile);
@@ -240,10 +249,19 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             objectMetadata.setContentLength(tempFile.length());
             objectMetadata.setContentType(finalMimeType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, tempInputStream, objectMetadata);
-            PutObjectResult writeResponse = ossClient.putObject(putObjectRequest);
-            log.info("文件上传成功，ETag: {}", writeResponse.getETag());
+            PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
             long totalTime = stopwatch.elapsed(TimeUnit.SECONDS);
             log.info("文件下载并上传完成，总耗时：[{}]", totalTime);
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
+            return pushObjectResponse;
         } catch (OSSException e) {
             log.error("Caught an OSSException, which means your request made it to OSS, "
                             + "but was rejected with an error response for some reason.\n"
@@ -505,18 +523,6 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             consumer.accept(in);
         } catch (IOException e) {
             throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
-        }
-    }
-
-    @Override
-    public UrlBuilder getObjectPrefixUrl(String bucket) {
-        Configuration configInfo = obtainConfigInfo();
-        if (StringUtils.isNotBlank(configInfo.getDomain())) {
-            return UrlBuilder.ofHttp(configInfo.getDomain(), Charset.defaultCharset())
-                    .addPath(bucket);
-        } else {
-            return UrlBuilder.ofHttp(configInfo.getEndpoint(), Charset.defaultCharset())
-                    .addPath(bucket);
         }
     }
 

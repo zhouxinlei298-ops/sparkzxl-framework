@@ -2,17 +2,11 @@ package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.URLUtil;
 import cn.hutool.http.HttpUtil;
-import com.github.sparkzxl.core.util.TimeUtil;
 import com.github.sparkzxl.oss.client.CustomMinioClient;
 import com.github.sparkzxl.oss.client.OssClient;
-import com.github.sparkzxl.oss.entity.FileUploadInfo;
-import com.github.sparkzxl.oss.entity.OssObject;
-import com.github.sparkzxl.oss.entity.PartData;
-import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
+import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
 import com.github.sparkzxl.oss.support.OssErrorCode;
@@ -22,7 +16,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.Part;
 import lombok.extern.slf4j.Slf4j;
@@ -31,11 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -112,11 +102,6 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     }
 
     @Override
-    public String getObjectUrl(String bucketName, String objectName) {
-        return URLUtil.decode(getObjectPrefixUrl(bucketName).addPath(objectName).build());
-    }
-
-    @Override
     public OssObject getObjectInfo(String bucketName, String objectName) {
         CustomMinioClient minioClient = obtainClient();
         try {
@@ -149,40 +134,63 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, MultipartFile multipartFile) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
         uploadFileLimit(objectName);
         CustomMinioClient minioClient = obtainClient();
         try {
+            long size = multipartFile.getSize();
+            String contentType = multipartFile.getContentType();
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectName)
-                    .stream(multipartFile.getInputStream(), multipartFile.getSize(), PutObjectArgs.MAX_PART_SIZE)
-                    .contentType(multipartFile.getContentType()
+                    .stream(multipartFile.getInputStream(), size, -1)
+                    .contentType(contentType
                     ).build();
-            minioClient.putObject(putObjectArgs);
+            CompletableFuture<ObjectWriteResponse> writeResponseCompletableFuture = minioClient.putObject(putObjectArgs);
+            ObjectWriteResponse objectWriteResponse = writeResponseCompletableFuture.get();
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(contentType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
+            return pushObjectResponse;
         } catch (Exception e) {
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, String filePath) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
         uploadFileLimit(objectName);
         CustomMinioClient minioClient = obtainClient();
         File tempFile = new File(filePath);
         BufferedInputStream tempInputStream = null;
         try {
-            long fileSize = tempFile.length();
+            long size = FileUtil.size(tempFile);
             tempInputStream = FileUtil.getInputStream(tempFile);
             String mimeType = FileUtil.getType(tempFile);
+            String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
-                    .object(objectName).stream(tempInputStream, fileSize, -1)
-                    .contentType(mimeType)
+                    .object(objectName).stream(tempInputStream, size, -1)
+                    .contentType(finalMimeType)
                     .build();
-            CompletableFuture<ObjectWriteResponse> completableFuture = minioClient.putObject(putObjectArgs);
-            ObjectWriteResponse writeResponse = completableFuture.get();
-            log.info("文件上传成功，ETag: {}", writeResponse.etag());
+            CompletableFuture<ObjectWriteResponse> writeResponseCompletableFuture = minioClient.putObject(putObjectArgs);
+            ObjectWriteResponse objectWriteResponse = writeResponseCompletableFuture.get();
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
+            return pushObjectResponse;
         } catch (Exception e) {
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
@@ -200,7 +208,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, URL url) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
         uploadFileLimit(objectName);
         CustomMinioClient minioClient = obtainClient();
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -211,24 +219,32 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
         InputStream tempInputStream = null;
         try {
             log.info("HTTP下载文件[{}]:开始======", fileUrl);
-            long downloadFileSize = HttpUtil.downloadFile(fileUrl, tempFile, 600000);
-            log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, downloadFileSize);
+            long size = HttpUtil.downloadFile(fileUrl, tempFile, 600000);
+            log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, size);
             String mimeType = FileUtil.getMimeType(fileUrl);
             String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
             tempInputStream = FileUtil.getInputStream(tempFile);
             // 4. 上传到MinIO
-            // 从响应头获取准确的MIME类型
             tempInputStream = FileUtil.getInputStream(tempFile);
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectName)
-                    .stream(tempInputStream, downloadFileSize, -1)
+                    .stream(tempInputStream, size, -1)
                     .contentType(finalMimeType).build();
             CompletableFuture<ObjectWriteResponse> completableFuture = minioClient.putObject(putObjectArgs);
-            ObjectWriteResponse writeResponse = completableFuture.get();
-            log.info("文件上传成功，ETag: {}", writeResponse.etag());
+            ObjectWriteResponse objectWriteResponse = completableFuture.get();
             long totalTime = stopwatch.elapsed(TimeUnit.SECONDS);
-            log.info("文件下载并上传完成，总耗时：[{}]", totalTime);
+            log.info("文件下载并上传完成，总耗时：[{}]秒", totalTime);
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
+            return pushObjectResponse;
         } catch (Exception e) {
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
@@ -401,16 +417,6 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             consumer.accept(objectResponse);
         } catch (Exception e) {
             throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
-        }
-    }
-
-    @Override
-    public UrlBuilder getObjectPrefixUrl(String bucket) {
-        Configuration configInfo = obtainConfigInfo();
-        if (StringUtils.isNotBlank(configInfo.getDomain())) {
-            return UrlBuilder.ofHttp(configInfo.getDomain(), Charset.defaultCharset()).addPath(bucket);
-        } else {
-            return UrlBuilder.ofHttp(configInfo.getEndpoint(), Charset.defaultCharset()).addPath(bucket);
         }
     }
 

@@ -1,10 +1,7 @@
 package com.github.sparkzxl.oss;
 
 import com.github.sparkzxl.oss.context.OssClientContextHolder;
-import com.github.sparkzxl.oss.entity.FileUploadInfo;
-import com.github.sparkzxl.oss.entity.OssObject;
-import com.github.sparkzxl.oss.entity.PartData;
-import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
+import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.executor.OssExecutor;
 import com.github.sparkzxl.oss.executor.OssExecutorFactoryContext;
 import com.github.sparkzxl.oss.properties.OssProperties;
@@ -113,9 +110,9 @@ public class OssTemplate implements InitializingBean {
      * @param objectName    文件名称
      * @param multipartFile 文件
      */
-    public void putObject(String bucketName, String objectName, MultipartFile multipartFile) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
         OssExecutor ossExecutor = obtainExecutor();
-        ossExecutor.putObject(bucketName, objectName, multipartFile);
+        return ossExecutor.putObject(bucketName, objectName, multipartFile);
     }
 
     /**
@@ -125,9 +122,9 @@ public class OssTemplate implements InitializingBean {
      * @param objectName oss对象名称
      * @param filePath   文件地址
      */
-    public void putObject(String bucketName, String objectName, String filePath) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
         OssExecutor ossExecutor = obtainExecutor();
-        ossExecutor.putObject(bucketName, objectName, filePath);
+        return ossExecutor.putObject(bucketName, objectName, filePath);
     }
 
     /**
@@ -137,9 +134,9 @@ public class OssTemplate implements InitializingBean {
      * @param objectName oss对象名称
      * @param url        文件地址
      */
-    public void putObject(String bucketName, String objectName, URL url) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
         OssExecutor ossExecutor = obtainExecutor();
-        ossExecutor.putObject(bucketName, objectName, url);
+        return ossExecutor.putObject(bucketName, objectName, url);
     }
 
     /**
