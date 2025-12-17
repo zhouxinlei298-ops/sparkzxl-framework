@@ -6,8 +6,12 @@ import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
@@ -86,6 +90,15 @@ public interface OssExecutor {
      * @return OssObject 二进制流
      */
     OssObject getObjectInfo(String bucketName, String objectName);
+
+    /**
+     * 获取文件内容和元信息
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @return OssMetadata
+     */
+    OssMetadata getOssMetadata(String bucketName, String objectName);
 
     /**
      * 判断文件是否存在
@@ -173,6 +186,16 @@ public interface OssExecutor {
     void removeObject(String bucketName, String objectName);
 
     /**
+     * 获取文件上传地址
+     *
+     * @param bucketName  bucket名称
+     * @param objectName  文件名称
+     * @param contentType contentType
+     * @return UploadUrlsInfo
+     */
+    UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType);
+
+    /**
      * 下载文件
      *
      * @param bucketName bucket名称
@@ -182,14 +205,21 @@ public interface OssExecutor {
     void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer);
 
     /**
-     * 获取文件上传地址
+     * 分片下载文件
      *
-     * @param bucketName  bucket名称
-     * @param objectName  文件名称
-     * @param contentType contentType
-     * @return UploadUrlsInfo
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param fileName   文件名
+     * @param request    HTTP请求
+     * @param response   HTTP响应
+     * @return ResponseEntity
+     * @throws IOException IO异常
      */
-    UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType);
+    ResponseEntity<byte[]> downloadMultipartFile(String bucketName,
+                                                 String objectName,
+                                                 String fileName,
+                                                 HttpServletRequest request,
+                                                 HttpServletResponse response) throws IOException;
 
     /**
      * 销毁

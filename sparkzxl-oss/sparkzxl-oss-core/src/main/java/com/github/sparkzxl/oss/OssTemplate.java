@@ -9,9 +9,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
@@ -89,6 +93,18 @@ public class OssTemplate implements InitializingBean {
     public OssObject getObjectInfo(String bucketName, String objectName) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.getObjectInfo(bucketName, objectName);
+    }
+
+    /**
+     * 获取文件内容和元信息
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @return OssMetadata
+     */
+    public OssMetadata getOssMetadata(String bucketName, String objectName) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.getOssMetadata(bucketName, objectName);
     }
 
     /**
@@ -200,11 +216,6 @@ public class OssTemplate implements InitializingBean {
         ossExecutor.removeObject(bucketName, objectName);
     }
 
-    public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
-        OssExecutor ossExecutor = obtainExecutor();
-        ossExecutor.downloadFile(bucketName, objectName, consumer);
-    }
-
     /**
      * 获取文件上传地址
      *
@@ -216,6 +227,28 @@ public class OssTemplate implements InitializingBean {
     public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.getPresignedObjectUploadUrl(bucketName, objectName, contentType);
+    }
+
+    public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
+        OssExecutor ossExecutor = obtainExecutor();
+        ossExecutor.downloadFile(bucketName, objectName, consumer);
+    }
+
+    /**
+     * 分片下载文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param fileName   文件名
+     * @param request    HTTP请求
+     * @param response   HTTP响应
+     * @return ResponseEntity
+     * @throws IOException IO异常
+     */
+    public ResponseEntity<byte[]> downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        log.info("下载文件的 object <{}>", objectName);
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.downloadMultipartFile(bucketName, objectName, fileName, request, response);
     }
 
     public OssExecutor obtainExecutor() {

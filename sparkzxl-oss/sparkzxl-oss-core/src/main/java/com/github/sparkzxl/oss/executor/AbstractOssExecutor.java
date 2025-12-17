@@ -17,6 +17,9 @@ import java.util.List;
  */
 public abstract class AbstractOssExecutor<T> implements OssExecutor {
 
+    // 64KB
+    protected static final Integer BUFFER_SIZE = 1024 * 64;
+
     protected final OssClient<T> client;
 
     public AbstractOssExecutor(OssClient<T> client) {

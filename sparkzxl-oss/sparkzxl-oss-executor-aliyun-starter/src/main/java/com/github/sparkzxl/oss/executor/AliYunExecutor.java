@@ -1,6 +1,7 @@
 package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpUtil;
@@ -23,10 +24,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -112,6 +118,32 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             ossObject.setBucketName(object.getBucketName());
             ossObject.setKey(object.getKey());
             return ossObject;
+        } catch (OSSException e) {
+            log.error("Caught an OSSException, which means your request made it to OSS, "
+                            + "but was rejected with an error response for some reason.\n"
+                            + "Error Code:{} Error Message:{} Request ID:{} Host ID:{}",
+                    e.getErrorCode(),
+                    e.getErrorMessage(),
+                    e.getRequestId(),
+                    e.getHostId());
+            throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(), e.getErrorMessage());
+        }
+    }
+
+    @Override
+    public OssMetadata getOssMetadata(String bucketName, String objectName) {
+        OSSClient ossClient = obtainClient();
+        try {
+            ObjectMetadata objectMetadata = ossClient.getObjectMetadata(bucketName, objectName);
+            OssMetadata ossMetadata = new OssMetadata();
+            ossMetadata.setBucketName(bucketName);
+            ossMetadata.setObjectName(objectName);
+            ossMetadata.setSize(objectMetadata.getContentLength());
+            ossMetadata.setContentType(objectMetadata.getContentType());
+            ossMetadata.setLastModified(DateUtil.toLocalDateTime(objectMetadata.getLastModified()));
+            ossMetadata.setEtag(objectMetadata.getETag());
+            ossMetadata.setUserMetadata(objectMetadata.getUserMetadata());
+            return ossMetadata;
         } catch (OSSException e) {
             log.error("Caught an OSSException, which means your request made it to OSS, "
                             + "but was rejected with an error response for some reason.\n"
@@ -516,17 +548,6 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
-        OSSClient ossClient = obtainClient();
-        OSSObject ossObject = ossClient.getObject(bucketName, objectName);
-        try (InputStream in = ossObject.getObjectContent()) {
-            consumer.accept(in);
-        } catch (IOException e) {
-            throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
-        }
-    }
-
-    @Override
     public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
         UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
         List<String> urlList = new ArrayList<>();
@@ -554,6 +575,115 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         } catch (Exception e) {
             throw new OssException(OssErrorCode.GET_PRESIGNED_OBJECT_URL_ERROR, e);
         }
+    }
+
+    @Override
+    public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
+        OSSClient ossClient = obtainClient();
+        OSSObject ossObject = ossClient.getObject(bucketName, objectName);
+        try (InputStream in = ossObject.getObjectContent()) {
+            consumer.accept(in);
+        } catch (IOException e) {
+            throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
+        }
+    }
+
+    @Override
+    public ResponseEntity<byte[]> downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        OSSClient ossClient = obtainClient();
+        try {
+            String range = request.getHeader("Range");
+            log.info("下载文件的 bucket <{}>，object <{}>", bucketName, objectName);
+            ObjectMetadata objectMetadata = ossClient.getObjectMetadata(bucketName, objectName);
+            // 开始下载位置
+            long startByte = 0;
+            long fileSize = objectMetadata.getContentLength();
+            // 结束下载位置
+            long endByte = fileSize - 1;
+            log.info("文件总长度：{}，当前 range：{}", fileSize, range);
+
+            // 存在 range，需要根据前端下载长度进行下载，即分段下载
+            // 例如：range=bytes=0-52428800
+            if (range != null && range.contains("bytes=") && range.contains("-")) {
+                // 0-52428800
+                range = range.substring(range.lastIndexOf("=") + 1).trim();
+                String[] ranges = range.split("-");
+                // 判断range的类型
+                if (ranges.length == 1) {
+                    // 类型一：bytes=-2343 后端转换为 0-2343
+                    if (range.startsWith("-")) endByte = Long.parseLong(ranges[0]);
+                    // 类型二：bytes=2343- 后端转换为 2343-最后
+                    if (range.endsWith("-")) startByte = Long.parseLong(ranges[0]);
+                } else if (ranges.length == 2) {
+                    // 类型三：bytes=22-2343
+                    startByte = Long.parseLong(ranges[0]);
+                    endByte = Long.parseLong(ranges[1]);
+                }
+            }
+            // 要下载的长度
+            // 确保返回的 contentLength 不会超过文件的实际剩余大小
+            long contentLength = Math.min(endByte - startByte + 1, fileSize - startByte);
+            // 文件类型
+            String contentType = request.getServletContext().getMimeType(fileName);
+
+            // 解决下载文件时文件名乱码问题
+            byte[] fileNameBytes = fileName.getBytes(StandardCharsets.UTF_8);
+            fileName = new String(fileNameBytes, 0, fileNameBytes.length, StandardCharsets.ISO_8859_1);
+            // 响应头设置---------------------------------------------------------------------------------------------
+            // 断点续传，获取部分字节内容：
+            response.setHeader("Accept-Ranges", "bytes");
+            // http状态码要为206：表示获取部分内容,SC_PARTIAL_CONTENT,若部分浏览器不支持，改成 SC_OK
+            response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+            response.setContentType(contentType);
+            response.setHeader("Last-Modified", objectMetadata.getLastModified().toString());
+            response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
+            response.setHeader("Content-Length", String.valueOf(contentLength));
+            // Content-Range，格式为：[要下载的开始位置]-[结束位置]/[文件总大小]
+            response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + objectMetadata.getContentLength());
+            response.setHeader("ETag", "\"".concat(objectMetadata.getETag()).concat("\""));
+            response.setContentType("application/octet-stream;charset=UTF-8");
+
+
+            BufferedOutputStream os = null;
+            InputStream stream = null;
+            try {
+                // 获取文件流
+                GetObjectRequest getObjectRequest = new GetObjectRequest(bucketName, objectName);
+                getObjectRequest.setRange(startByte, contentLength);
+                OSSObject ossObject = ossClient.getObject(getObjectRequest);
+                stream = ossObject.getObjectContent();
+                os = new BufferedOutputStream(response.getOutputStream());
+                // 将读取的文件写入到 OutputStream
+                byte[] bytes = new byte[BUFFER_SIZE];
+                long bytesWritten = 0;
+                int bytesRead = -1;
+                while ((bytesRead = stream.read(bytes)) != -1) {
+                    if (bytesWritten + bytesRead >= contentLength) {
+                        os.write(bytes, 0, (int) (contentLength - bytesWritten));
+                        break;
+                    } else {
+                        os.write(bytes, 0, bytesRead);
+                        bytesWritten += bytesRead;
+                    }
+                }
+                os.flush();
+                response.flushBuffer();
+                // 返回对应http状态
+                return new ResponseEntity<>(bytes, HttpStatus.OK);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            } finally {
+                if (os != null) {
+                    os.close();
+                }
+                if (stream != null) {
+                    stream.close();
+                }
+            }
+        } catch (Exception e) {
+            throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
+        }
+        return null;
     }
 
     @Override

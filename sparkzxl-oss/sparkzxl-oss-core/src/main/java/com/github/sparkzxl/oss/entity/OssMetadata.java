@@ -15,10 +15,10 @@ import java.util.Map;
 @Data
 public class OssMetadata implements Serializable {
 
+    private static final long serialVersionUID = -2556687951230056610L;
     private String bucketName;
-
     private String objectName;
-
+    private String etag;
     private long size;
     private String contentType;
     private LocalDateTime lastModified;
