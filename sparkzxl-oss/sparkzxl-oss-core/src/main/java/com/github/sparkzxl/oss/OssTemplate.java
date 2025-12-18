@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -183,7 +182,7 @@ public class OssTemplate implements InitializingBean {
     /**
      * 获取OSS中已经上传的分片文件
      *
-     * @param bucketName     bucket名称
+     * @param bucketName bucket名称
      * @param objectName oss对象名称
      * @param uploadId   上传标识ID
      * @return List<Integer>
@@ -242,13 +241,12 @@ public class OssTemplate implements InitializingBean {
      * @param fileName   文件名
      * @param request    HTTP请求
      * @param response   HTTP响应
-     * @return ResponseEntity
      * @throws IOException IO异常
      */
-    public ResponseEntity<byte[]> downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) throws IOException {
         log.info("下载文件的 object <{}>", objectName);
         OssExecutor ossExecutor = obtainExecutor();
-        return ossExecutor.downloadMultipartFile(bucketName, objectName, fileName, request, response);
+        ossExecutor.downloadMultipartFile(bucketName, objectName, fileName, request, response);
     }
 
     public OssExecutor obtainExecutor() {

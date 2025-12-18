@@ -1,12 +1,10 @@
 package com.github.sparkzxl.oss.executor;
 
-import cn.hutool.core.net.url.UrlBuilder;
 import com.github.sparkzxl.core.util.StrPool;
 import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -212,14 +210,13 @@ public interface OssExecutor {
      * @param fileName   文件名
      * @param request    HTTP请求
      * @param response   HTTP响应
-     * @return ResponseEntity
      * @throws IOException IO异常
      */
-    ResponseEntity<byte[]> downloadMultipartFile(String bucketName,
-                                                 String objectName,
-                                                 String fileName,
-                                                 HttpServletRequest request,
-                                                 HttpServletResponse response) throws IOException;
+    void downloadMultipartFile(String bucketName,
+                               String objectName,
+                               String fileName,
+                               HttpServletRequest request,
+                               HttpServletResponse response) throws IOException;
 
     /**
      * 销毁

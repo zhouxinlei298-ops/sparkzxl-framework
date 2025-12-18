@@ -23,12 +23,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -479,103 +481,123 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     }
 
     @Override
-    public ResponseEntity<byte[]> downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) {
         CustomMinioClient minioClient = obtainClient();
-        try {
-            String range = request.getHeader("Range");
-            log.info("下载文件的 bucket <{}>，object <{}>", bucketName, objectName);
-            StatObjectResponse objectResponse = minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build()).get();
-            // 开始下载位置
-            long startByte = 0;
-            long fileSize = objectResponse.size();
-            // 结束下载位置
-            long endByte = fileSize - 1;
-            log.info("文件总长度：{}，当前 range：{}", fileSize, range);
+        InputStream stream = null;
+        BufferedOutputStream os = null;
 
-            // 存在 range，需要根据前端下载长度进行下载，即分段下载
-            // 例如：range=bytes=0-52428800
+        try {
+            // 1. 获取文件元数据
+            StatObjectResponse objectResponse = minioClient.statObject(
+                    StatObjectArgs.builder().bucket(bucketName).object(objectName).build()
+            ).get();
+            long fileSize = objectResponse.size();
+
+            // 文件大小为0的异常处理
+            if (fileSize <= 0) {
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                return;
+            }
+
+            long startByte = 0;
+            long endByte = fileSize - 1;
+            String range = request.getHeader("Range");
+            log.info("下载请求 bucket={}, object={}, range={}", bucketName, objectName, range);
+
+
+            // 2. 解析 Range 头 (断点续传/视频拖动)
             if (range != null && range.contains("bytes=") && range.contains("-")) {
-                // 0-52428800
                 range = range.substring(range.lastIndexOf("=") + 1).trim();
                 String[] ranges = range.split("-");
-                // 判断range的类型
+
                 if (ranges.length == 1) {
-                    // 类型一：bytes=-2343 后端转换为 0-2343
-                    if (range.startsWith("-")) endByte = Long.parseLong(ranges[0]);
-                    // 类型二：bytes=2343- 后端转换为 2343-最后
-                    if (range.endsWith("-")) startByte = Long.parseLong(ranges[0]);
+                    // 情况 A: bytes=-500 (最后500字节)
+                    if (range.startsWith("-")) {
+                        long lastBytes = Long.parseLong(ranges[1]);
+                        startByte = fileSize - lastBytes;
+                    }
+                    // 情况 B: bytes=500- (从500字节到结束)
+                    else if (range.endsWith("-")) {
+                        startByte = Long.parseLong(ranges[0]);
+                    }
                 } else if (ranges.length == 2) {
-                    // 类型三：bytes=22-2343
+                    // 情况 C: bytes=500-1000
                     startByte = Long.parseLong(ranges[0]);
                     endByte = Long.parseLong(ranges[1]);
                 }
             }
-            // 要下载的长度
-            // 确保返回的 contentLength 不会超过文件的实际剩余大小
-            long contentLength = Math.min(endByte - startByte + 1, fileSize - startByte);
-            // 文件类型
-            String contentType = request.getServletContext().getMimeType(fileName);
 
-            // 解决下载文件时文件名乱码问题
-            byte[] fileNameBytes = fileName.getBytes(StandardCharsets.UTF_8);
-            fileName = new String(fileNameBytes, 0, fileNameBytes.length, StandardCharsets.ISO_8859_1);
-            // 响应头设置---------------------------------------------------------------------------------------------
-            // 断点续传，获取部分字节内容：
-            response.setHeader("Accept-Ranges", "bytes");
-            // http状态码要为206：表示获取部分内容,SC_PARTIAL_CONTENT,若部分浏览器不支持，改成 SC_OK
-            response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-            response.setContentType(contentType);
-            response.setHeader("Last-Modified", objectResponse.lastModified().toString());
-            response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
-            response.setHeader("Content-Length", String.valueOf(contentLength));
-            // Content-Range，格式为：[要下载的开始位置]-[结束位置]/[文件总大小]
-            response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + objectResponse.size());
-            response.setHeader("ETag", "\"".concat(objectResponse.etag()).concat("\""));
-            response.setContentType("application/octet-stream;charset=UTF-8");
-
-
-            BufferedOutputStream os = null;
-            GetObjectResponse stream = null;
-            try {
-                // 获取文件流
-                stream = minioClient.getObject(GetObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(objectName)
-                        .offset(startByte)
-                        .length(contentLength)
-                        .build()).get();
-                os = new BufferedOutputStream(response.getOutputStream());
-                // 将读取的文件写入到 OutputStream
-                byte[] bytes = new byte[BUFFER_SIZE];
-                long bytesWritten = 0;
-                int bytesRead = -1;
-                while ((bytesRead = stream.read(bytes)) != -1) {
-                    if (bytesWritten + bytesRead >= contentLength) {
-                        os.write(bytes, 0, (int) (contentLength - bytesWritten));
-                        break;
-                    } else {
-                        os.write(bytes, 0, bytesRead);
-                        bytesWritten += bytesRead;
-                    }
-                }
-                os.flush();
-                response.flushBuffer();
-                // 返回对应http状态
-                return new ResponseEntity<>(bytes, HttpStatus.OK);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            } finally {
-                if (os != null) {
-                    os.close();
-                }
-                if (stream != null) {
-                    stream.close();
-                }
+            // 3. 计算实际要下载的长度 & 严格的Range边界校验（关键！）
+            if (startByte > endByte || startByte >= fileSize || endByte < 0) {
+                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                response.setHeader("Content-Range", "bytes */" + fileSize);
+                return;
             }
+
+            long contentLength = endByte - startByte + 1;
+
+            // 4. 设置响应头
+            String contentType = request.getServletContext().getMimeType(fileName);
+            if (contentType == null) {
+                contentType = objectResponse.contentType();
+            }
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            // 文件名编码
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
+
+            response.setContentType(contentType);
+            response.setHeader("Accept-Ranges", "bytes");
+
+            // 根据是否有 Range 决定返回 206 还是 200
+            if (request.getHeader("Range") != null) {
+                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+                response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + fileSize);
+            } else {
+                response.setStatus(HttpServletResponse.SC_OK);
+            }
+
+            response.setHeader("Last-Modified", objectResponse.lastModified().toString());
+            response.setHeader("Content-Length", String.valueOf(contentLength));
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+            response.setHeader("ETag", "\"" + objectResponse.etag() + "\"");
+
+            // 5. 获取 MinIO 流
+            // MinIO 的 getObject 已经支持 offset 和 length，返回的流就是精确的片段
+            stream = minioClient.getObject(GetObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .offset(startByte)
+                    .length(contentLength)
+                    .build()).get();
+
+            // 6. 写出数据
+            os = new BufferedOutputStream(response.getOutputStream());
+
+            // 使用 Spring 工具类直接拷贝流，无需手动循环
+            StreamUtils.copy(stream, os);
+
+            os.flush();
+            response.flushBuffer();
+
         } catch (Exception e) {
-            throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
+            // 如果响应头已经发出一部分，这里抛异常前端可能收不到正确的 JSON 报错，建议打日志
+            log.error("文件下载失败: bucket={}, object={}", bucketName, objectName, e);
+            // 如果还没有写入响应，可以抛出异常给全局异常处理器
+            if (!response.isCommitted()) {
+                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
+            }
+        } finally {
+            // 安全关闭资源
+            if (stream != null) {
+                try { stream.close(); } catch (IOException e) { /* ignore */ }
+            }
+            if (os != null) {
+                try { os.close(); } catch (IOException e) { /* ignore */ }
+            }
         }
-        return null;
     }
 
     @Override
