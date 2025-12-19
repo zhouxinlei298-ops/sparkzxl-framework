@@ -420,7 +420,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                 String uploadUrl = url.toString();
                 partList.add(uploadUrl);
             }
-            log.info("文件初始化分片成功");
+            log.info("文件初始化分片成功,{}/{}: uploadId={}", bucketName, objectName, uploadId);
             uploadUrlsInfo.setUrls(partList);
             return uploadUrlsInfo;
         } catch (Exception e) {
@@ -457,6 +457,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     public boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId) {
         try {
             OSSClient ossClient = obtainClient();
+            log.info("start Merge MultipartUpload start. {}/{}，uploadId:{}", bucketName, objectName, uploadId);
             // 合并分片，与上传分片不在同一个系统。此时，您需要先列举分片，然后再合并分片。
             ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName, objectName, uploadId);
             PartListing partListing = ossClient.listParts(listPartsRequest);
@@ -469,7 +470,21 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             CompleteMultipartUploadRequest completeMultipartUploadRequest =
                     new CompleteMultipartUploadRequest(bucketName, objectName, uploadId, parteTags);
             CompleteMultipartUploadResult completeMultipartUploadResult = ossClient.completeMultipartUpload(completeMultipartUploadRequest);
-            log.info("合并分片成功，上传分片完成.uploadId：{}{}", uploadId, completeMultipartUploadResult.getETag());
+            log.info("Merge MultipartUpload was successful. uploadId:{}，etag:{}", uploadId, completeMultipartUploadResult.getETag());
+            return true;
+        } catch (Exception e) {
+            log.error("AliyunOSS Unexpected error during merge multipart upload completion for {}/{}/{}: {}",
+                    bucketName, objectName, uploadId, e.getMessage(), e);
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean abortMultipartUpload(String bucketName, String objectName, String uploadId) {
+        try {
+            OSSClient ossClient = obtainClient();
+            ossClient.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, objectName, uploadId));
+            log.info("Successfully aborted multipart upload for {}/{}，uploadId:{}", bucketName, objectName, uploadId);
             return true;
         } catch (Exception e) {
             log.error("AliyunOSS Unexpected error during merge multipart upload completion for {}/{}/{}: {}",

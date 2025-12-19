@@ -203,6 +203,17 @@ public class OssTemplate implements InitializingBean {
         return ossExecutor.mergeMultipartUpload(bucketName, objectName, uploadId);
     }
 
+    /**
+     * 中止分片上传
+     *
+     * @param objectName oss对象名称
+     * @param uploadId   上传标识ID
+     */
+    public boolean abortMultipartUpload(String bucketName, String objectName, String uploadId) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.abortMultipartUpload(bucketName, objectName, uploadId);
+    }
+
 
     /**
      * 删除文件

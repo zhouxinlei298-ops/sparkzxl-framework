@@ -176,6 +176,15 @@ public interface OssExecutor {
     boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId);
 
     /**
+     * 中止分片上传
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param uploadId   上传标识ID
+     */
+    boolean abortMultipartUpload(String bucketName, String objectName, String uploadId);
+
+    /**
      * 删除文件
      *
      * @param bucketName bucket名称

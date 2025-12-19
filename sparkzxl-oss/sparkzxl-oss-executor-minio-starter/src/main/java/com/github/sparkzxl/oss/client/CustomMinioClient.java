@@ -1,10 +1,7 @@
 package com.github.sparkzxl.oss.client;
 
 import com.google.common.collect.Multimap;
-import io.minio.CreateMultipartUploadResponse;
-import io.minio.ListPartsResponse;
-import io.minio.MinioAsyncClient;
-import io.minio.ObjectWriteResponse;
+import io.minio.*;
 import io.minio.messages.Part;
 
 /**
@@ -71,6 +68,35 @@ public class CustomMinioClient extends MinioAsyncClient {
      */
     public ListPartsResponse listMultipart(String bucketName, String region, String objectName, Integer maxParts, Integer partNumberMarker, String uploadId, Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams) throws Exception {
         return super.listPartsAsync(bucketName, region, objectName, maxParts, partNumberMarker, uploadId, extraHeaders, extraQueryParams).get();
+    }
+
+    /**
+     * Do <a
+     * href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html">AbortMultipartUpload
+     * S3 API</a>.
+     *
+     * @param bucketName       Name of the bucket.
+     * @param region           Region of the bucket.
+     * @param objectName       Object name in the bucket.
+     * @param uploadId         Upload ID.
+     * @param extraHeaders     Extra headers (Optional).
+     * @param extraQueryParams Extra query parameters (Optional).
+     * @return AbortMultipartUploadResponse
+     */
+    public AbortMultipartUploadResponse abortMultipartUpload(
+            String bucketName,
+            String region,
+            String objectName,
+            String uploadId,
+            Multimap<String, String> extraHeaders,
+            Multimap<String, String> extraQueryParams) {
+        try {
+            return abortMultipartUploadAsync(
+                    bucketName, region, objectName, uploadId, extraHeaders, extraQueryParams)
+                    .get();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

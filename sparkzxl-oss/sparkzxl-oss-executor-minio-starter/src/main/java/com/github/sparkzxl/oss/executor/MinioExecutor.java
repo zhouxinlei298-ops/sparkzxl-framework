@@ -366,6 +366,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                         .build());
                 partList.add(uploadUrl);
             }
+            log.info("文件初始化分片成功,{}/{}: uploadId={}", bucketName, objectName, uploadId);
             uploadUrlsInfo.setUrls(partList);
             return uploadUrlsInfo;
         } catch (Exception e) {
@@ -400,7 +401,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     public boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId) {
         try (CustomMinioClient minioClient = obtainClient()) {
             // 获取所有分片
-            log.info("通过 <{}-{}-{}> 合并<分片上传>数据", objectName, uploadId, bucketName);
+            log.info("start Merge MultipartUpload start. {}/{}，uploadId:{}", bucketName, objectName, uploadId);
             List<Part> partsList = getParts(bucketName, objectName, uploadId);
             Part[] parts = new Part[partsList.size()];
             int partNumber = 1;
@@ -410,7 +411,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             }
             // 合并分片
             ObjectWriteResponse writeResponse = minioClient.mergeMultipartUpload(bucketName, null, objectName, uploadId, parts, null, null);
-            log.info("合并分片成功，上传分片完成.uploadId：{}{}", uploadId, writeResponse.etag());
+            log.info("Merge MultipartUpload was successful. uploadId:{}，etag:{}", uploadId, writeResponse.etag());
             return true;
         } catch (Exception e) {
             log.error("MinIO Unexpected error during merge multipart upload completion for {}/{}/{}: {}",
@@ -440,9 +441,20 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                     bucketName, objectName, uploadId, e.getMessage(), e);
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
-
     }
 
+    @Override
+    public boolean abortMultipartUpload(String bucketName, String objectName, String uploadId) {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            AbortMultipartUploadResponse abortMultipartUploadResponse = minioClient.abortMultipartUpload(bucketName, null, objectName, uploadId, null, null);
+            log.info("Successfully aborted multipart upload for {}/{}，uploadId:{}", bucketName, objectName, abortMultipartUploadResponse.uploadId());
+            return true;
+        } catch (Exception e) {
+            log.error("MinIO unexpected error during aborted multipart upload {}/{} ,uploadId {}: {}",
+                    bucketName, objectName, uploadId, e.getMessage(), e);
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
+        }
+    }
 
     @Override
     public void removeObject(String bucketName, String objectName) {
