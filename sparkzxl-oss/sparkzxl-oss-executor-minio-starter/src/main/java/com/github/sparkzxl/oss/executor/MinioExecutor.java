@@ -414,7 +414,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
         boolean isTruncated = true;
         List<Part> parts = new ArrayList<>();
         while (isTruncated) {
-            ListPartsResponse partResult = minioClient.listMultipart(bucketName, null, objectName, 1000, partNumberMarker, uploadId, null, null);
+            ListPartsResponse partResult = minioClient.listMultipart(bucketName, null, objectName, 10000, partNumberMarker, uploadId, null, null);
             parts.addAll(partResult.result().partList());
             // 检查是否还有更多分片
             isTruncated = partResult.result().isTruncated();
