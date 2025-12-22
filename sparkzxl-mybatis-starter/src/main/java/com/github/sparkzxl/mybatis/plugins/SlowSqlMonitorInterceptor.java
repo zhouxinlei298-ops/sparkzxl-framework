@@ -5,7 +5,6 @@ import com.github.sparkzxl.core.constant.enums.EnvironmentEnum;
 import com.github.sparkzxl.mybatis.send.SendNoticeService;
 import com.github.sparkzxl.mybatis.send.SqlMonitorMessage;
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -20,23 +19,25 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.type.TypeHandlerRegistry;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
-import org.springframework.util.ObjectUtils;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.text.DateFormat;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * description: 拦截执行时间过长的sql语句并发送通知消息
+ * description: 拦截执行时间过长的sql语句并发送钉钉消息
  *
  * @author zhouxinlei
- * @since 2022-06-17 08:46:57
+ * @since 2025-11-21 14:14:47
  */
 @Intercepts({
         @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
@@ -44,307 +45,525 @@ import java.util.regex.Matcher;
                 RowBounds.class, ResultHandler.class})
 })
 @Slf4j
-public class SlowSqlMonitorInterceptor implements Interceptor {
+@Component
+public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
 
-    private static final ExecutorService THREAD_POOL = TtlExecutors.getTtlExecutorService(
-            new ThreadPoolExecutor(5, 5, 0, TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<>(1000), new ThreadPoolExecutor.DiscardPolicy()));
+    // ==================== 常量定义 ====================
+    /**
+     * SQL语句中占位符的正则表达式
+     */
+    private static final Pattern PARAM_PATTERN = Pattern.compile("\\?");
 
-    private static final ThreadLocal<String> CONTEXT = new ThreadLocal<>();
+    /**
+     * 默认慢SQL阈值(毫秒)
+     */
+    private static final long DEFAULT_SLOW_SQL_THRESHOLD = 3000L;
+
+    /**
+     * 测试环境慢SQL阈值(毫秒)
+     */
+    private static final long TEST_ENV_SLOW_SQL_THRESHOLD = 10000L;
+
+    /**
+     * 堆栈跟踪最大行数
+     */
+    private static final int MAX_STACK_TRACE_LINES = 15;
+
+    /**
+     * 需要过滤的框架包前缀
+     */
+    private static final String[] FRAMEWORK_PACKAGE_PREFIXES = {
+            "org.apache.ibatis",
+            "org.springframework",
+            "java.lang.reflect",
+            "sun.reflect",
+            "com.sun.proxy"
+    };
+
+    // ==================== 配置属性 ====================
+    @Value("${database.slow-sql.threshold-ms:#{null}}")
+    private Long configuredSlowSqlThreshold;
+
+    @Value("${database.monitor.enabled:true}")
+    private boolean monitorEnabled;
+
+    // ==================== 依赖注入 ====================
     private SendNoticeService sendNoticeService;
 
-    /**
-     * 单次sql查询的检测时间阀值
-     */
-    private long longQueryTime = 3 * 1000;
-
+    @Autowired
     private ApplicationContext applicationContext;
 
+    private long slowSqlThreshold = DEFAULT_SLOW_SQL_THRESHOLD;
+
+    // ==================== 线程池 ====================
+    private ExecutorService threadPool;
+
+    private String activeProfile;
+
+    /**
+     * 构造函数
+     * 初始配置使用默认值，实际值会在init()方法中从配置中加载
+     */
     public SlowSqlMonitorInterceptor() {
+        initThreadPool();
     }
 
     /**
-     * 将对象转换为字符串
-     *
-     * @param obj 对象
-     * @return 字符串
+     * 初始化线程池
      */
-    private static String getParameterValue(Object obj) {
-        if (obj instanceof String) {
-            return "'" + obj + "'";
+    private void initThreadPool() {
+        if (threadPool != null && !threadPool.isShutdown()) {
+            threadPool.shutdown();
+            try {
+                if (!threadPool.awaitTermination(1, TimeUnit.SECONDS)) {
+                    threadPool.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                threadPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
 
-        if (obj instanceof Date) {
-            DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
-            return "'" + formatter.format(new Date()) + "'";
-        }
-        if (Objects.isNull(obj)) {
-            return StringUtils.EMPTY;
-        }
+        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(1000);
+        ThreadFactory threadFactory = new ThreadFactoryBuilder("slow-sql-monitor-pool-", true);
 
-        return obj.toString();
+        this.threadPool = TtlExecutors.getTtlExecutorService(new ThreadPoolExecutor(
+                3,
+                6,
+                60,
+                TimeUnit.SECONDS,
+                workQueue,
+                threadFactory,
+                (r, executor) -> {
+                    log.warn("Slow SQL monitor thread pool is saturated. Task rejected. " +
+                                    "Pool size: {}, Active threads: {}, Queue size: {}",
+                            executor.getPoolSize(), executor.getActiveCount(), executor.getQueue().size());
+                    // 不执行拒绝策略，防止影响主业务流程
+                }
+        ));
     }
 
-    public void setApplicationContext(ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
+    /**
+     * 自定义线程工厂，用于设置线程名称和守护状态
+     */
+    private static class ThreadFactoryBuilder implements ThreadFactory {
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+        private final String namePrefix;
+        private final boolean daemon;
+
+        public ThreadFactoryBuilder(String namePrefix, boolean daemon) {
+            this.namePrefix = namePrefix;
+            this.daemon = daemon;
+        }
+
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r, namePrefix + threadNumber.getAndIncrement());
+            t.setDaemon(daemon);
+            if (t.getPriority() != Thread.NORM_PRIORITY) {
+                t.setPriority(Thread.NORM_PRIORITY);
+            }
+            return t;
+        }
+    }
+
+    /**
+     * 初始化方法，根据环境调整慢SQL阈值
+     */
+    @PostConstruct
+    public void init() {
+        this.activeProfile = StringUtils.defaultIfEmpty(
+                applicationContext.getEnvironment().getProperty("spring.profiles.active"), "dev");
+        sendNoticeService = applicationContext.getBean(SendNoticeService.class);
+        // 优先使用配置的阈值，如果没有配置，则根据环境设置默认值
+        if (configuredSlowSqlThreshold != null && configuredSlowSqlThreshold > 0) {
+            this.slowSqlThreshold = configuredSlowSqlThreshold;
+        } else if (isProductionEnvironment()) {
+            this.slowSqlThreshold = DEFAULT_SLOW_SQL_THRESHOLD;
+        } else {
+            this.slowSqlThreshold = TEST_ENV_SLOW_SQL_THRESHOLD;
+        }
+
+        // 重新初始化线程池（使用配置的值覆盖默认值）
+        initThreadPool();
+
+        log.info("Slow SQL monitor initialized. Environment: {}, Threshold: {}ms, Enabled: {}",
+                activeProfile, slowSqlThreshold, monitorEnabled);
+    }
+
+    /**
+     * 判断是否为生产环境
+     */
+    private boolean isProductionEnvironment() {
+        return StringUtils.equalsIgnoreCase(activeProfile, EnvironmentEnum.PRE.name()) ||
+                StringUtils.equalsIgnoreCase(activeProfile, EnvironmentEnum.PROD.name());
+    }
+
+    /**
+     * 将对象转换为SQL中的参数字符串
+     *
+     * @param obj 对象
+     * @return SQL参数字符串
+     */
+    private static String getParameterValue(Object obj) {
+        if (obj == null) {
+            return "NULL";
+        }
+        if (obj instanceof String) {
+            // 对字符串中的单引号进行转义，防止SQL注入风险（仅用于日志显示）
+            return "'" + escapeSqlString((String) obj) + "'";
+        }
+        if (obj instanceof Date) {
+            DateFormat formatter = DateFormat.getDateTimeInstance(
+                    DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.getDefault());
+            return "'" + formatter.format(obj) + "'";
+        }
+        if (obj instanceof Calendar) {
+            return getParameterValue(((Calendar) obj).getTime());
+        }
+        if (obj instanceof Enum) {
+            // 枚举类型使用其名称
+            return "'" + ((Enum<?>) obj).name() + "'";
+        }
+        if (obj instanceof Number || obj instanceof Boolean) {
+            return obj.toString();
+        }
+        // 其他类型，返回简化的对象表示
+        return getSafeObjectRepresentation(obj);
+    }
+
+    /**
+     * 安全转义SQL字符串，避免日志注入
+     */
+    private static String escapeSqlString(String str) {
+        if (str == null) {
+            return null;
+        }
+        // 限制字符串长度，避免过长的日志
+        String truncated = StringUtils.abbreviate(str, 200);
+        // 转义单引号
+        return truncated.replace("'", "''");
+    }
+
+    /**
+     * 获取对象的安全表示，避免敏感信息泄露和过长内容
+     */
+    private static String getSafeObjectRepresentation(Object obj) {
+        if (obj == null) {
+            return "null";
+        }
+
+        String str = obj.toString();
+        // 敏感字段检查和脱敏
+        if (isSensitiveField(str)) {
+            return "[REDACTED]";
+        }
+
+        // 限制字符串长度
+        return StringUtils.abbreviate(str, 100);
+    }
+
+    /**
+     * 检查是否为敏感字段
+     */
+    private static boolean isSensitiveField(String value) {
+        if (StringUtils.isBlank(value)) {
+            return false;
+        }
+
+        // 简单的敏感信息检测，可以根据需要扩展
+        String lowerValue = value.toLowerCase();
+        return lowerValue.contains("password") ||
+                lowerValue.contains("secret") ||
+                lowerValue.contains("token") ||
+                lowerValue.contains("key");
     }
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        Object returnValue;
-        long executeTime;
-        Stopwatch dbStopwatch = Stopwatch.createStarted();
-        try {
-            returnValue = invocation.proceed();
-            executeTime = dbStopwatch.elapsed(TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            doSomething(invocation, e.getCause() == null ? e.getMessage() : e.getCause().getMessage(), Type.SQL_EXCEPTION);
-            throw new Throwable(e);
+        // 如果监控被禁用，直接执行并返回
+        if (!monitorEnabled) {
+            return invocation.proceed();
         }
-        doSomething(invocation, executeTime, Type.SLOW_SQL);
-        return returnValue;
+
+        Stopwatch dbStopwatch = Stopwatch.createStarted();
+        boolean success = true;
+        try {
+            // 执行原始方法
+            return invocation.proceed();
+        } catch (Exception e) {
+            success = false;
+            // 异步处理SQL异常
+            if (shouldMonitorException(e)) {
+                handleSqlExceptionAsync(invocation, e);
+            }
+            throw e;
+        } finally {
+            // 无论成功失败，都记录执行时间
+            long executeTime = dbStopwatch.elapsed(TimeUnit.MILLISECONDS);
+            if (success && executeTime >= slowSqlThreshold) {
+                // 异步处理慢SQL
+                handleSlowSqlAsync(invocation, executeTime);
+            }
+        }
     }
 
-    private void doSomething(Invocation invocation, long executeTime, Type type) {
-        doSomething(invocation, executeTime, null, type);
+    /**
+     * 判断是否应该监控该异常
+     */
+    private boolean shouldMonitorException(Exception e) {
+        // 可以在这里添加需要忽略的异常类型
+        String exceptionClassName = e.getClass().getName();
+        return !exceptionClassName.contains("TimeoutException") &&
+                !exceptionClassName.contains("InterruptedException");
     }
 
-    private void doSomething(Invocation invocation, String exceptionMsg, Type type) {
-        doSomething(invocation, 0, exceptionMsg, type);
-    }
-
-    @PostConstruct
-    public void init() {
-        String environment = StringUtils.isEmpty(applicationContext.getEnvironment().getProperty("spring.profiles.active")) ?
-                "dev" : applicationContext.getEnvironment().getProperty("spring.profiles.active");
-        sendNoticeService = applicationContext.getBean(SendNoticeService.class);
-        if (StringUtils.equals(environment, StringUtils.toRootLowerCase(EnvironmentEnum.GRAY.name()))
-                || StringUtils.equals(environment, StringUtils.toRootLowerCase(EnvironmentEnum.PROD.name()))) {
+    /**
+     * 异步处理慢SQL
+     */
+    private void handleSlowSqlAsync(Invocation invocation, long executeTime) {
+        if (!monitorEnabled) {
             return;
         }
 
-        // 测试环境加长时间
-        this.longQueryTime = 10 * 1000;
+        // 使用Future限制执行时间，避免通知服务异常影响主流程
+        CompletableFuture.runAsync(() -> processSlowSqlNotification(invocation, executeTime), threadPool)
+                .exceptionally(ex -> {
+                    log.error("Slow SQL notification processing timed out or failed", ex);
+                    return null;
+                });
     }
 
-    private void doSomething(Invocation invocation, long executeTime, String exceptionMsg, Type type) {
+    /**
+     * 实际处理慢SQL通知
+     */
+    private void processSlowSqlNotification(Invocation invocation, long executeTime) {
         try {
-            //如果是慢sql检测，但是实际执行时间没有超时，不走结果检测
-            if (ObjectUtils.nullSafeEquals(type, Type.SLOW_SQL) && executeTime <= longQueryTime) {
-                return;
+            Stopwatch parseStopwatch = Stopwatch.createStarted();
+            MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
+            Object parameter = null;
+            if (invocation.getArgs().length > 1) {
+                parameter = invocation.getArgs()[1];
             }
-            CONTEXT.set(getStackTrace());
-            assert THREAD_POOL != null;
-            THREAD_POOL.execute(() -> {
-                try {
-                    Stopwatch checkTime = Stopwatch.createStarted();
-                    MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
-                    Object parameter = null;
-                    if (invocation.getArgs().length > 1) {
-                        parameter = invocation.getArgs()[1];
-                    }
-                    String sqlId = mappedStatement.getId();
-                    /*
-                      这个boundSql会将XML里面所有的#{id,jdbcType=BIGINT} 都解析并替换成 ？
-                      select * from x where id = #{id,jdbcType=BIGINT}
-                      会被解析成 select * from x where id = ？，这个语句就可以用jdbc 的 PrepareStatement 进行编译执行了。
-                      然后将对应的javaType、jdbcType 保存起来，在执行SQL时传入statement中。
-                      PreparedStatement statement = connection.prepareStatement(sql)
-                      statement.setLong(1, excel.getUserId());
-                      statement.executeBatch();
-                      connection.commit();
-                     */
-                    BoundSql boundSql = mappedStatement.getBoundSql(parameter);
-                    Configuration configuration = mappedStatement.getConfiguration();
-                    // 主要耗时在这里，这里会根据parameter，
-                    // 将 select * from x where id = ？ 解析成 select * from x where id = 1
-                    // 对于 insert into X (1,2) values (?,?),(?,?),(?,?),(?,?)这种批量的SQL，这里的解析会特别慢。
-                    // 因为他是挨个挨个把 ？ 替换成对应的参数值。
-                    // 最后拼成SQL insert into X (1,2) values (1,2),(3,4)
-                    // 如果这个是复杂对象（自定义bean），会根据反射一个个进行操作。
-                    String sql = parseSql(configuration, boundSql);
-                    switch (type) {
-                        case SLOW_SQL:
-                            checkSlowSql(sqlId, sql, executeTime, checkTime.elapsed(TimeUnit.MILLISECONDS));
-                            break;
-                        case SQL_EXCEPTION:
-                            sendSqlExceptionMsg(sqlId, sql, exceptionMsg, checkTime.elapsed(TimeUnit.MILLISECONDS));
-                            break;
-                        default:
-                            break;
-                    }
-                } catch (Exception e) {
-                    log.error(e.getMessage());
-                }
-            });
+
+            String sqlId = mappedStatement.getId();
+            BoundSql boundSql = mappedStatement.getBoundSql(parameter);
+            Configuration configuration = mappedStatement.getConfiguration();
+
+            // 解析SQL
+            String sql = parseSql(configuration, boundSql);
+            long parseTime = parseStopwatch.elapsed(TimeUnit.MILLISECONDS);
+
+            // 构建并发送消息
+            SqlMonitorMessage message = buildSlowSqlMessage(sqlId, sql, executeTime, parseTime);
+            sendNoticeService.send(message);
+            log.warn("Slow SQL detected. SQL ID: {}, Execute Time: {}ms, Parse Time: {}ms, SQL: {}",
+                    sqlId, executeTime, parseTime, StringUtils.abbreviate(sql, 200));
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error("Failed to process slow SQL notification", e);
         }
     }
 
     /**
-     * 发送异常sql信息
-     *
-     * @param exceptionMsg 异常信息
-     * @param sqlId        sqlId
-     * @param sql          sql
+     * 异步处理SQL异常
      */
-    private void sendSqlExceptionMsg(String sqlId, String sql, String exceptionMsg, long checkTime) {
-        SqlMonitorMessage sqlMonitorMessage = new SqlMonitorMessage();
-        sqlMonitorMessage.setType(Type.SQL_EXCEPTION);
-        sqlMonitorMessage.setSqlId(sqlId);
-        sqlMonitorMessage.setSql(sql);
-        sqlMonitorMessage.setExceptionMsg(exceptionMsg);
-        sqlMonitorMessage.setCheckTime(checkTime);
-        sqlMonitorMessage.setStackTrace(CONTEXT.get());
-        sendMsg(sqlMonitorMessage);
+    private void handleSqlExceptionAsync(Invocation invocation, Exception e) {
+        if (!monitorEnabled) {
+            return;
+        }
+
+        CompletableFuture.runAsync(() -> processSqlExceptionNotification(invocation, e), threadPool)
+                .exceptionally(ex -> {
+                    log.error("SQL exception notification processing timed out or failed", ex);
+                    return null;
+                });
     }
 
     /**
-     * 检测慢sql
-     *
-     * @param executeTime 执行时间
-     * @param sqlId       sqlId
-     * @param sql         sql
+     * 实际处理SQL异常通知
      */
-    private void checkSlowSql(String sqlId, String sql, long executeTime, long checkTime) {
-        if (executeTime >= longQueryTime) {
-            SqlMonitorMessage sqlMonitorMessage = new SqlMonitorMessage();
-            sqlMonitorMessage.setType(Type.SLOW_SQL);
-            sqlMonitorMessage.setSqlId(sqlId);
-            sqlMonitorMessage.setSql(sql);
-            sqlMonitorMessage.setCheckTime(checkTime);
-            sqlMonitorMessage.setExecuteTime(executeTime);
-            sqlMonitorMessage.setStackTrace(CONTEXT.get());
-            sendMsg(sqlMonitorMessage);
+    private void processSqlExceptionNotification(Invocation invocation, Exception e) {
+        try {
+            MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
+            Object parameter = null;
+            if (invocation.getArgs().length > 1) {
+                parameter = invocation.getArgs()[1];
+            }
+
+            String sqlId = mappedStatement.getId();
+            BoundSql boundSql = mappedStatement.getBoundSql(parameter);
+            Configuration configuration = mappedStatement.getConfiguration();
+
+            // 解析SQL
+            String sql = parseSql(configuration, boundSql);
+
+            // 构建并发送消息
+            SqlMonitorMessage message = buildExceptionMessage(sqlId, sql, e);
+            sendNoticeService.send(message);
+            log.error("SQL exception detected. SQL ID: {}, SQL: {}", sqlId, StringUtils.abbreviate(sql, 200), e);
+        } catch (Exception ex) {
+            log.error("Failed to process SQL exception notification", ex);
         }
     }
 
     /**
-     * 发送消息
-     *
-     * @param sqlMonitorMessage 消息
+     * 构建慢SQL消息
      */
-    private void sendMsg(SqlMonitorMessage sqlMonitorMessage) {
-        if (!ObjectUtils.isEmpty(sendNoticeService)) {
-            sendNoticeService.send(sqlMonitorMessage);
-        }
-        CONTEXT.remove();
+    private SqlMonitorMessage buildSlowSqlMessage(String sqlId, String sql, long executeTime, long parseTime) {
+        SqlMonitorMessage message = new SqlMonitorMessage();
+        message.setType(Type.SLOW_SQL);
+        message.setSqlId(sqlId);
+        message.setSql(sql);
+        message.setExecuteTime(executeTime);
+        message.setCheckTime(parseTime);
+        message.setStackTrace(getRelevantStackTrace(null));
+        return message;
     }
 
     /**
-     * 解析sql语句
+     * 构建异常消息
+     */
+    private SqlMonitorMessage buildExceptionMessage(String sqlId, String sql, Exception e) {
+        SqlMonitorMessage message = new SqlMonitorMessage();
+        message.setType(Type.SQL_EXCEPTION);
+        message.setSqlId(sqlId);
+        message.setSql(sql);
+        String exceptionMsg = e.getCause() == null ? e.getMessage() : e.getCause().getMessage();
+        message.setExceptionMsg(StringUtils.defaultString(exceptionMsg, "Unknown SQL exception"));
+        message.setStackTrace(getRelevantStackTrace(e));
+        return message;
+    }
+
+    /**
+     * 高效解析SQL，替换占位符为实际参数值
      *
      * @param configuration mybatis配置信息
      * @param boundSql      mybatis存放sql信息的对象
      * @return 实际执行的sql语句
      */
     private String parseSql(Configuration configuration, BoundSql boundSql) {
-        // 传入的参数
-        Object parameterObject = boundSql.getParameterObject();
+        try {
+            String sql = boundSql.getSql().replaceAll("[\\s]+", " ").trim();
+            Object parameterObject = boundSql.getParameterObject();
+            List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
 
-        // 替换多个空格为一个
-        String anyBlankRegex = "[\\s]+";
-        String sql = boundSql.getSql().replaceAll(anyBlankRegex, " ");
+            if (parameterObject == null || CollectionUtils.isEmpty(parameterMappings)) {
+                return sql;
+            }
 
-        // 判断传入的参数是否为空
-        if (Objects.isNull(parameterObject)) {
-            return sql;
+            // 收集所有参数值
+            List<String> parameterValues = extractParameterValues(configuration, boundSql, parameterObject, parameterMappings);
+
+            // 替换占位符
+            return replacePlaceholders(sql, parameterValues);
+        } catch (Exception e) {
+            log.error("Error parsing SQL", e);
+            return "Error parsing SQL: " + e.getMessage();
         }
+    }
 
-        // 获取实际使用的sql参数
-        List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
-
-        if (CollectionUtils.isEmpty(parameterMappings)) {
-            return sql;
-        }
-
+    /**
+     * 提取参数值
+     */
+    private List<String> extractParameterValues(Configuration configuration, BoundSql boundSql,
+                                                Object parameterObject, List<ParameterMapping> parameterMappings) {
+        List<String> parameterValues = new ArrayList<>(parameterMappings.size());
         TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
-        if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
-            // 替换问号
-            sql = replaceFirstParameter(sql, parameterObject);
-            return sql;
-        }
 
-        // 获取mybatis的缓存反射对象
-        MetaObject metaObject = configuration.newMetaObject(parameterObject);
-        for (ParameterMapping parameterMapping : parameterMappings) {
-            String propertyName = parameterMapping.getProperty();
-            if (metaObject.hasGetter(propertyName)) {
-                Object obj = metaObject.getValue(propertyName);
-                if (Objects.isNull(obj)) {
-                    continue;
-                }
-                sql = replaceFirstParameter(sql, obj);
-            } else if (boundSql.hasAdditionalParameter(propertyName)) {
-                Object obj = boundSql.getAdditionalParameter(propertyName);
-                if (Objects.isNull(obj)) {
-                    continue;
-                }
-                sql = replaceFirstParameter(sql, obj);
+        if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
+            parameterValues.add(getParameterValue(parameterObject));
+        } else {
+            MetaObject metaObject = configuration.newMetaObject(parameterObject);
+            for (ParameterMapping pm : parameterMappings) {
+                String propertyName = pm.getProperty();
+                Object value = extractParameterValue(metaObject, boundSql, propertyName);
+                parameterValues.add(getParameterValue(value));
             }
         }
-
-        return sql;
+        return parameterValues;
     }
 
     /**
-     * 替换sql语句中的第一个?为实际参数
-     *
-     * @param sql 传入的sql
-     * @param obj 参数
-     * @return 替换后的语句
+     * 提取单个参数值
      */
-    private String replaceFirstParameter(String sql, Object obj) {
-        // 修复Illegal group reference的Bug,对特殊字符添加转义字符
-        return sql.replaceFirst("\\?", Matcher.quoteReplacement(getParameterValue(obj)));
+    private Object extractParameterValue(MetaObject metaObject, BoundSql boundSql, String propertyName) {
+        if (metaObject.hasGetter(propertyName)) {
+            return metaObject.getValue(propertyName);
+        } else if (boundSql.hasAdditionalParameter(propertyName)) {
+            return boundSql.getAdditionalParameter(propertyName);
+        } else {
+            return null;
+        }
     }
 
     /**
-     * 获取当前方法的调用方法
-     *
-     * @return 方法调用
+     * 替换SQL中的占位符
      */
-    private String getStackTrace() {
-        StackTraceElement[] elements = Thread.currentThread().getStackTrace();
-        if (ArrayUtils.isEmpty(elements) || elements.length < 5) {
+    private String replacePlaceholders(String sql, List<String> parameterValues) {
+        Matcher matcher = PARAM_PATTERN.matcher(sql);
+        StringBuffer sb = new StringBuffer();
+        int index = 0;
+        while (matcher.find() && index < parameterValues.size()) {
+            String replacement = parameterValues.get(index++);
+            // 确保替换字符串中的$和\被正确转义
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+
+    /**
+     * 获取相关的堆栈信息，过滤掉框架调用
+     */
+    private String getRelevantStackTrace(Exception e) {
+        if (e == null) {
+            return StringUtils.EMPTY;
+        }
+        StackTraceElement[] elements = e.getStackTrace();
+        if (ArrayUtils.isEmpty(elements)) {
             return StringUtils.EMPTY;
         }
 
-        StringBuilder sb = new StringBuilder();
-        for (int i = 4; i < elements.length; i++) {
-            StackTraceElement stackTraceElement = elements[i];
-            if (Objects.isNull(stackTraceElement)) {
-                continue;
+        List<StackTraceElement> relevantElements = new ArrayList<>(MAX_STACK_TRACE_LINES);
+        // 从索引3开始，跳过getStackTrace()、当前方法和调用方法
+        for (int i = 3; i < elements.length && relevantElements.size() < MAX_STACK_TRACE_LINES; i++) {
+            StackTraceElement element = elements[i];
+            if (isRelevantStackElement(element)) {
+                relevantElements.add(element);
             }
+        }
 
-            String className = stackTraceElement.getClassName();
-            if (Strings.isNullOrEmpty(className)) {
-                continue;
-            }
+        if (relevantElements.isEmpty()) {
+            return "No relevant stack trace found";
+        }
 
-            // 防止打印信息过多
-            if (!className.startsWith("com.github.sparkzxl")) {
-                continue;
-            }
+        StringBuilder sb = new StringBuilder("Relevant Stack Trace:\n");
+        for (StackTraceElement element : relevantElements) {
+            sb.append("\tat ").append(element).append("\n");
+        }
 
-            // 过滤当前方法
-            if (className.equals(SlowSqlMonitorInterceptor.class.getName())) {
-                continue;
-            }
-
-            sb.append(className)
-                    .append(".")
-                    .append(stackTraceElement.getMethodName())
-                    .append("(")
-                    .append(stackTraceElement.getFileName())
-                    .append(":")
-                    .append(stackTraceElement.getLineNumber())
-                    .append(")")
-                    .append("\n\t");
+        if (relevantElements.size() == MAX_STACK_TRACE_LINES && elements.length > 3 + relevantElements.size()) {
+            sb.append("\t... (more stack frames omitted)\n");
         }
 
         return sb.toString();
+    }
+
+    /**
+     * 判断堆栈元素是否相关（是否业务代码）
+     */
+    private boolean isRelevantStackElement(StackTraceElement element) {
+        String className = element.getClassName();
+
+        // 过滤框架包
+        for (String prefix : FRAMEWORK_PACKAGE_PREFIXES) {
+            if (className.startsWith(prefix)) {
+                return false;
+            }
+        }
+        // 过滤当前方法
+        return !className.equals(SlowSqlMonitorInterceptor.class.getName());
     }
 
     @Override
@@ -357,8 +576,47 @@ public class SlowSqlMonitorInterceptor implements Interceptor {
 
     @Override
     public void setProperties(Properties properties) {
+        // 保留扩展性，可以根据需要添加配置
+        String thresholdStr = properties.getProperty("slowSqlThreshold");
+        if (StringUtils.isNotEmpty(thresholdStr)) {
+            try {
+                long threshold = Long.parseLong(thresholdStr);
+                if (threshold > 0) {
+                    this.slowSqlThreshold = threshold;
+                }
+            } catch (NumberFormatException e) {
+                log.warn("Invalid slowSqlThreshold value: {}", thresholdStr);
+            }
+        }
+
+        String enabledStr = properties.getProperty("enabled");
+        if (StringUtils.isNotEmpty(enabledStr)) {
+            this.monitorEnabled = Boolean.parseBoolean(enabledStr);
+        }
     }
 
+    /**
+     * 应用关闭时优雅停止线程池
+     */
+    @Override
+    public void destroy() throws Exception {
+        if (threadPool != null && !threadPool.isShutdown()) {
+            threadPool.shutdown();
+            try {
+                if (!threadPool.awaitTermination(5, TimeUnit.SECONDS)) {
+                    threadPool.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                threadPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+            log.info("Slow SQL monitor thread pool has been shutdown gracefully");
+        }
+    }
+
+    /**
+     * SQL监控类型枚举
+     */
     public enum Type {
         /**
          * 慢sql
@@ -369,5 +627,4 @@ public class SlowSqlMonitorInterceptor implements Interceptor {
          */
         SQL_EXCEPTION
     }
-
 }
