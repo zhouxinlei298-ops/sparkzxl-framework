@@ -4,7 +4,7 @@ import com.github.sparkzxl.mybatis.plugins.SlowSqlMonitorInterceptor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * description: 消息通知抽象类
+ * description: sql消息通知抽象类
  *
  * @author zhouxinlei
  * @since 2022-06-16 17:37:21
@@ -19,12 +19,14 @@ public abstract class AbstractSendNoticeService implements SendNoticeService {
             sqlMsg = String.format("\n慢sql, 执行耗时: [%d]ms，检测耗时：[%d]ms\nSQLId: %s\nSQL语句: %s \n方法调用信息: %s",
                     sqlMonitorMessage.getExecuteTime(), sqlMonitorMessage.getCheckTime(), sqlMonitorMessage.getSqlId(),
                     sqlMonitorMessage.getSql(), sqlMonitorMessage.getStackTrace());
+            log.warn(sqlMsg);
         } else {
             sqlMsg = String.format("\n异常sql, 检测耗时：[%d]ms\nSQLId: %s\nSQL语句: %s \n异常信息: %s \n方法调用信息: %s",
                     sqlMonitorMessage.getCheckTime(), sqlMonitorMessage.getSqlId(), sqlMonitorMessage.getSql(),
                     sqlMonitorMessage.getExceptionMsg(), sqlMonitorMessage.getStackTrace());
+            log.error(sqlMsg);
         }
-        log.warn(sqlMsg);
+
         sendNotice(sqlMonitorMessage);
     }
 
