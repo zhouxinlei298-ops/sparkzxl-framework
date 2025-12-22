@@ -1,8 +1,8 @@
 package com.github.sparkzxl.mybatis.plugins;
 
 import cn.hutool.core.exceptions.ExceptionUtil;
-import com.alibaba.ttl.threadpool.TtlExecutors;
 import com.github.sparkzxl.core.constant.enums.EnvironmentEnum;
+import com.github.sparkzxl.core.thread.ThreadPoolExecutorFactory;
 import com.github.sparkzxl.mybatis.send.SendNoticeService;
 import com.github.sparkzxl.mybatis.send.SqlMonitorMessage;
 import com.google.common.base.Stopwatch;
@@ -29,9 +29,9 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.text.DateFormat;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * description: 拦截执行时间过长的sql语句并发送钉钉消息
@@ -92,7 +92,7 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     private long slowSqlThreshold = DEFAULT_SLOW_SQL_THRESHOLD;
 
     // ==================== 线程池 ====================
-    private ExecutorService threadPool;
+    private ExecutorService executorService;
 
     private String activeProfile;
 
@@ -108,60 +108,29 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
      * 初始化线程池
      */
     private void initThreadPool() {
-        if (threadPool != null && !threadPool.isShutdown()) {
-            threadPool.shutdown();
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
             try {
-                if (!threadPool.awaitTermination(1, TimeUnit.SECONDS)) {
-                    threadPool.shutdownNow();
+                if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
                 }
             } catch (InterruptedException e) {
-                threadPool.shutdownNow();
+                executorService.shutdownNow();
                 Thread.currentThread().interrupt();
             }
         }
 
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(1000);
-        ThreadFactory threadFactory = new ThreadFactoryBuilder("slow-sql-monitor-pool-", true);
-
-        this.threadPool = TtlExecutors.getTtlExecutorService(new ThreadPoolExecutor(
+        this.executorService = ThreadPoolExecutorFactory.getThreadPoolExecutor(
                 3,
                 6,
-                60,
-                TimeUnit.SECONDS,
-                workQueue,
-                threadFactory,
+                200,
+                "slow-sql-monitor-pool",
                 (r, executor) -> {
                     log.warn("Slow SQL monitor thread pool is saturated. Task rejected. " +
                                     "Pool size: {}, Active threads: {}, Queue size: {}",
                             executor.getPoolSize(), executor.getActiveCount(), executor.getQueue().size());
                     // 不执行拒绝策略，防止影响主业务流程
-                }
-        ));
-    }
-
-    /**
-     * 自定义线程工厂，用于设置线程名称和守护状态
-     */
-    private static class ThreadFactoryBuilder implements ThreadFactory {
-        private final AtomicInteger threadNumber = new AtomicInteger(1);
-        private final String namePrefix;
-        private final boolean daemon;
-
-        public ThreadFactoryBuilder(String namePrefix, boolean daemon) {
-            this.namePrefix = namePrefix;
-            this.daemon = daemon;
-        }
-
-
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(r, namePrefix + threadNumber.getAndIncrement());
-            t.setDaemon(daemon);
-            if (t.getPriority() != Thread.NORM_PRIORITY) {
-                t.setPriority(Thread.NORM_PRIORITY);
-            }
-            return t;
-        }
+                });
     }
 
     /**
@@ -289,7 +258,8 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
             success = false;
             // 异步处理SQL异常
             if (shouldMonitorException(e)) {
-                handleSqlExceptionAsync(invocation, e);
+                Throwable rootCause = ExceptionUtil.getRootCause(e);
+                handleSqlExceptionAsync(invocation, rootCause);
             }
             throw e;
         } finally {
@@ -321,7 +291,7 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
         }
 
         // 使用Future限制执行时间，避免通知服务异常影响主流程
-        CompletableFuture.runAsync(() -> processSlowSqlNotification(invocation, executeTime), threadPool)
+        CompletableFuture.runAsync(() -> processSlowSqlNotification(invocation, executeTime), executorService)
                 .exceptionally(ex -> {
                     log.error("Slow SQL notification processing timed out or failed", ex);
                     return null;
@@ -345,8 +315,6 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
             // 构建并发送消息
             SqlMonitorMessage message = buildSlowSqlMessage(sqlId, sql, executeTime);
             sendNoticeService.send(message);
-            log.warn("Slow SQL detected. SQL ID: {}, Execute Time: {}ms, SQL: {}",
-                    sqlId, executeTime, StringUtils.abbreviate(sql, 200));
         } catch (Exception e) {
             log.error("Failed to process slow SQL notification", e);
         }
@@ -355,12 +323,12 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     /**
      * 异步处理SQL异常
      */
-    private void handleSqlExceptionAsync(Invocation invocation, Exception e) {
+    private void handleSqlExceptionAsync(Invocation invocation, Throwable throwable) {
         if (!monitorEnabled) {
             return;
         }
 
-        CompletableFuture.runAsync(() -> processSqlExceptionNotification(invocation, e), threadPool)
+        CompletableFuture.runAsync(() -> processSqlExceptionNotification(invocation, throwable), executorService)
                 .exceptionally(ex -> {
                     log.error("SQL exception notification processing timed out or failed", ex);
                     return null;
@@ -370,7 +338,7 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     /**
      * 实际处理SQL异常通知
      */
-    private void processSqlExceptionNotification(Invocation invocation, Exception e) {
+    private void processSqlExceptionNotification(Invocation invocation, Throwable throwable) {
         try {
             MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
             Object parameter = invocation.getArgs().length > 1 ? invocation.getArgs()[1] : null;
@@ -380,9 +348,8 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
             // 解析SQL
             String sql = parseSql(configuration, boundSql);
             // 构建并发送消息
-            SqlMonitorMessage message = buildExceptionMessage(sqlId, sql, e);
+            SqlMonitorMessage message = buildExceptionMessage(sqlId, sql, throwable);
             sendNoticeService.send(message);
-            log.error("SQL exception detected. SQL ID: {}, SQL: {}", sqlId, StringUtils.abbreviate(sql, 200), e);
         } catch (Exception ex) {
             log.error("Failed to process SQL exception notification", ex);
         }
@@ -404,14 +371,14 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     /**
      * 构建异常消息
      */
-    private SqlMonitorMessage buildExceptionMessage(String sqlId, String sql, Exception e) {
+    private SqlMonitorMessage buildExceptionMessage(String sqlId, String sql, Throwable throwable) {
         SqlMonitorMessage message = new SqlMonitorMessage();
         message.setType(Type.SQL_EXCEPTION);
         message.setSqlId(sqlId);
         message.setSql(sql);
-        String exceptionMsg = ExceptionUtil.getRootCauseMessage(e);
+        String exceptionMsg = ExceptionUtil.getMessage(throwable);
         message.setExceptionMsg(StringUtils.defaultString(exceptionMsg, "Unknown SQL exception"));
-        message.setStackTrace(getRelevantStackTrace(e));
+        message.setStackTrace(getRelevantStackTrace(throwable));
         return message;
     }
 
@@ -521,11 +488,11 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     /**
      * 获取相关的堆栈信息，过滤掉框架调用
      */
-    private String getRelevantStackTrace(Exception e) {
-        if (e == null) {
+    private String getRelevantStackTrace(Throwable throwable) {
+        if (throwable == null) {
             return StringUtils.EMPTY;
         }
-        StackTraceElement[] elements = e.getStackTrace();
+        StackTraceElement[] elements = throwable.getStackTrace();
         if (ArrayUtils.isEmpty(elements)) {
             return StringUtils.EMPTY;
         }
@@ -605,14 +572,14 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
      */
     @Override
     public void destroy() throws Exception {
-        if (threadPool != null && !threadPool.isShutdown()) {
-            threadPool.shutdown();
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
             try {
-                if (!threadPool.awaitTermination(5, TimeUnit.SECONDS)) {
-                    threadPool.shutdownNow();
+                if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
                 }
             } catch (InterruptedException e) {
-                threadPool.shutdownNow();
+                executorService.shutdownNow();
                 Thread.currentThread().interrupt();
             }
             log.info("Slow SQL monitor thread pool has been shutdown gracefully");
