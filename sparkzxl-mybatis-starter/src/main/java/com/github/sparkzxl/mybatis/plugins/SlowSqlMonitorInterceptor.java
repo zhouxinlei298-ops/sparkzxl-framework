@@ -62,7 +62,7 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     /**
      * 测试环境慢SQL阈值(毫秒)
      */
-    private static final long TEST_ENV_SLOW_SQL_THRESHOLD = 10000L;
+    private static final long TEST_ENV_SLOW_SQL_THRESHOLD = 6000L;
 
     /**
      * 堆栈跟踪最大行数
