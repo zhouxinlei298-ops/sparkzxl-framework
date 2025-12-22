@@ -1,5 +1,6 @@
 package com.github.sparkzxl.mybatis.plugins;
 
+import cn.hutool.core.exceptions.ExceptionUtil;
 import com.alibaba.ttl.threadpool.TtlExecutors;
 import com.github.sparkzxl.core.constant.enums.EnvironmentEnum;
 import com.github.sparkzxl.mybatis.send.SendNoticeService;
@@ -30,7 +31,6 @@ import java.text.DateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -50,11 +50,6 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
 
     // ==================== 常量定义 ====================
     /**
-     * SQL语句中占位符的正则表达式
-     */
-    private static final Pattern PARAM_PATTERN = Pattern.compile("\\?");
-
-    /**
      * 默认慢SQL阈值(毫秒)
      */
     private static final long DEFAULT_SLOW_SQL_THRESHOLD = 3000L;
@@ -67,13 +62,14 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     /**
      * 堆栈跟踪最大行数
      */
-    private static final int MAX_STACK_TRACE_LINES = 15;
+    private static final int MAX_STACK_TRACE_LINES = 10;
 
     /**
      * 需要过滤的框架包前缀
      */
     private static final String[] FRAMEWORK_PACKAGE_PREFIXES = {
             "org.apache.ibatis",
+            "com.baomidou.mybatisplus",
             "org.springframework",
             "java.lang.reflect",
             "sun.reflect",
@@ -184,9 +180,6 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
         } else {
             this.slowSqlThreshold = TEST_ENV_SLOW_SQL_THRESHOLD;
         }
-
-        // 重新初始化线程池（使用配置的值覆盖默认值）
-        initThreadPool();
 
         log.info("Slow SQL monitor initialized. Environment: {}, Threshold: {}ms, Enabled: {}",
                 activeProfile, slowSqlThreshold, monitorEnabled);
@@ -340,12 +333,8 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
      */
     private void processSlowSqlNotification(Invocation invocation, long executeTime) {
         try {
-            Stopwatch parseStopwatch = Stopwatch.createStarted();
             MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
-            Object parameter = null;
-            if (invocation.getArgs().length > 1) {
-                parameter = invocation.getArgs()[1];
-            }
+            Object parameter = invocation.getArgs().length > 1 ? invocation.getArgs()[1] : null;
 
             String sqlId = mappedStatement.getId();
             BoundSql boundSql = mappedStatement.getBoundSql(parameter);
@@ -353,13 +342,11 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
 
             // 解析SQL
             String sql = parseSql(configuration, boundSql);
-            long parseTime = parseStopwatch.elapsed(TimeUnit.MILLISECONDS);
-
             // 构建并发送消息
-            SqlMonitorMessage message = buildSlowSqlMessage(sqlId, sql, executeTime, parseTime);
+            SqlMonitorMessage message = buildSlowSqlMessage(sqlId, sql, executeTime);
             sendNoticeService.send(message);
-            log.warn("Slow SQL detected. SQL ID: {}, Execute Time: {}ms, Parse Time: {}ms, SQL: {}",
-                    sqlId, executeTime, parseTime, StringUtils.abbreviate(sql, 200));
+            log.warn("Slow SQL detected. SQL ID: {}, Execute Time: {}ms, SQL: {}",
+                    sqlId, executeTime, StringUtils.abbreviate(sql, 200));
         } catch (Exception e) {
             log.error("Failed to process slow SQL notification", e);
         }
@@ -386,18 +373,12 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     private void processSqlExceptionNotification(Invocation invocation, Exception e) {
         try {
             MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
-            Object parameter = null;
-            if (invocation.getArgs().length > 1) {
-                parameter = invocation.getArgs()[1];
-            }
-
+            Object parameter = invocation.getArgs().length > 1 ? invocation.getArgs()[1] : null;
             String sqlId = mappedStatement.getId();
             BoundSql boundSql = mappedStatement.getBoundSql(parameter);
             Configuration configuration = mappedStatement.getConfiguration();
-
             // 解析SQL
             String sql = parseSql(configuration, boundSql);
-
             // 构建并发送消息
             SqlMonitorMessage message = buildExceptionMessage(sqlId, sql, e);
             sendNoticeService.send(message);
@@ -410,13 +391,12 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     /**
      * 构建慢SQL消息
      */
-    private SqlMonitorMessage buildSlowSqlMessage(String sqlId, String sql, long executeTime, long parseTime) {
+    private SqlMonitorMessage buildSlowSqlMessage(String sqlId, String sql, long executeTime) {
         SqlMonitorMessage message = new SqlMonitorMessage();
         message.setType(Type.SLOW_SQL);
         message.setSqlId(sqlId);
         message.setSql(sql);
         message.setExecuteTime(executeTime);
-        message.setCheckTime(parseTime);
         message.setStackTrace(getRelevantStackTrace(null));
         return message;
     }
@@ -429,7 +409,7 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
         message.setType(Type.SQL_EXCEPTION);
         message.setSqlId(sqlId);
         message.setSql(sql);
-        String exceptionMsg = e.getCause() == null ? e.getMessage() : e.getCause().getMessage();
+        String exceptionMsg = ExceptionUtil.getRootCauseMessage(e);
         message.setExceptionMsg(StringUtils.defaultString(exceptionMsg, "Unknown SQL exception"));
         message.setStackTrace(getRelevantStackTrace(e));
         return message;
@@ -466,8 +446,10 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     /**
      * 提取参数值
      */
-    private List<String> extractParameterValues(Configuration configuration, BoundSql boundSql,
-                                                Object parameterObject, List<ParameterMapping> parameterMappings) {
+    private List<String> extractParameterValues(Configuration configuration,
+                                                BoundSql boundSql,
+                                                Object parameterObject,
+                                                List<ParameterMapping> parameterMappings) {
         List<String> parameterValues = new ArrayList<>(parameterMappings.size());
         TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
 
@@ -499,17 +481,40 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
 
     /**
      * 替换SQL中的占位符
+     *
+     * @param sql             sql
+     * @param parameterValues 参数值列表
+     * @return String
      */
     private String replacePlaceholders(String sql, List<String> parameterValues) {
-        Matcher matcher = PARAM_PATTERN.matcher(sql);
-        StringBuffer sb = new StringBuffer();
-        int index = 0;
-        while (matcher.find() && index < parameterValues.size()) {
-            String replacement = parameterValues.get(index++);
-            // 确保替换字符串中的$和\被正确转义
-            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+        // 添加边界检查
+        if (StringUtils.isBlank(sql) || CollectionUtils.isEmpty(parameterValues)) {
+            return sql;
         }
-        matcher.appendTail(sb);
+
+        // 预估容量，避免频繁扩容
+        StringBuilder sb = new StringBuilder(sql.length() + parameterValues.size() * 16);
+        int index = 0;
+        int start = 0;
+
+        // 遍历SQL，替换占位符
+        for (int i = 0; i < sql.length(); i++) {
+            if (sql.charAt(i) == '?') {
+                if (index < parameterValues.size()) {
+                    // 添加 ? 之前的字符串
+                    sb.append(sql, start, i);
+                    // 添加替换值
+                    sb.append(parameterValues.get(index++));
+                    // 更新下次复制的起始位置
+                    start = i + 1;
+                }
+                // 如果参数不够用了，后面的 ? 就保持原样或者可以根据需求处理
+            }
+        }
+
+        // 添加最后一个 ? 之后剩余的 SQL 部分
+        sb.append(sql, start, sql.length());
+
         return sb.toString();
     }
 
