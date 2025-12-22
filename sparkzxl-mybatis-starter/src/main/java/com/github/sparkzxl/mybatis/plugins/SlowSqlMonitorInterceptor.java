@@ -70,6 +70,8 @@ public class SlowSqlMonitorInterceptor implements Interceptor, DisposableBean {
     private static final String[] FRAMEWORK_PACKAGE_PREFIXES = {
             "org.apache.ibatis",
             "com.baomidou.mybatisplus",
+            "com.mysql.cj.jdbc",
+            "com.alibaba.druid",
             "org.springframework",
             "java.lang.reflect",
             "sun.reflect",
