@@ -3,6 +3,7 @@ package com.github.sparkzxl.oss.client;
 import com.github.sparkzxl.oss.properties.Configuration;
 import io.minio.MinioAsyncClient;
 import io.minio.http.HttpUtils;
+import okhttp3.Dispatcher;
 import okhttp3.OkHttpClient;
 
 import java.util.concurrent.TimeUnit;
@@ -20,9 +21,19 @@ public class MinioOssClient implements OssClient<CustomMinioClient> {
 
     public MinioOssClient(Configuration configuration) {
         this.configuration = configuration;
+        // 创建自定义 Dispatcher，增加并发容量避免 executor rejected 错误
+        Dispatcher dispatcher = new Dispatcher();
+        dispatcher.setMaxRequests(200);
+        dispatcher.setMaxRequestsPerHost(50);
         OkHttpClient httpClient = HttpUtils.newDefaultHttpClient(
-                TimeUnit.MINUTES.toMillis(5), TimeUnit.MINUTES.toMillis(15), TimeUnit.MINUTES.toMillis(5));
-        MinioAsyncClient minioAsyncClient = MinioAsyncClient.builder().endpoint(configuration.getEndpoint())
+                TimeUnit.MINUTES.toMillis(5),
+                        TimeUnit.MINUTES.toMillis(15),
+                        TimeUnit.MINUTES.toMillis(5))
+                .newBuilder()
+                .dispatcher(dispatcher)
+                .build();
+        MinioAsyncClient minioAsyncClient = MinioAsyncClient.builder()
+                .endpoint(configuration.getEndpoint())
                 .credentials(configuration.getAccessKey(), configuration.getSecretKey())
                 .httpClient(httpClient)
                 .build();
