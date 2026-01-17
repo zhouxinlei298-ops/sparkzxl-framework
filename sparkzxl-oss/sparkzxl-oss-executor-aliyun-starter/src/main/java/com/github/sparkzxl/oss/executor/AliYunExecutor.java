@@ -689,7 +689,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public void showdown() {
+    public void shutdown() {
         OSSClient ossClient = obtainClient();
         ossClient.shutdown();
     }

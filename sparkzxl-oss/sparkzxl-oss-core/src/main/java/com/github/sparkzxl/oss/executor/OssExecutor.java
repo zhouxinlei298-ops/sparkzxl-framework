@@ -230,7 +230,7 @@ public interface OssExecutor {
     /**
      * 销毁
      */
-    void showdown();
+    void shutdown();
 
     default Configuration obtainConfigInfo() {
         return null;

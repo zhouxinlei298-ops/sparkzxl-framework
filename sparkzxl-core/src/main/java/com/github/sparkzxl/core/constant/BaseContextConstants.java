@@ -101,6 +101,10 @@ public class BaseContextConstants {
      * 登录账户token 前缀
      */
     public static final String AUTH_USER_TOKEN = "login_user_token";
+    /**
+     * 在线用户 前缀
+     */
+    public static final String ONLINE_USERS = "online_users";
 
     /**
      * 请求线程本地map

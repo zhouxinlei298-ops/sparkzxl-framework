@@ -64,9 +64,15 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
 
     @Override
     public void destroy() {
-        log.info("OssExecutor start closing ....");
-        executorMap.forEach((key, value) -> value.showdown());
+        log.info("OssExecutor 开始关闭 ....");
+        executorMap.forEach((key, value) -> {
+            try {
+                value.shutdown();
+            } catch (Exception e) {
+                log.error("关闭 OssExecutor 异常 key: {}", key, e);
+            }
+        });
         executorMap.clear();
-        log.info("OssExecutor all closed success,bye");
+        log.info("OssExecutor 全部关闭成功，再见");
     }
 }

@@ -83,6 +83,7 @@ public class CustomMinioClient extends MinioAsyncClient {
      * @param extraQueryParams Extra query parameters (Optional).
      * @return AbortMultipartUploadResponse
      */
+    @Override
     public AbortMultipartUploadResponse abortMultipartUpload(
             String bucketName,
             String region,
