@@ -640,6 +640,11 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     }
 
     @Override
+    public void shutdown() {
+
+    }
+
+    @Override
     public void setBucketPolicy(String bucketName, BucketPolicyEnum policy) {
         try (CustomMinioClient minioClient = obtainClient()) {
             switch (policy) {
@@ -669,9 +674,5 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                     bucketName, e.getMessage());
             throw new OssException(OssErrorCode.SET_BUCKET_POLICY_ERROR.getErrorCode(), e.getMessage());
         }
-    }
-
-    @Override
-    public void showdown() {
     }
 }
