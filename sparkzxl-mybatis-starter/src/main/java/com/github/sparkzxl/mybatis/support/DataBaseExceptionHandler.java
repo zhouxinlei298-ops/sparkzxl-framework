@@ -149,8 +149,17 @@ public class DataBaseExceptionHandler implements Ordered {
     public R<?> handlerDataIntegrityViolationException(DataIntegrityViolationException e) {
         log.error("数据库操作异常:", e);
         String message = e.getMessage();
-        String prefix = "Data too long";
-        if (message.contains(prefix)) {
+
+        // 1. 优先处理特定错误消息（精确匹配关键特征）
+        if (message != null && message.contains("invalid input syntax for type numeric")) {
+            return R.failDetail(
+                    ExceptionErrorCode.INVALID_INPUT_SYNTAX.getErrorCode(),
+                    "数值类型输入格式错误: 请检查参数类型，确保传递的是数字而非对象"
+            );
+        }
+
+        // 2. 处理其他常见数据库错误
+        if (message != null && message.startsWith("Data too long")) {
             return R.failDetail(ExceptionErrorCode.COLUMN_DATA_TO_LONG_EXCEPTION.getErrorCode(),
                     ExceptionErrorCode.COLUMN_DATA_TO_LONG_EXCEPTION.getErrorMsg());
         }
