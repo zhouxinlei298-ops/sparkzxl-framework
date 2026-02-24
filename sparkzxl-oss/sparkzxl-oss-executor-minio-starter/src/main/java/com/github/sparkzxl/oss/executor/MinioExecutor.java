@@ -684,7 +684,11 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public void shutdown() {
-
+        // 委托给 OssClient.close() 统一管理资源释放
+        OssClient<CustomMinioClient> ossClient = client;
+        if (ossClient != null) {
+            ossClient.close();
+        }
     }
 
     @Override

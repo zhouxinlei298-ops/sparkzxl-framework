@@ -721,7 +721,10 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
 
     @Override
     public void shutdown() {
-        OSSClient ossClient = obtainClient();
-        ossClient.shutdown();
+        // 委托给 OssClient.close() 统一管理资源释放
+        OssClient<OSSClient> ossClient = client;
+        if (ossClient != null) {
+            ossClient.close();
+        }
     }
 }

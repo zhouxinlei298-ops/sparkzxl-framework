@@ -728,8 +728,11 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public void shutdown() {
-        CustomRustfsClient rustfsClient = obtainClient();
-        rustfsClient.shutdown();
+        // 委托给 OssClient.close() 统一管理资源释放
+        OssClient<CustomRustfsClient> ossClient = client;
+        if (ossClient != null) {
+            ossClient.close();
+        }
     }
 
     @Override
