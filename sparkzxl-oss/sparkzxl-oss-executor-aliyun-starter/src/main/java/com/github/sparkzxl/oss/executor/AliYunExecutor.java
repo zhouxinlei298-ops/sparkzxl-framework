@@ -611,22 +611,33 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             // 2. 解析 Range 头 (处理 bytes=0-500, bytes=-500, bytes=500- 等情况)
             if (range != null && range.contains("bytes=") && range.contains("-")) {
                 range = range.substring(range.lastIndexOf("=") + 1).trim();
-                String[] ranges = range.split("-");
+                String[] ranges = range.split("-", -1);  // 保留空字符串
 
-                if (ranges.length == 1) {
-                    // 情况 A: bytes=-500 (最后500字节)
-                    if (range.startsWith("-")) {
-                        long lastBytes = Long.parseLong(ranges[1]);
-                        startByte = fileSize - lastBytes;
+                try {
+                    if (ranges.length == 2) {
+                        String startPart = ranges[0].trim();
+                        String endPart = ranges[1].trim();
+
+                        if (startPart.isEmpty() && !endPart.isEmpty()) {
+                            // 情况 A: bytes=-500 (最后500字节)
+                            long lastBytes = Long.parseLong(endPart);
+                            if (lastBytes > 0) {
+                                startByte = Math.max(0, fileSize - lastBytes);
+                            }
+                        } else if (!startPart.isEmpty() && endPart.isEmpty()) {
+                            // 情况 B: bytes=500- (从500字节到结束)
+                            startByte = Long.parseLong(startPart);
+                        } else if (!startPart.isEmpty() && !endPart.isEmpty()) {
+                            // 情况 C: bytes=500-1000
+                            startByte = Long.parseLong(startPart);
+                            endByte = Long.parseLong(endPart);
+                        }
+                        // 如果两个都为空（bytes=-），忽略使用默认值
                     }
-                    // 情况 B: bytes=500- (从500字节到结束)
-                    else if (range.endsWith("-")) {
-                        startByte = Long.parseLong(ranges[0]);
-                    }
-                } else if (ranges.length == 2) {
-                    // 情况 C: bytes=500-1000
-                    startByte = Long.parseLong(ranges[0]);
-                    endByte = Long.parseLong(ranges[1]);
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid Range header format: {}, using full file range", range);
+                    startByte = 0;
+                    endByte = fileSize - 1;
                 }
             }
 

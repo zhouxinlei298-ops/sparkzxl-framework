@@ -64,7 +64,10 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
                 return cachedExecutor;
             }
 
-            log.debug("create OssExecutor for cacheKey: {}", cacheKey);
+            log.debug("create OssExecutor for clientId: {}, clientType: {}, endpoint: {}",
+                    configuration.getClientId(),
+                    configuration.getClientType(),
+                    maskSensitiveUrl(configuration.getEndpoint()));
             OssClient<?> ossClient = null;
             try {
                 // 步骤1: 创建 OssClient
@@ -89,12 +92,13 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
                 if (ossClient != null) {
                     try {
                         ossClient.close();
-                        log.warn("Failed to create OssExecutor, closed OssClient for cacheKey: {}", cacheKey);
+                        log.warn("Failed to create OssExecutor, closed OssClient for clientId: {}", configuration.getClientId());
                     } catch (Exception closeException) {
-                        log.error("Error while closing OssClient after creation failure for cacheKey: {}", cacheKey, closeException);
+                        log.error("Error while closing OssClient after creation failure for clientId: {}", configuration.getClientId(), closeException);
                     }
                 }
-                log.error("Failed to create OssExecutor for cacheKey: {}, error: {}", cacheKey, e.getMessage(), e);
+                log.error("Failed to create OssExecutor for clientId: {}, clientType: {}, error: {}",
+                        configuration.getClientId(), configuration.getClientType(), e.getMessage());
                 throw new IllegalStateException(
                         String.format("Failed to create OssExecutor for cacheKey [%s], clientType [%s]", cacheKey, clientType), e);
             }
@@ -104,6 +108,24 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
     @Override
     public String cacheKey(String clientType, String clientId) {
         return clientType.concat("-").concat(clientId);
+    }
+
+    /**
+     * 对敏感 URL 进行脱敏处理
+     *
+     * @param url 原始 URL
+     * @return 脱敏后的 URL
+     */
+    private String maskSensitiveUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return "";
+        }
+        // 如果 URL 包含 accessKey 或 secretKey 参数，进行脱敏
+        int urlLength = url.length();
+        if (urlLength > 100) {
+            return url.substring(0, 50) + "..." + url.substring(urlLength - 30);
+        }
+        return url;
     }
 
     @Override
