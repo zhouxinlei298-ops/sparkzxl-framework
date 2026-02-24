@@ -49,12 +49,56 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
         ArgumentAssert.notNull(configuration, "Oss Configuration is not available");
         String clientType = configuration.getClientType();
         String cacheKey = cacheKey(configuration.getClientType(), configuration.getClientId());
-        return executorMap.computeIfAbsent(cacheKey, key -> {
-            log.debug("create OssExecutor for cacheKey: {}", key);
-            OssClient<?> ossClient = ossClientFactory.buildOssClient(configuration);
-            OssExecutorFactory ossExecutorFactory = newInstance(clientType);
-            return ossExecutorFactory.create(ossClient);
-        });
+
+        // 先检查缓存，避免重复创建
+        OssExecutor cachedExecutor = executorMap.get(cacheKey);
+        if (cachedExecutor != null) {
+            return cachedExecutor;
+        }
+
+        // 使用 synchronized 确保只有一个线程执行创建逻辑
+        synchronized (this) {
+            // 双重检查锁定
+            cachedExecutor = executorMap.get(cacheKey);
+            if (cachedExecutor != null) {
+                return cachedExecutor;
+            }
+
+            log.debug("create OssExecutor for cacheKey: {}", cacheKey);
+            OssClient<?> ossClient = null;
+            try {
+                // 步骤1: 创建 OssClient
+                ossClient = ossClientFactory.buildOssClient(configuration);
+
+                // 步骤2: 获取 ExecutorFactory
+                OssExecutorFactory ossExecutorFactory = newInstance(clientType);
+                if (ossExecutorFactory == null) {
+                    throw new IllegalStateException(
+                            String.format("Cannot find OssExecutorFactory for clientType [%s]", clientType));
+                }
+
+                // 步骤3: 创建 Executor
+                OssExecutor executor = ossExecutorFactory.create(ossClient);
+
+                // 步骤4: 成功后放入缓存
+                executorMap.put(cacheKey, executor);
+                return executor;
+
+            } catch (Exception e) {
+                // 创建失败时，清理已创建的资源
+                if (ossClient != null) {
+                    try {
+                        ossClient.close();
+                        log.warn("Failed to create OssExecutor, closed OssClient for cacheKey: {}", cacheKey);
+                    } catch (Exception closeException) {
+                        log.error("Error while closing OssClient after creation failure for cacheKey: {}", cacheKey, closeException);
+                    }
+                }
+                log.error("Failed to create OssExecutor for cacheKey: {}, error: {}", cacheKey, e.getMessage(), e);
+                throw new IllegalStateException(
+                        String.format("Failed to create OssExecutor for cacheKey [%s], clientType [%s]", cacheKey, clientType), e);
+            }
+        }
     }
 
     @Override
