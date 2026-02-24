@@ -1,6 +1,7 @@
 package com.github.sparkzxl.oss.client;
 
 import com.github.sparkzxl.oss.properties.Configuration;
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
@@ -12,23 +13,25 @@ import java.net.URI;
 import java.time.Duration;
 
 /**
- * description: MinioOssClient
+ * description: RustfsOssClient
  *
  * @author zhouxinlei
  * @since 2022-10-12 09:14:42
  */
+@Slf4j
 public class RustfsOssClient implements OssClient<CustomRustfsClient> {
 
     private final CustomRustfsClient client;
     private final Configuration configuration;
+    private final SdkHttpClient apache5HttpClient;
 
     public RustfsOssClient(Configuration configuration) {
         this.configuration = configuration;
-        SdkHttpClient apache5HttpClient = Apache5HttpClient.builder()
+        this.apache5HttpClient = Apache5HttpClient.builder()
                 .maxConnections(100)
                 .connectionTimeout(Duration.ofSeconds(15))
                 .build();
-        client = new CustomRustfsClient(S3Client.builder()
+        this.client = new CustomRustfsClient(S3Client.builder()
                 // RustFS 地址
                 .endpointOverride(URI.create(configuration.getEndpoint()))
                 // 可写死，RustFS 不校验 region
@@ -58,4 +61,24 @@ public class RustfsOssClient implements OssClient<CustomRustfsClient> {
         return configuration;
     }
 
+    @Override
+    public void close() {
+        if (client != null) {
+            try {
+                client.shutdown();
+                log.debug("Rustfs client closed successfully");
+            } catch (Exception e) {
+                log.error("Error closing Rustfs client: {}", e.getMessage(), e);
+            }
+        }
+        // 关闭 Apache5 HTTP 客户端
+        if (apache5HttpClient != null) {
+            try {
+                apache5HttpClient.close();
+                log.debug("Rustfs HTTP client closed successfully");
+            } catch (Exception e) {
+                log.error("Error closing Rustfs HTTP client: {}", e.getMessage(), e);
+            }
+        }
+    }
 }

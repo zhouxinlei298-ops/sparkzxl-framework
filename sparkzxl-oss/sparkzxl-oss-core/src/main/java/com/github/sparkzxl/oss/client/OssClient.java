@@ -8,7 +8,7 @@ import com.github.sparkzxl.oss.properties.Configuration;
  * @author zhouxinlei
  * @since 2022-10-12 16:21:43
  */
-public interface OssClient<T> {
+public interface OssClient<T> extends AutoCloseable {
 
     /**
      * 获取client
@@ -23,5 +23,14 @@ public interface OssClient<T> {
      * @return Configuration
      */
     Configuration getConfiguration();
+
+    /**
+     * 关闭客户端，释放资源
+     * <p>
+     * 实现类应在此方法中释放所有持有的资源，如网络连接、线程池等
+     * </p>
+     */
+    @Override
+    void close();
 
 }

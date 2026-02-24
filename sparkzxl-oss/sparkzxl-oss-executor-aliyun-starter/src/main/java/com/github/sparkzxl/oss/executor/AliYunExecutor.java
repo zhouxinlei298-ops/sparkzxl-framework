@@ -223,8 +223,18 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                     log.error("关闭文件流失败：{}", e.getMessage());
                 }
             }
-            if (!tempFile.delete()) {
-                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+            // 删除临时文件
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    boolean deleted = FileUtil.del(tempFile);
+                    if (!deleted) {
+                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+                        tempFile.deleteOnExit();
+                    }
+                } catch (Exception e) {
+                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
+                    tempFile.deleteOnExit();
+                }
             }
         }
     }
@@ -277,9 +287,19 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                     log.error("关闭文件流失败：{}", e.getMessage());
                 }
             }
-            // 删除临时文件（双重保障：主动删除+JVM退出删除）
-            if (tempFile != null && !tempFile.delete()) {
-                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+            // 删除临时文件（使用 Hutool 的 FileUtil.del 提供更可靠的删除机制）
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    boolean deleted = FileUtil.del(tempFile);
+                    if (!deleted) {
+                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+                        // 尝试使用 JVM 退出时删除作为最后的保障
+                        tempFile.deleteOnExit();
+                    }
+                } catch (Exception e) {
+                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
+                    tempFile.deleteOnExit();
+                }
             }
         }
     }

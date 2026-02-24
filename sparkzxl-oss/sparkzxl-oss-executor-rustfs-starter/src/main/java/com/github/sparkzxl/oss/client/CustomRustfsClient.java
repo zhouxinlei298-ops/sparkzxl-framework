@@ -26,9 +26,12 @@ import java.util.Map;
 public class CustomRustfsClient {
 
     private final S3Client client;
+    private final S3Presigner presigner;
 
     public CustomRustfsClient(S3Client client) {
         this.client = client;
+        // 创建 S3Presigner 实例，复用以提升性能
+        this.presigner = S3Presigner.create();
     }
 
     /**
@@ -120,43 +123,38 @@ public class CustomRustfsClient {
     }
 
     public String createPresignedGetUrl(String bucketName, String keyName, Integer expire) {
-        try (S3Presigner presigner = S3Presigner.create()) {
-            GetObjectRequest objectRequest = GetObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(keyName)
-                    .build();
+        GetObjectRequest objectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(keyName)
+                .build();
 
-            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofDays(expire))
-                    .getObjectRequest(objectRequest)
-                    .build();
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofDays(expire))
+                .getObjectRequest(objectRequest)
+                .build();
 
-            PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(presignRequest);
-            log.info("Presigned URL: [{}]", presignedRequest.url().toString());
-            log.info("HTTP method: [{}]", presignedRequest.httpRequest().method());
-            return presignedRequest.url().toExternalForm();
-        }
+        PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(presignRequest);
+        log.info("Presigned URL: [{}]", presignedRequest.url().toString());
+        log.info("HTTP method: [{}]", presignedRequest.httpRequest().method());
+        return presignedRequest.url().toExternalForm();
     }
 
 
     public String getPresignedObjectUrl(String bucketName, String objectName, Map<String, String> reqParams) {
-        try (S3Presigner presigner = S3Presigner.create()) {
-
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(objectName)
-                    .metadata(reqParams)
-                    .build();
-            PresignedPutObjectRequest presignedPut = presigner.presignPutObject(
-                    PutObjectPresignRequest.builder()
-                            .putObjectRequest(putRequest)
-                            .signatureDuration(Duration.ofHours(1))
-                            .build()
-            );
-            log.info("Presigned URL: [{}]", presignedPut.url().toString());
-            log.info("HTTP method: [{}]", presignedPut.httpRequest().method());
-            return presignedPut.url().toExternalForm();
-        }
+        PutObjectRequest putRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(objectName)
+                .metadata(reqParams)
+                .build();
+        PresignedPutObjectRequest presignedPut = presigner.presignPutObject(
+                PutObjectPresignRequest.builder()
+                        .putObjectRequest(putRequest)
+                        .signatureDuration(Duration.ofHours(1))
+                        .build()
+        );
+        log.info("Presigned URL: [{}]", presignedPut.url().toString());
+        log.info("HTTP method: [{}]", presignedPut.httpRequest().method());
+        return presignedPut.url().toExternalForm();
     }
 
 
@@ -194,10 +192,23 @@ public class CustomRustfsClient {
 
 
     public void shutdown() {
-        try {
-            client.close();
-        } catch (Exception e) {
-            log.error("shutdown throw exception: ", e);
+        // 关闭 S3Presigner
+        if (presigner != null) {
+            try {
+                presigner.close();
+                log.debug("S3Presigner closed successfully");
+            } catch (Exception e) {
+                log.error("Error closing S3Presigner: {}", e.getMessage(), e);
+            }
+        }
+        // 关闭 S3Client
+        if (client != null) {
+            try {
+                client.close();
+                log.debug("S3Client closed successfully");
+            } catch (Exception e) {
+                log.error("Error closing S3Client: {}", e.getMessage(), e);
+            }
         }
     }
 }
