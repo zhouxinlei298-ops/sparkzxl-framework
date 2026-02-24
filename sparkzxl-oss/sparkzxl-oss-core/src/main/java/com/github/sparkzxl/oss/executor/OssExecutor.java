@@ -78,11 +78,14 @@ public interface OssExecutor {
             throw new IllegalStateException(
                     String.format("Cannot get object URL: Both domain and endpoint are empty in configuration for bucket [%s]", bucketName));
         }
-        return new StringJoiner(StrPool.SLASH)
-                .add(domainName)
-                .add(bucketName)
-                .add(objectName)
-                .toString();
+        // 优化：使用字符串连接代替 StringJoiner，避免重复创建对象
+        // 确保 domainName 末尾没有 /，bucketName 和 objectName 开头没有 /
+        StringBuilder url = new StringBuilder(domainName);
+        if (!domainName.endsWith("/")) {
+            url.append('/');
+        }
+        url.append(bucketName).append('/').append(objectName);
+        return url.toString();
     }
 
     /**
