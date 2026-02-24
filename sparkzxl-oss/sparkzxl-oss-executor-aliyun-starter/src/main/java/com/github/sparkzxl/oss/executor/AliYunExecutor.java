@@ -55,6 +55,8 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
 
     @Override
     public void createBucket(String bucketName) {
+        // 验证 bucketName
+        validateBucketName(bucketName);
         try {
             OSSClient ossClient = obtainClient();
             if (!ossClient.doesBucketExist(bucketName)) {
@@ -335,13 +337,22 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             for (int i = 0; i < partCount; i++) {
                 long startPos = i * partSize;
                 long curPartSize = (i + 1 == partCount) ? (fileLength - startPos) : partSize;
-                // 跳过已经上传的分片。
-                inputStream.skip(startPos);
+                // 每次重新获取 InputStream，避免 skip 位置错误
+                InputStream partInputStream = multipartFile.getInputStream();
+                // 跳过已处理的字节（从文件开头定位到当前分片起始位置）
+                long skipped = 0;
+                while (skipped < startPos) {
+                    long n = partInputStream.skip(startPos - skipped);
+                    if (n <= 0) {
+                        break;
+                    }
+                    skipped += n;
+                }
                 UploadPartRequest uploadPartRequest = new UploadPartRequest();
                 uploadPartRequest.setBucketName(bucketName);
                 uploadPartRequest.setKey(objectName);
                 uploadPartRequest.setUploadId(uploadId);
-                uploadPartRequest.setInputStream(inputStream);
+                uploadPartRequest.setInputStream(partInputStream);
                 // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
                 uploadPartRequest.setPartSize(curPartSize);
                 // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，OSS将返回InvalidArgument错误码。

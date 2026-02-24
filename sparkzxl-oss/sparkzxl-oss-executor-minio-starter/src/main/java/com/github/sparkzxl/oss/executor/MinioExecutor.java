@@ -70,6 +70,8 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public void createBucket(String bucketName) {
+        // 验证 bucketName
+        validateBucketName(bucketName);
         try (CustomMinioClient minioClient = obtainClient()) {
             CompletableFuture<Boolean> bucketedExists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
             Boolean found = bucketedExists.get(5, TimeUnit.SECONDS);
@@ -318,9 +320,18 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             for (int i = 0; i < partCount; i++) {
                 long startPos = i * partSize;
                 long curPartSize = (i + 1 == partCount) ? (fileLength - startPos) : partSize;
-                // 跳过已经上传的分片。
-                inputStream.skip(startPos);
-                SnowballObject snowballObject = new SnowballObject(objectName, inputStream, curPartSize, null);
+                // 每次重新获取 InputStream，避免 skip 位置错误
+                InputStream partInputStream = multipartFile.getInputStream();
+                // 跳过已处理的字节（从文件开头定位到当前分片起始位置）
+                long skipped = 0;
+                while (skipped < startPos) {
+                    long n = partInputStream.skip(startPos - skipped);
+                    if (n <= 0) {
+                        break;
+                    }
+                    skipped += n;
+                }
+                SnowballObject snowballObject = new SnowballObject(objectName, partInputStream, curPartSize, null);
                 snowballObjects.add(snowballObject);
             }
             log.info("objectName [{}] upload started", objectName);
@@ -646,24 +657,30 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public void setBucketPolicy(String bucketName, BucketPolicyEnum policy) {
+        // 验证 bucketName 以防止 JSON 注入
+        validateBucketName(bucketName);
         try (CustomMinioClient minioClient = obtainClient()) {
+            String policyConfig;
             switch (policy) {
                 case READ_ONLY:
+                    policyConfig = READ_ONLY.replace(BUCKET_PARAM, bucketName);
                     minioClient.setBucketPolicy(SetBucketPolicyArgs.builder()
                             .bucket(bucketName)
-                            .config(READ_ONLY.replace(BUCKET_PARAM, bucketName))
+                            .config(policyConfig)
                             .build());
                     break;
                 case WRITE_ONLY:
+                    policyConfig = WRITE_ONLY.replace(BUCKET_PARAM, bucketName);
                     minioClient.setBucketPolicy(SetBucketPolicyArgs.builder()
                             .bucket(bucketName)
-                            .config(WRITE_ONLY.replace(BUCKET_PARAM, bucketName))
+                            .config(policyConfig)
                             .build());
                     break;
                 case READ_WRITE:
+                    policyConfig = READ_WRITE.replace(BUCKET_PARAM, bucketName);
                     minioClient.setBucketPolicy(SetBucketPolicyArgs.builder()
                             .bucket(bucketName)
-                            .config(READ_WRITE.replace(BUCKET_PARAM, bucketName))
+                            .config(policyConfig)
                             .build());
                     break;
                 default:

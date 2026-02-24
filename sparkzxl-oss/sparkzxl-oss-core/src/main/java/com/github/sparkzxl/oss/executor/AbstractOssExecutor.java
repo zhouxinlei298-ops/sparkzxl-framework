@@ -55,4 +55,54 @@ public abstract class AbstractOssExecutor<T> implements OssExecutor {
     public Configuration obtainConfigInfo() {
         return client.getConfiguration();
     }
+
+    /**
+     * 验证 bucketName 以防止非法输入和注入攻击
+     * <p>
+     * 根据 AWS S3 bucket 命名规范，bucket 名称只能包含：
+     * - 小写字母 (a-z)
+     * - 数字 (0-9)
+     * - 连字符 (-)
+     * - 点号 (.)
+     * </p>
+     * <p>
+     * 附加规则：
+     * - 长度必须在 3-63 个字符之间
+     * - 不能以连字符或点号开头/结尾
+     * - 不能包含连续的点号
+     * </p>
+     *
+     * @param bucketName bucket 名称
+     * @throws IllegalArgumentException 如果 bucketName 包含非法字符或不符合命名规范
+     */
+    protected void validateBucketName(String bucketName) {
+        if (bucketName == null || bucketName.isEmpty()) {
+            throw new IllegalArgumentException("Bucket name cannot be null or empty");
+        }
+
+        // 长度验证
+        if (bucketName.length() < 3 || bucketName.length() > 63) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid bucket name '%s'. Bucket name length must be between 3 and 63 characters", bucketName));
+        }
+
+        // 不能以连字符或点号开头/结尾
+        if (bucketName.startsWith("-") || bucketName.endsWith("-") ||
+                bucketName.startsWith(".") || bucketName.endsWith(".")) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid bucket name '%s'. Bucket name cannot start or end with a hyphen (-) or dot (.)", bucketName));
+        }
+
+        // 不能包含连续的点号
+        if (bucketName.contains("..")) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid bucket name '%s'. Bucket name cannot contain consecutive dots (..)", bucketName));
+        }
+
+        // 只能包含小写字母、数字、连字符和点号（防止 JSON 注入）
+        if (!bucketName.matches("^[a-z0-9.-]+$")) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid bucket name '%s'. Bucket name can only contain lowercase letters, numbers, dots (.) and hyphens (-)", bucketName));
+        }
+    }
 }

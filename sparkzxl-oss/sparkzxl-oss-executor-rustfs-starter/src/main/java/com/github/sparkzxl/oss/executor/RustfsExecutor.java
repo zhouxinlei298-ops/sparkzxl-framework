@@ -71,6 +71,8 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public void createBucket(String bucketName) {
+        // 验证 bucketName
+        validateBucketName(bucketName);
         CustomRustfsClient rustfsClient = obtainClient();
         try {
             boolean bucketedExists = obtainClient().doesBucketExist(bucketName);
@@ -337,19 +339,30 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             for (int i = 0; i < partCount; i++) {
                 long startPos = i * partSize;
                 long curPartSize = (i + 1 == partCount) ? (fileLength - startPos) : partSize;
-                // 跳过已经上传的分片。
-                inputStream.skip(startPos);
+                // 每次重新获取 InputStream，避免 skip 位置错误
+                InputStream partInputStream = multipartFile.getInputStream();
+                // 跳过已处理的字节（从文件开头定位到当前分片起始位置）
+                long skipped = 0;
+                while (skipped < startPos) {
+                    long n = partInputStream.skip(startPos - skipped);
+                    if (n <= 0) {
+                        break;
+                    }
+                    skipped += n;
+                }
+                // 分片编号从 1 开始（AWS S3 规范要求）
+                int partNumber = i + 1;
                 UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
                         .bucket(bucketName)
                         .key(objectName)
                         .uploadId(uploadId)
-                        .partNumber(i)
+                        .partNumber(partNumber)
                         .build();
 
-                UploadPartResponse uploadPartResponse = s3Client.uploadPart(uploadPartRequest, RequestBody.fromInputStream(inputStream, curPartSize));
+                UploadPartResponse uploadPartResponse = s3Client.uploadPart(uploadPartRequest, RequestBody.fromInputStream(partInputStream, curPartSize));
                 completedParts.add(
                         CompletedPart.builder()
-                                .partNumber(i)
+                                .partNumber(partNumber)
                                 .eTag(uploadPartResponse.eTag())
                                 .build()
                 );
@@ -701,26 +714,32 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public void setBucketPolicy(String bucketName, BucketPolicyEnum policy) {
+        // 验证 bucketName 以防止 JSON 注入
+        validateBucketName(bucketName);
         CustomRustfsClient rustfsClient = obtainClient();
         S3Client s3Client = rustfsClient.getClient();
         try {
+            String policyConfig;
             switch (policy) {
                 case READ_ONLY:
+                    policyConfig = READ_ONLY.replace(BUCKET_PARAM, bucketName);
                     s3Client.putBucketPolicy(PutBucketPolicyRequest.builder()
                             .bucket(bucketName)
-                            .policy(READ_ONLY.replace(BUCKET_PARAM, bucketName))
+                            .policy(policyConfig)
                             .build());
                     break;
                 case WRITE_ONLY:
+                    policyConfig = WRITE_ONLY.replace(BUCKET_PARAM, bucketName);
                     s3Client.putBucketPolicy(PutBucketPolicyRequest.builder()
                             .bucket(bucketName)
-                            .policy(WRITE_ONLY.replace(BUCKET_PARAM, bucketName))
+                            .policy(policyConfig)
                             .build());
                     break;
                 case READ_WRITE:
+                    policyConfig = READ_WRITE.replace(BUCKET_PARAM, bucketName);
                     s3Client.putBucketPolicy(PutBucketPolicyRequest.builder()
                             .bucket(bucketName)
-                            .policy(READ_WRITE.replace(BUCKET_PARAM, bucketName))
+                            .policy(policyConfig)
                             .build());
                     break;
                 default:
