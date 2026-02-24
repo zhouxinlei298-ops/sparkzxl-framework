@@ -10,6 +10,7 @@ import com.github.sparkzxl.spi.ExtensionLoader;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,11 +38,22 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
 
     public OssExecutor create(String clientId) {
         Configuration configuration = configProvider.load(clientId);
+        if (configuration == null) {
+            throw new IllegalStateException(
+                    String.format("OSS configuration not found for clientId [%s]. " +
+                            "Please check your configuration (yaml/file/database) to ensure the client is properly configured.", clientId));
+        }
         return selectOssExecutor(configuration);
     }
 
     public OssExecutor create() {
-        Configuration configuration = configProvider.loadConfigurationList().get(0);
+        List<Configuration> configurations = configProvider.loadConfigurationList();
+        if (configurations == null || configurations.isEmpty()) {
+            throw new IllegalStateException(
+                    "No OSS configuration found. " +
+                    "Please check your configuration (yaml/file/database) to ensure at least one OSS client is properly configured.");
+        }
+        Configuration configuration = configurations.get(0);
         return selectOssExecutor(configuration);
     }
 

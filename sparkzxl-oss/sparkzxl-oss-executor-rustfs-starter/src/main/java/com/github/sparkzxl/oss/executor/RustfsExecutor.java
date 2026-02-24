@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
@@ -166,10 +167,32 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
         try {
             rustfsClient.getObjectAcl(GetObjectAclRequest.builder().bucket(bucketName).key(objectName).build());
             return true;
-        } catch (Exception e) {
-            log.error("Rustfs unexpected error during checking whether objectName exists for {}/{}: {}",
-                    bucketName, objectName, e.getMessage());
+        } catch (NoSuchKeyException e) {
+            // 对象不存在，这是正常情况
+            log.debug("Object does not exist for bucket [{}/object [{}]", bucketName, objectName);
             return false;
+        } catch (NoSuchBucketException e) {
+            // bucket 不存在，记录警告但返回 false
+            log.warn("Bucket [{}] does not exist when checking object [{}]", bucketName, objectName);
+            return false;
+        } catch (AwsServiceException e) {
+            // 区分处理其他 AWS 服务异常
+            if (e.statusCode() == 404 || e.awsErrorDetails() != null && "NotFound".equals(e.awsErrorDetails().errorCode())) {
+                // 明确的 404 错误
+                log.debug("Object not found (404) for bucket [{}/object [{}]", bucketName, objectName);
+                return false;
+            }
+            // 其他 AWS 服务异常（权限错误等）应该抛出
+            log.error("Rustfs AWS service error during checking whether objectName exists for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(),
+                    String.format("Failed to check object existence for [%s]/[%s]: %s", bucketName, objectName, e.getMessage()), e);
+        } catch (Exception e) {
+            // 其他异常（网络错误等）应该抛出，而不是吞掉
+            log.error("Rustfs unexpected error during checking whether objectName exists for {}/{}: {}",
+                    bucketName, objectName, e.getMessage(), e);
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(),
+                    String.format("Failed to check object existence for [%s]/[%s]: %s", bucketName, objectName, e.getMessage()), e);
         }
     }
 

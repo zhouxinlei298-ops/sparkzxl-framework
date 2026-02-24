@@ -3,12 +3,14 @@ package com.github.sparkzxl.oss.aop;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.oss.annotation.OSSUpload;
 import com.github.sparkzxl.oss.listener.UploadListener;
-import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.aop.framework.AopProxyUtils;
+
+import java.util.Objects;
 
 /**
  * description: OSS Upload Interceptor
@@ -16,6 +18,7 @@ import org.springframework.aop.framework.AopProxyUtils;
  * @author zhouxinlei
  * @since 2022-09-27 09:28:55
  */
+@Slf4j
 public class OSSUploadInterceptor implements MethodInterceptor {
 
     @Nullable
@@ -27,8 +30,11 @@ public class OSSUploadInterceptor implements MethodInterceptor {
             return invocation.proceed();
         }
         OSSUpload annotation = invocation.getMethod().getAnnotation(OSSUpload.class);
-        if (!annotation.enabled()) {
-            throw new IllegalStateException("Method " + invocation.getMethod() + " is not supported by this OSSUpload");
+        if (annotation == null || !annotation.enabled()) {
+            // 注解禁用或不存在时，直接执行原方法，不做拦截处理
+            log.debug("OSS upload annotation is disabled or not present for method: {}, proceeding with original method",
+                    invocation.getMethod().getName());
+            return invocation.proceed();
         }
         Class<? extends UploadListener> listener = annotation.listener();
         UploadListener uploadListener = SpringContextUtils.getBean(listener);
