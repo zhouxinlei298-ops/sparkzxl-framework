@@ -1,1 +1,1 @@
-minio=com.github.sparkzxl.oss.executor.MinioOssExecutorFactory
+minio=com.github.sparkzxl.oss.executor.RustfsOssExecutorFactory

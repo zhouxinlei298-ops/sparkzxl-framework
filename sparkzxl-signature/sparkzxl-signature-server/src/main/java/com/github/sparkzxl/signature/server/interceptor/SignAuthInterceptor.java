@@ -7,6 +7,7 @@ import com.github.sparkzxl.signature.constant.SignatureConstant;
 import com.github.sparkzxl.signature.server.method.SignProcessor;
 import com.google.common.collect.Maps;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.servlet.AsyncHandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,6 +35,7 @@ public class SignAuthInterceptor implements AsyncHandlerInterceptor {
         if (!checked) {
             return true;
         }
+        String contentType = request.getHeader(HttpHeaders.CONTENT_TYPE);
         // 获取appKey
         String appKey = request.getHeader(SignatureConstant.APP_KEY);
         // 获取时间戳
