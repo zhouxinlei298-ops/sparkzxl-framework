@@ -263,10 +263,11 @@ public class OssTemplate implements InitializingBean {
     public OssExecutor obtainExecutor() {
         String clientId = OssClientContextHolder.peek();
         if (clientId == null) {
+            Assert.notNull(primaryExecutor, "Primary OssExecutor not initialized. Please check the OSS configuration.");
             return primaryExecutor;
         }
         final OssExecutor ossExecutor = ossExecutorFactoryContext.create(clientId);
-        Assert.notNull(ossExecutor, String.format("Can not get bean type of %s", ossExecutor.getClass()));
+        Assert.notNull(ossExecutor, String.format("Cannot get OssExecutor for clientId [%s]", clientId));
         return ossExecutor;
     }
 

@@ -117,6 +117,10 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
         try (CustomMinioClient minioClient = obtainClient()) {
             CompletableFuture<GetObjectResponse> getObjectResponseCompletableFuture = minioClient.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
             GetObjectResponse minioClientObject = getObjectResponseCompletableFuture.get();
+            if (minioClientObject == null) {
+                throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(),
+                        String.format("Object not found or response is null for bucket [%s], object [%s]", bucketName, objectName));
+            }
             OssObject ossObject = new OssObject();
             ossObject.setBucketName(minioClientObject.bucket());
             ossObject.setKey(minioClientObject.object());
@@ -137,6 +141,10 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                     .object(objectName)
                     .build());
             StatObjectResponse objectResponse = getObjectResponseCompletableFuture.get();
+            if (objectResponse == null) {
+                throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(),
+                        String.format("Object metadata not found or response is null for bucket [%s], object [%s]", bucketName, objectName));
+            }
             OssMetadata ossMetadata = new OssMetadata();
             ossMetadata.setBucketName(bucketName);
             ossMetadata.setObjectName(objectName);
@@ -538,6 +546,10 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
         try (CustomMinioClient minioClient = obtainClient()) {
             CompletableFuture<GetObjectResponse> responseCompletableFuture = minioClient.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
             GetObjectResponse objectResponse = responseCompletableFuture.get();
+            if (objectResponse == null) {
+                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR.getErrorCode(),
+                        String.format("Object not found or response is null for bucket [%s], object [%s]", bucketName, objectName));
+            }
             consumer.accept(objectResponse);
         } catch (Exception e) {
             log.error("MinIO Unexpected error during download file for {}/{}: {}",

@@ -67,11 +67,16 @@ public interface OssExecutor {
     default String getObjectUrl(String bucketName, String objectName) {
         Configuration configInfo = obtainConfigInfo();
         if (configInfo == null) {
-            return null;
+            throw new IllegalStateException(
+                    String.format("Cannot get object URL: OSS configuration not found for bucket [%s], object [%s]", bucketName, objectName));
         }
         String domainName = configInfo.getDomain();
         if (StringUtils.isEmpty(domainName)) {
             domainName = configInfo.getEndpoint();
+        }
+        if (StringUtils.isEmpty(domainName)) {
+            throw new IllegalStateException(
+                    String.format("Cannot get object URL: Both domain and endpoint are empty in configuration for bucket [%s]", bucketName));
         }
         return new StringJoiner(StrPool.SLASH)
                 .add(domainName)
