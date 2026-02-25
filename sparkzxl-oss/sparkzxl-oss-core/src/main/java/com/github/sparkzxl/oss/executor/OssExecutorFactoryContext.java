@@ -16,6 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * description: OssExecutor 工厂上下文，支持缓存管理
+ * <p>
+ * 配置在应用初始化时确定，Executor 实例在应用生命周期内复用
+ * </p>
  *
  * @author zhouxinlei
  * @since 2022-10-12 08:42:42
@@ -23,38 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
 
-    /**
-     * 缓存条目包装类，支持过期时间检查
-     */
-    private static class CacheEntry {
-        private final OssExecutor executor;
-        private final long createTime;
-        private volatile long lastAccessTime;
-
-        CacheEntry(OssExecutor executor) {
-            this.executor = executor;
-            this.createTime = System.currentTimeMillis();
-            this.lastAccessTime = this.createTime;
-        }
-
-        OssExecutor getExecutor() {
-            this.lastAccessTime = System.currentTimeMillis();
-            return executor;
-        }
-
-        long getCreateTime() {
-            return createTime;
-        }
-
-        long getLastAccessTime() {
-            return lastAccessTime;
-        }
-    }
-
-    // 缓存最大空闲时间（毫秒），默认 30 分钟
-    private static final long MAX_IDLE_TIME_MS = 30 * 60 * 1000L;
-
-    private final Map<String, CacheEntry> executorMap = new ConcurrentHashMap<>();
+    private final Map<String, OssExecutor> executorMap = new ConcurrentHashMap<>();
     private final OssConfigProvider configProvider;
     private final OssClientFactory ossClientFactory;
 
@@ -93,29 +65,18 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
         String clientType = configuration.getClientType();
         String cacheKey = cacheKey(configuration.getClientType(), configuration.getClientId());
 
-        // 先检查缓存，避免重复创建
-        CacheEntry cacheEntry = executorMap.get(cacheKey);
-        if (cacheEntry != null && !isEntryExpired(cacheEntry)) {
-            return cacheEntry.getExecutor();
-        }
-
-        // 如果条目已过期，移除它
-        if (cacheEntry != null) {
-            executorMap.remove(cacheKey);
-            try {
-                cacheEntry.getExecutor().shutdown();
-                log.debug("Removed expired OssExecutor cache entry for cacheKey: {}", cacheKey);
-            } catch (Exception e) {
-                log.warn("Error while shutting down expired executor for cacheKey: {}", cacheKey, e);
-            }
+        // 先检查缓存（快速路径，无锁）
+        OssExecutor cachedExecutor = executorMap.get(cacheKey);
+        if (cachedExecutor != null) {
+            return cachedExecutor;
         }
 
         // 使用 synchronized 确保只有一个线程执行创建逻辑
         synchronized (this) {
             // 双重检查锁定
-            cacheEntry = executorMap.get(cacheKey);
-            if (cacheEntry != null && !isEntryExpired(cacheEntry)) {
-                return cacheEntry.getExecutor();
+            cachedExecutor = executorMap.get(cacheKey);
+            if (cachedExecutor != null) {
+                return cachedExecutor;
             }
 
             log.debug("create OssExecutor for clientId: {}, clientType: {}, endpoint: {}",
@@ -137,8 +98,8 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
                 // 步骤3: 创建 Executor
                 OssExecutor executor = ossExecutorFactory.create(ossClient);
 
-                // 步骤4: 成功后放入缓存
-                executorMap.put(cacheKey, new CacheEntry(executor));
+                // 步骤4: 成功后放入缓存（原子操作）
+                executorMap.put(cacheKey, executor);
                 return executor;
 
             } catch (Exception e) {
@@ -157,17 +118,6 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
                         String.format("Failed to create OssExecutor for cacheKey [%s], clientType [%s]", cacheKey, clientType), e);
             }
         }
-    }
-
-    /**
-     * 检查缓存条目是否过期
-     *
-     * @param entry 缓存条目
-     * @return true if expired, false otherwise
-     */
-    private boolean isEntryExpired(CacheEntry entry) {
-        long idleTime = System.currentTimeMillis() - entry.getLastAccessTime();
-        return idleTime > MAX_IDLE_TIME_MS;
     }
 
     @Override
@@ -196,9 +146,9 @@ public class OssExecutorFactoryContext implements ConfigCache, DisposableBean {
     @Override
     public void destroy() {
         log.info("OssExecutor 开始关闭 ....");
-        executorMap.forEach((key, entry) -> {
+        executorMap.forEach((key, executor) -> {
             try {
-                entry.getExecutor().shutdown();
+                executor.shutdown();
             } catch (Exception e) {
                 log.error("关闭 OssExecutor 异常 key: {}", key, e);
             }
