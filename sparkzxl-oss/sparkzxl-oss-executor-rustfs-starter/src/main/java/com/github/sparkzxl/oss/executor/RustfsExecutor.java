@@ -30,6 +30,7 @@ import java.io.*;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -457,7 +458,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             reqParams.put("uploadId", uploadId);
             for (int i = 1; i <= chunkCount; i++) {
                 reqParams.put("partNumber", String.valueOf(i));
-                String uploadUrl = rustfsClient.getPresignedObjectUrl(bucketName, objectName, reqParams);
+                String uploadUrl = rustfsClient.getPresignedObjectUrl(bucketName, objectName, reqParams, Duration.ofHours(1));
                 partList.add(uploadUrl);
             }
             log.info("文件初始化分片成功,{}/{}: uploadId={}", bucketName, objectName, uploadId);
@@ -592,7 +593,8 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             String uploadId = IdUtil.simpleUUID();
             Map<String, String> reqParams = new HashMap<>();
             reqParams.put("uploadId", uploadId);
-            String url = rustfsClient.getPresignedObjectUrl(bucketName, objectName, reqParams);
+            reqParams.put("partNumber", String.valueOf(1));
+            String url = rustfsClient.getPresignedObjectUrl(bucketName, objectName, reqParams, Duration.ofHours(1));
             urlList.add(url);
             uploadUrlsInfo.setUploadId(uploadId).setUrls(urlList);
             return uploadUrlsInfo;

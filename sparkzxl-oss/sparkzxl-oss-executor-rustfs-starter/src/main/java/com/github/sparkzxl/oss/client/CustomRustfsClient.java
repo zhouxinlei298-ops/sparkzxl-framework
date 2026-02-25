@@ -175,7 +175,7 @@ public class CustomRustfsClient {
     }
 
 
-    public String getPresignedObjectUrl(String bucketName, String objectName, Map<String, String> reqParams) {
+    public String getPresignedObjectUrl(String bucketName, String objectName, Map<String, String> reqParams,Duration duration) {
 
         // 上传生成带有查询参数的预签名 URL
         AwsRequestOverrideConfiguration.Builder overrideConfigurationBuilder = AwsRequestOverrideConfiguration.builder();
@@ -188,7 +188,7 @@ public class CustomRustfsClient {
         PresignedPutObjectRequest presignedPut = presigner.presignPutObject(
                 PutObjectPresignRequest.builder()
                         .putObjectRequest(putRequest)
-                        .signatureDuration(Duration.ofHours(1))
+                        .signatureDuration(duration)
                         .build()
         );
         log.info("Presigned URL: [{}]", presignedPut.url().toString());

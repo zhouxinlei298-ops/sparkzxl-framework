@@ -523,13 +523,14 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             String uploadId = IdUtil.simpleUUID();
             Map<String, String> reqParams = new HashMap<>();
             reqParams.put("uploadId", uploadId);
+            reqParams.put("partNumber", String.valueOf(1));
             String url = minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.PUT)
                     .bucket(bucketName)
                     .object(objectName)
                     .extraHeaders(headers)
                     .extraQueryParams(reqParams)
-                    .expiry(1, TimeUnit.DAYS)
+                    .expiry(1, TimeUnit.HOURS)
                     .build());
             urlList.add(url);
             uploadUrlsInfo.setUploadId(uploadId).setUrls(urlList);
