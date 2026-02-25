@@ -552,12 +552,8 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             }
             headers.put("Content-Type", contentType);
             String uploadId = IdUtil.simpleUUID();
-            Map<String, String> reqParams = new HashMap<>();
-            reqParams.put("uploadId", uploadId);
-            reqParams.put("partNumber", String.valueOf(1));
             OSSClient ossClient = obtainClient();
             GeneratePresignedUrlRequest generatePresignedUrlRequest = new GeneratePresignedUrlRequest(bucketName, objectName, HttpMethod.PUT);
-            generatePresignedUrlRequest.setQueryParameter(reqParams);
             generatePresignedUrlRequest.setHeaders(headers);
             // 设置1天有效期
             DateTime dateTime = DateUtils.offsetHour(new Date(), 1);
