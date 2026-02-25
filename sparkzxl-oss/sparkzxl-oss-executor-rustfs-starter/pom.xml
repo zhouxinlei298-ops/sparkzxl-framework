@@ -40,7 +40,7 @@
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
-            <artifactId>apache5-client</artifactId>
+            <artifactId>apache-client</artifactId>
         </dependency>
     </dependencies>
 

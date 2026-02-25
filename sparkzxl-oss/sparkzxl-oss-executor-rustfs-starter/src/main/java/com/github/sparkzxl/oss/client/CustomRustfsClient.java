@@ -1,10 +1,17 @@
 package com.github.sparkzxl.oss.client;
 
+import com.github.sparkzxl.oss.properties.Configuration;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.internal.signing.DefaultS3Presigner;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -12,6 +19,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
 
@@ -27,11 +35,37 @@ public class CustomRustfsClient {
 
     private final S3Client client;
     private final S3Presigner presigner;
+    private final SdkHttpClient apacheHttpClient = ApacheHttpClient.builder()
+            .maxConnections(100)
+            .connectionTimeout(Duration.ofSeconds(15))
+            .build();
 
-    public CustomRustfsClient(S3Client client) {
-        this.client = client;
+    public CustomRustfsClient(Configuration configuration) {
+        URI endpointUri = URI.create(configuration.getEndpoint());
+        Region region = Region.US_EAST_1;
+        StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(configuration.getAccessKey(),
+                        configuration.getSecretKey())
+        );
+        this.client = S3Client.builder()
+                // RustFS 地址
+                .endpointOverride(endpointUri)
+                // 2. 显式指定 Region（核心配置，双重保障）
+                .region(region)
+                .credentialsProvider(credentialsProvider)
+                // 关键配置！RustFS 需启用 Path-Style
+                .forcePathStyle(true)
+                .httpClient(apacheHttpClient)
+                .overrideConfiguration(
+                        b -> b.apiCallTimeout(Duration.ofSeconds(5))
+                                .apiCallAttemptTimeout(Duration.ofMillis(2000)))
+                .build();
         // 创建 S3Presigner 实例，复用以提升性能
-        this.presigner = S3Presigner.create();
+        this.presigner = DefaultS3Presigner.builder()
+                .endpointOverride(endpointUri)
+                .region(region)
+                .credentialsProvider(credentialsProvider)
+                .build();
     }
 
     /**
@@ -80,20 +114,17 @@ public class CustomRustfsClient {
      *
      * @param bucketName       String   桶名称
      * @param objectName       String   文件名称
-     * @param maxParts         Integer  分片数量
      * @param partNumberMarker Integer  分片起始值
      * @param uploadId         String   上传的 uploadId
      * @return ListPartsResponse
      */
     public ListPartsResponse listMultipart(String bucketName,
                                            String objectName,
-                                           Integer maxParts,
                                            Integer partNumberMarker,
                                            String uploadId) {
         ListPartsRequest listPartsRequest = ListPartsRequest.builder()
                 .bucket(bucketName)
                 .key(objectName)
-                .maxParts(maxParts)
                 .partNumberMarker(partNumberMarker)
                 .uploadId(uploadId)
                 .build();
@@ -201,6 +232,15 @@ public class CustomRustfsClient {
                 log.error("Error closing S3Presigner: {}", e.getMessage(), e);
             }
         }
+        // 关闭 Apache5 HTTP 客户端
+        if (apacheHttpClient != null) {
+            try {
+                apacheHttpClient.close();
+                log.debug("Rustfs HTTP client closed successfully");
+            } catch (Exception e) {
+                log.error("Error closing Rustfs HTTP client: {}", e.getMessage(), e);
+            }
+        }
         // 关闭 S3Client
         if (client != null) {
             try {
@@ -210,5 +250,6 @@ public class CustomRustfsClient {
                 log.error("Error closing S3Client: {}", e.getMessage(), e);
             }
         }
+
     }
 }

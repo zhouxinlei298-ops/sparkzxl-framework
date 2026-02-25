@@ -535,7 +535,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             boolean isTruncated = true;
             List<Part> parts = new ArrayList<>();
             while (isTruncated) {
-                ListPartsResponse partResult = rustfsClient.listMultipart(bucketName, objectName, 10000, partNumberMarker, uploadId);
+                ListPartsResponse partResult = rustfsClient.listMultipart(bucketName, objectName, partNumberMarker, uploadId);
                 parts.addAll(partResult.parts());
                 // 检查是否还有更多分片
                 isTruncated = partResult.isTruncated();
