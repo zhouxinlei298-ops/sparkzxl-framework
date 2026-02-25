@@ -5,13 +5,14 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.internal.signing.DefaultS3Presigner;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -61,10 +62,13 @@ public class CustomRustfsClient {
                                 .apiCallAttemptTimeout(Duration.ofMillis(2000)))
                 .build();
         // 创建 S3Presigner 实例，复用以提升性能
-        this.presigner = DefaultS3Presigner.builder()
+        this.presigner = S3Presigner.builder()
                 .endpointOverride(endpointUri)
                 .region(region)
                 .credentialsProvider(credentialsProvider)
+                .serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build())
                 .build();
     }
 
@@ -172,10 +176,14 @@ public class CustomRustfsClient {
 
 
     public String getPresignedObjectUrl(String bucketName, String objectName, Map<String, String> reqParams) {
+
+        // 上传生成带有查询参数的预签名 URL
+        AwsRequestOverrideConfiguration.Builder overrideConfigurationBuilder = AwsRequestOverrideConfiguration.builder();
+        reqParams.forEach(overrideConfigurationBuilder::putRawQueryParameter);
         PutObjectRequest putRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectName)
-                .metadata(reqParams)
+                .overrideConfiguration(overrideConfigurationBuilder.build())
                 .build();
         PresignedPutObjectRequest presignedPut = presigner.presignPutObject(
                 PutObjectPresignRequest.builder()
