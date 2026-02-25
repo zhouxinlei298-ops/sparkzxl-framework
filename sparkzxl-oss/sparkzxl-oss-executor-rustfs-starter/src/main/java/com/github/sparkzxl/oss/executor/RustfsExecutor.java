@@ -592,8 +592,6 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             List<String> urlList = new ArrayList<>();
             String uploadId = IdUtil.simpleUUID();
             Map<String, String> reqParams = new HashMap<>();
-            reqParams.put("uploadId", uploadId);
-            reqParams.put("partNumber", String.valueOf(1));
             String url = rustfsClient.getPresignedObjectUrl(bucketName, objectName, reqParams, Duration.ofHours(1));
             urlList.add(url);
             uploadUrlsInfo.setUploadId(uploadId).setUrls(urlList);

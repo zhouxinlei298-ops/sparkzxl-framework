@@ -522,8 +522,6 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             headers.put("Content-Type", contentType);
             String uploadId = IdUtil.simpleUUID();
             Map<String, String> reqParams = new HashMap<>();
-            reqParams.put("uploadId", uploadId);
-            reqParams.put("partNumber", String.valueOf(1));
             String url = minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.PUT)
                     .bucket(bucketName)
