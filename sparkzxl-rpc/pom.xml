@@ -15,7 +15,7 @@
 
     <modules>
         <module>sparkzxl-feign</module>
-        <module>sparkzxl-dubbo</module>
+        <module>sparkzxl-dubbo-starter</module>
         <module>sparkzxl-grpc</module>
     </modules>
 

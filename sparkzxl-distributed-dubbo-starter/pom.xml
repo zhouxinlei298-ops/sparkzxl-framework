@@ -45,8 +45,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.sparkzxl</groupId>
-            <artifactId>sparkzxl-dubbo</artifactId>
-            <version>2.0.1-SNAPSHOT</version>
+            <artifactId>sparkzxl-dubbo-starter</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -1,0 +1,129 @@
+package com.github.sparkzxl.dubbo.support;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.framework.autoproxy.AutoProxyUtils;
+import org.springframework.aop.scope.ScopedObject;
+import org.springframework.aop.scope.ScopedProxyUtils;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanInitializationException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.MethodIntrospector;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * description: 异常处理方法处理器
+ *
+ * @author zhoux
+ */
+@Slf4j
+public class ExceptionHandlerMethodProcessor implements ApplicationContextAware, InitializingBean {
+
+    private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
+    private ConfigurableApplicationContext applicationContext;
+
+    private static boolean isSpringContainerClass(Class<?> clazz) {
+        return (clazz.getName().startsWith("org.springframework.") &&
+                !AnnotatedElementUtils.isAnnotated(ClassUtils.getUserClass(clazz), Component.class));
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        Assert.isTrue(applicationContext instanceof ConfigurableApplicationContext,
+                "ApplicationContext does not implement ConfigurableApplicationContext");
+        this.applicationContext = (ConfigurableApplicationContext) applicationContext;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) this.applicationContext.getBeanFactory();
+        String[] beanNames = beanFactory.getBeanNamesForType(Object.class);
+        for (String beanName : beanNames) {
+            if (!ScopedProxyUtils.isScopedTarget(beanName)) {
+                Class<?> targetType = null;
+                try {
+                    targetType = AutoProxyUtils.determineTargetClass(beanFactory, beanName);
+                } catch (Throwable ex) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Could not resolve target class for bean with name '" + beanName + "'", ex);
+                    }
+                }
+                if (targetType != null) {
+                    if (ScopedObject.class.isAssignableFrom(targetType)) {
+                        try {
+                            Class<?> targetClass = AutoProxyUtils.determineTargetClass(
+                                    beanFactory, ScopedProxyUtils.getTargetBeanName(beanName));
+                            if (targetClass != null) {
+                                targetType = targetClass;
+                            }
+                        } catch (Throwable ex) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Could not resolve target bean for scoped proxy '" + beanName + "'", ex);
+                            }
+                        }
+                    }
+                    try {
+                        processBean(beanName, targetType);
+                    } catch (Throwable ex) {
+                        throw new BeanInitializationException("Failed to process @MessageListener " +
+                                "annotation on bean with name '" + beanName + "'", ex);
+                    }
+                }
+            }
+        }
+    }
+
+    private void processBean(final String beanName, final Class<?> targetType) {
+        if (!this.nonAnnotatedClasses.contains(targetType) && !isSpringContainerClass(targetType)) {
+            Map<Method, ExceptionHandler> annotatedMethods = null;
+            try {
+                annotatedMethods = MethodIntrospector.selectMethods(targetType,
+                        (MethodIntrospector.MetadataLookup<ExceptionHandler>) method ->
+                                AnnotatedElementUtils.findMergedAnnotation(method, ExceptionHandler.class));
+            } catch (Throwable ex) {
+                // An unresolvable type in a method signature, probably from a lazy bean - let's ignore it.
+                if (log.isDebugEnabled()) {
+                    log.debug("Could not resolve methods for bean with name '" + beanName + "'", ex);
+                }
+            }
+            if (CollectionUtils.isEmpty(annotatedMethods)) {
+                this.nonAnnotatedClasses.add(targetType);
+                if (log.isTraceEnabled()) {
+                    log.trace("No @ExceptionHandler annotations found on bean class: " + targetType.getName());
+                }
+            } else {
+                for (Method method : annotatedMethods.keySet()) {
+                    Method methodToUse = AopUtils.selectInvocableMethod(method, this.applicationContext.getType(beanName));
+                    Class<?>[] parameterTypes = methodToUse.getParameterTypes();
+                    if (parameterTypes.length == 0) {
+                        throw new IllegalArgumentException("Exception Handler Must Have One Parameters ");
+                    }
+                    ExceptionHandler exceptionHandlerAnnotation = annotatedMethods.get(method);
+                    Class<? extends Throwable>[] value = exceptionHandlerAnnotation.value();
+                    for (Class<? extends Throwable> aClass : value) {
+                        ExceptionHandlerLoad.load(aClass);
+                    }
+                }
+                if (log.isDebugEnabled()) {
+                    log.debug(annotatedMethods.size() + " @ExceptionHandler methods processed on bean '" +
+                            beanName + "': " + annotatedMethods);
+                }
+            }
+        }
+    }
+}

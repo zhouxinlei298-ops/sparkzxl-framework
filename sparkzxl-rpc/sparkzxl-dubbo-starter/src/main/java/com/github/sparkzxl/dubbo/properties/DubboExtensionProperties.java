@@ -5,14 +5,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.logging.LogLevel;
 
 /**
- * description: 自定义配置
+ * description: dubbo扩展配置
  *
  * @author zhouxinlei
  * @since 2022-08-06 14:23:34
  */
 @Data
-@ConfigurationProperties(prefix = "dubbo.custom")
-public class DubboCustomProperties {
+@ConfigurationProperties(prefix = "dubbo.extension")
+public class DubboExtensionProperties {
 
     private boolean requestLog;
 

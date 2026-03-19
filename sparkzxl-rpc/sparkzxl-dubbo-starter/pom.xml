@@ -9,31 +9,38 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sparkzxl-dubbo</artifactId>
+    <artifactId>sparkzxl-dubbo-starter</artifactId>
 
     <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dubbo.version>3.1.7</dubbo.version>
+        <dubbo.version>3.3.5</dubbo.version>
         <javax.el.version>3.0.1-b12</javax.el.version>
         <hibernate-validator.version>7.0.4.Final</hibernate-validator.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo-bom</artifactId>
+                <version>${dubbo.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo</artifactId>
-            <version>${dubbo.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-spring-boot-starter</artifactId>
-            <version>${dubbo.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-spring-boot-actuator</artifactId>
-            <version>${dubbo.version}</version>
+            <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
         </dependency>
         <!-- 参数校验相关依赖 -->
         <dependency>
@@ -45,12 +52,6 @@
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId> <!-- JSR 参数校验规范实现，我们使用 hibernate-validator -->
             <version>${hibernate-validator.version}</version>
-        </dependency>
-        <!-- 可能涉及到 EL 表达，所以引入，否则 hibernate-validator 在初始化会报错 -->
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.el</artifactId>
-            <version>${javax.el.version}</version>
         </dependency>
         <!-- 实现对 Actuator 的自动化配置 -->
         <dependency>

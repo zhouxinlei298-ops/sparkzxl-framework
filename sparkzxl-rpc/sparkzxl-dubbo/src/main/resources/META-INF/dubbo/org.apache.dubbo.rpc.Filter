@@ -1,3 +1,0 @@
-validationException=com.github.sparkzxl.dubbo.filter.ValidationExceptionFilter
-requestContext=com.github.sparkzxl.dubbo.filter.RequestContextFilter
-requestLog=com.github.sparkzxl.dubbo.filter.RequestLogFilter
