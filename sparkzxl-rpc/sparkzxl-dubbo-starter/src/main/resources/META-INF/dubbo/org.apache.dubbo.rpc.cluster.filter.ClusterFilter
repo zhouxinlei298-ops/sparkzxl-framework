@@ -1,0 +1,1 @@
+serviceFallback=com.github.sparkzxl.dubbo.filter.ServiceFallbackFilter

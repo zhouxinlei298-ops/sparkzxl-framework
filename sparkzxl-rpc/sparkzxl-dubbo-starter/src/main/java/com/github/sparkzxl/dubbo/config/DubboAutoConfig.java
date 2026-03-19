@@ -1,5 +1,6 @@
 package com.github.sparkzxl.dubbo.config;
 
+import com.github.sparkzxl.dubbo.properties.DubboConsumerProperties;
 import com.github.sparkzxl.dubbo.properties.DubboExtensionProperties;
 import com.github.sparkzxl.dubbo.support.DubboExceptionHandler;
 import com.github.sparkzxl.dubbo.support.ExceptionHandlerMethodProcessor;
@@ -13,7 +14,7 @@ import org.springframework.context.annotation.Import;
  * @author zhouxinlei
  */
 @Configuration
-@EnableConfigurationProperties(DubboExtensionProperties.class)
+@EnableConfigurationProperties({DubboExtensionProperties.class, DubboConsumerProperties.class})
 @Import({DubboExceptionHandler.class, ExceptionHandlerMethodProcessor.class})
 public class DubboAutoConfig {
 
