@@ -5,7 +5,7 @@ import cn.hutool.core.util.ClassLoaderUtil;
 import com.github.sparkzxl.core.support.ArgumentException;
 import com.github.sparkzxl.dubbo.support.DubboTransferException;
 import com.github.sparkzxl.dubbo.support.ExceptionHandlerLoad;
-import com.github.sparkzxl.dubbo.support.ServiceException;
+import com.github.sparkzxl.dubbo.support.RpcFallbackException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.common.extension.Activate;
@@ -54,14 +54,12 @@ public class ExceptionEnhancedFilter implements Filter, Filter.Listener {
                     appResponse.setException(this.handleConstraintViolationException((ConstraintViolationException) exception));
                     return;
                 }
-                // <2> 如果是参数 ArgumentException 异常，则封装返回
+                // <2> 如果是参数 ArgumentException 异常，直接返回（异常已存在，无需重复设置）
                 if (exception instanceof ArgumentException) {
-                    appResponse.setException(exception);
                     return;
                 }
-                // <2> 如果是服务级别的异常，则跳过
-                if (exception instanceof ServiceException) {
-                    appResponse.setException(exception);
+                // <3> 如果是RPC降级的异常，直接返回（异常已存在，无需重复设置）
+                if (exception instanceof RpcFallbackException) {
                     return;
                 }
 

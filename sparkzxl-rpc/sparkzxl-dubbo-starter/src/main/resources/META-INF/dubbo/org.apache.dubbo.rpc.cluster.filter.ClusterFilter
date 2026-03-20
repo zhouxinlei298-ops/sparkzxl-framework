@@ -1,1 +1,1 @@
-serviceFallback=com.github.sparkzxl.dubbo.filter.ServiceFallbackFilter
+rpcFallback=com.github.sparkzxl.dubbo.filter.RpcFallbackFilter

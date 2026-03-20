@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class DubboExceptionHandler implements Ordered {
 
-    @ExceptionHandler(ServiceException.class)
-    public R<?> handleServiceTimeOutException(ServiceException e) {
+    @ExceptionHandler(RpcFallbackException.class)
+    public R<?> handleRpcFallbackException(RpcFallbackException e) {
         log.error("DUBBO 服务异常:{}", e.getMessage());
         return R.failDetail(e.getErrorCode(), e.getMessage());
     }
