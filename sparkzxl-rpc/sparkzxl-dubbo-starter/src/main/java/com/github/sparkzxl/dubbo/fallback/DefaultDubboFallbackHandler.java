@@ -51,7 +51,7 @@ public enum DefaultDubboFallbackHandler implements DubboFallbackHandler {
                 message = "服务接口" + interfaceMethodName + "调用异常";
         }
 
-        log.error("[服务降级]  交界口方法: {},  错误码: {}, 错误: {}",
+        log.error("[服务降级]  接口方法: {},  错误码: {}, 错误: {}",
                 interfaceMethodName, errorCode, exception.getMessage());
 
         RpcFallbackException fallbackException = new RpcFallbackException(errorCode, message + "，请稍后重试");
