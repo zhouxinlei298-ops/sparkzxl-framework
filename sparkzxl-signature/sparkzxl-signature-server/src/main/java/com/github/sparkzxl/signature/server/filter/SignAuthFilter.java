@@ -105,7 +105,7 @@ public class SignAuthFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
         String contentType = request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
-        // 获取时间戳
+        // 获取appKey
         String appKey = request.getHeaders().getFirst(SignatureConstant.APP_KEY);
         // 获取时间戳
         String timestamp = request.getHeaders().getFirst(SignatureConstant.TIMESTAMP);
