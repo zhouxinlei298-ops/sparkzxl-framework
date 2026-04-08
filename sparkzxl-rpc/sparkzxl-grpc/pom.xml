@@ -16,5 +16,14 @@
         <module>sparkzxl-grpc-server-starter</module>
         <module>sparkzxl-grpc-core</module>
     </modules>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.github.sparkzxl</groupId>
+                <artifactId>sparkzxl-grpc-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>

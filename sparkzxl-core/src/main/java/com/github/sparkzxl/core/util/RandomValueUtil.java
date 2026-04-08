@@ -1,5 +1,7 @@
 package com.github.sparkzxl.core.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.UnsupportedEncodingException;
 import java.util.Random;
 
@@ -9,6 +11,7 @@ import java.util.Random;
  * @author zhouxinlei
  * @since 2022-03-18 12:45:00
  */
+@Slf4j
 public class RandomValueUtil {
 
     public static final String[] EMAIL_SUFFIX = "@gmail.com,@yahoo.com,@msn.com,@hotmail.com,@aol.com,@ask.com,@live.com,@qq.com,@0355.net,@163.com,@163.net,@263.net,@3721.net,@yeah.net,@googlemail.com,@126.com,@sina.com,@sohu.com,@yahoo.com.cn".split(
@@ -118,8 +121,7 @@ public class RandomValueUtil {
         try {
             str = new String(b, "GBK");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            System.out.println("错误");
+            log.error("不支持的编码异常：{}", e.getMessage());
         }
         return str.charAt(0);
     }

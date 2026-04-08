@@ -210,9 +210,7 @@ public class MyBatisAutoConfiguration {
     }
 
     @Bean
-    public SlowSqlMonitorInterceptor slowSqlMonitorInterceptor(ApplicationContext applicationContext) {
-        SlowSqlMonitorInterceptor slowSqlMonitorInterceptor = new SlowSqlMonitorInterceptor();
-        slowSqlMonitorInterceptor.setApplicationContext(applicationContext);
-        return slowSqlMonitorInterceptor;
+    public SlowSqlMonitorInterceptor slowSqlMonitorInterceptor() {
+        return new SlowSqlMonitorInterceptor();
     }
 }

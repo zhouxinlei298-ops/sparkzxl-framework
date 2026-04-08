@@ -1,10 +1,7 @@
 package com.github.sparkzxl.oss;
 
 import com.github.sparkzxl.oss.context.OssClientContextHolder;
-import com.github.sparkzxl.oss.entity.FileUploadInfo;
-import com.github.sparkzxl.oss.entity.OssObject;
-import com.github.sparkzxl.oss.entity.PartData;
-import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
+import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.executor.OssExecutor;
 import com.github.sparkzxl.oss.executor.OssExecutorFactoryContext;
 import com.github.sparkzxl.oss.properties.OssProperties;
@@ -15,6 +12,9 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
@@ -95,6 +95,18 @@ public class OssTemplate implements InitializingBean {
     }
 
     /**
+     * 获取文件内容和元信息
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @return OssMetadata
+     */
+    public OssMetadata getOssMetadata(String bucketName, String objectName) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.getOssMetadata(bucketName, objectName);
+    }
+
+    /**
      * 文件是否存在
      *
      * @param bucketName bucket名称
@@ -113,9 +125,9 @@ public class OssTemplate implements InitializingBean {
      * @param objectName    文件名称
      * @param multipartFile 文件
      */
-    public void putObject(String bucketName, String objectName, MultipartFile multipartFile) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
         OssExecutor ossExecutor = obtainExecutor();
-        ossExecutor.putObject(bucketName, objectName, multipartFile);
+        return ossExecutor.putObject(bucketName, objectName, multipartFile);
     }
 
     /**
@@ -125,9 +137,9 @@ public class OssTemplate implements InitializingBean {
      * @param objectName oss对象名称
      * @param filePath   文件地址
      */
-    public void putObject(String bucketName, String objectName, String filePath) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
         OssExecutor ossExecutor = obtainExecutor();
-        ossExecutor.putObject(bucketName, objectName, filePath);
+        return ossExecutor.putObject(bucketName, objectName, filePath);
     }
 
     /**
@@ -137,9 +149,9 @@ public class OssTemplate implements InitializingBean {
      * @param objectName oss对象名称
      * @param url        文件地址
      */
-    public void putObject(String bucketName, String objectName, URL url) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
         OssExecutor ossExecutor = obtainExecutor();
-        ossExecutor.putObject(bucketName, objectName, url);
+        return ossExecutor.putObject(bucketName, objectName, url);
     }
 
     /**
@@ -170,7 +182,7 @@ public class OssTemplate implements InitializingBean {
     /**
      * 获取OSS中已经上传的分片文件
      *
-     * @param bucketName     bucket名称
+     * @param bucketName bucket名称
      * @param objectName oss对象名称
      * @param uploadId   上传标识ID
      * @return List<Integer>
@@ -191,6 +203,17 @@ public class OssTemplate implements InitializingBean {
         return ossExecutor.mergeMultipartUpload(bucketName, objectName, uploadId);
     }
 
+    /**
+     * 中止分片上传
+     *
+     * @param objectName oss对象名称
+     * @param uploadId   上传标识ID
+     */
+    public boolean abortMultipartUpload(String bucketName, String objectName, String uploadId) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.abortMultipartUpload(bucketName, objectName, uploadId);
+    }
+
 
     /**
      * 删除文件
@@ -201,11 +224,6 @@ public class OssTemplate implements InitializingBean {
     public void removeObject(String bucketName, String objectName) {
         OssExecutor ossExecutor = obtainExecutor();
         ossExecutor.removeObject(bucketName, objectName);
-    }
-
-    public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
-        OssExecutor ossExecutor = obtainExecutor();
-        ossExecutor.downloadFile(bucketName, objectName, consumer);
     }
 
     /**
@@ -221,13 +239,35 @@ public class OssTemplate implements InitializingBean {
         return ossExecutor.getPresignedObjectUploadUrl(bucketName, objectName, contentType);
     }
 
+    public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
+        OssExecutor ossExecutor = obtainExecutor();
+        ossExecutor.downloadFile(bucketName, objectName, consumer);
+    }
+
+    /**
+     * 分片下载文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param fileName   文件名
+     * @param request    HTTP请求
+     * @param response   HTTP响应
+     * @throws IOException IO异常
+     */
+    public void downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        log.info("下载文件的 object <{}>", objectName);
+        OssExecutor ossExecutor = obtainExecutor();
+        ossExecutor.downloadMultipartFile(bucketName, objectName, fileName, request, response);
+    }
+
     public OssExecutor obtainExecutor() {
         String clientId = OssClientContextHolder.peek();
         if (clientId == null) {
+            Assert.notNull(primaryExecutor, "Primary OssExecutor not initialized. Please check the OSS configuration.");
             return primaryExecutor;
         }
         final OssExecutor ossExecutor = ossExecutorFactoryContext.create(clientId);
-        Assert.notNull(ossExecutor, String.format("Can not get bean type of %s", ossExecutor.getClass()));
+        Assert.notNull(ossExecutor, String.format("Cannot get OssExecutor for clientId [%s]", clientId));
         return ossExecutor;
     }
 

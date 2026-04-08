@@ -87,6 +87,7 @@
         <xstream.version>1.4.20</xstream.version>
         <okio.version>2.10.0</okio.version>
         <okhttp3.version>4.10.0</okhttp3.version>
+        <snakeyaml.version>2.0</snakeyaml.version>
     </properties>
 
     <licenses>
@@ -631,6 +632,12 @@
                 <artifactId>sparkzxl-elasticsearch-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!-- rpc -->
+            <dependency>
+                <groupId>com.github.sparkzxl</groupId>
+                <artifactId>sparkzxl-dubbo-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-feign-core</artifactId>
@@ -638,7 +645,22 @@
             </dependency>
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
+                <artifactId>sparkzxl-feign-hystrix-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-feign-resilience4j-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.sparkzxl</groupId>
+                <artifactId>sparkzxl-grpc-client-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.sparkzxl</groupId>
+                <artifactId>sparkzxl-grpc-server-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -679,6 +701,11 @@
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-oss-executor-minio-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.sparkzxl</groupId>
+                <artifactId>sparkzxl-oss-executor-rustfs-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -759,21 +786,6 @@
                 <artifactId>grpc-client-spring-boot-starter</artifactId>
                 <version>${grpc-spring-boot-starter.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.github.sparkzxl</groupId>
-                <artifactId>sparkzxl-grpc-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.sparkzxl</groupId>
-                <artifactId>sparkzxl-grpc-client-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.sparkzxl</groupId>
-                <artifactId>sparkzxl-grpc-server-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <!-- 警告修复，依赖版本升级-->
             <dependency>
                 <groupId>com.thoughtworks.xstream</groupId>
@@ -784,6 +796,11 @@
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okio</groupId>

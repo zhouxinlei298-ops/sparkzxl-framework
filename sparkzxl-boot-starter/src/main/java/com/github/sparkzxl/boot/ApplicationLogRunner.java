@@ -31,7 +31,7 @@ public class ApplicationLogRunner implements ApplicationRunner, Ordered {
         Environment env = applicationContext.getEnvironment();
         String applicationName = env.getProperty("spring.application.name");
         int port = Convert.toInt(env.getProperty("server.port"), -1);
-        String url = UrlBuilder.create()
+        String url = UrlBuilder.of()
                 .setHost(NetUtil.getLocalhostStr())
                 .setPort(port).build();
         log.info("\n______________________________________________________________\n\t" +

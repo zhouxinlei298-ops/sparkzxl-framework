@@ -10,7 +10,15 @@
 
     <artifactId>sparkzxl-distributed-dubbo-starter</artifactId>
 
+    <properties>
+        <dubbo.version>3.1.7</dubbo.version>
+    </properties>
+
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
@@ -37,8 +45,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.sparkzxl</groupId>
-            <artifactId>sparkzxl-dubbo</artifactId>
-            <version>3.0.1-SNAPSHOT</version>
+            <artifactId>sparkzxl-dubbo-starter</artifactId>
         </dependency>
     </dependencies>
 </project>

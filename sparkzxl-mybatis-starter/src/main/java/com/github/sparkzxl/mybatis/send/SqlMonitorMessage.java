@@ -3,6 +3,8 @@ package com.github.sparkzxl.mybatis.send;
 import com.github.sparkzxl.mybatis.plugins.SlowSqlMonitorInterceptor;
 import lombok.Data;
 
+import java.io.Serializable;
+
 /**
  * description: SQL监控消息
  *
@@ -10,8 +12,9 @@ import lombok.Data;
  * @since 2022-06-16 17:23:12
  */
 @Data
-public class SqlMonitorMessage {
+public class SqlMonitorMessage implements Serializable {
 
+    private static final long serialVersionUID = -4841520988413719622L;
     /**
      * 监控类型
      */
@@ -46,4 +49,5 @@ public class SqlMonitorMessage {
      * 执行耗时
      */
     private long executeTime;
+
 }

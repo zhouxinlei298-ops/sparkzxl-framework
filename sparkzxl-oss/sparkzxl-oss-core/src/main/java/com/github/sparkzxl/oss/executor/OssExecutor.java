@@ -1,17 +1,19 @@
 package com.github.sparkzxl.oss.executor;
 
-import cn.hutool.core.net.url.UrlBuilder;
-import com.github.sparkzxl.oss.entity.FileUploadInfo;
-import com.github.sparkzxl.oss.entity.OssObject;
-import com.github.sparkzxl.oss.entity.PartData;
-import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
+import com.github.sparkzxl.core.util.StrPool;
+import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
 
 /**
@@ -59,10 +61,32 @@ public interface OssExecutor {
      * 获取文件访问路径
      *
      * @param bucketName bucket名称
-     * @param objectName oss对象名称
+     * @param objectName 文件名称
      * @return String
      */
-    String getObjectUrl(String bucketName, String objectName);
+    default String getObjectUrl(String bucketName, String objectName) {
+        Configuration configInfo = obtainConfigInfo();
+        if (configInfo == null) {
+            throw new IllegalStateException(
+                    String.format("Cannot get object URL: OSS configuration not found for bucket [%s], object [%s]", bucketName, objectName));
+        }
+        String domainName = configInfo.getDomain();
+        if (StringUtils.isEmpty(domainName)) {
+            domainName = configInfo.getEndpoint();
+        }
+        if (StringUtils.isEmpty(domainName)) {
+            throw new IllegalStateException(
+                    String.format("Cannot get object URL: Both domain and endpoint are empty in configuration for bucket [%s]", bucketName));
+        }
+        // 优化：使用字符串连接代替 StringJoiner，避免重复创建对象
+        // 确保 domainName 末尾没有 /，bucketName 和 objectName 开头没有 /
+        StringBuilder url = new StringBuilder(domainName);
+        if (!domainName.endsWith("/")) {
+            url.append('/');
+        }
+        url.append(bucketName).append('/').append(objectName);
+        return url.toString();
+    }
 
     /**
      * 获取文件
@@ -72,6 +96,15 @@ public interface OssExecutor {
      * @return OssObject 二进制流
      */
     OssObject getObjectInfo(String bucketName, String objectName);
+
+    /**
+     * 获取文件内容和元信息
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @return OssMetadata
+     */
+    OssMetadata getOssMetadata(String bucketName, String objectName);
 
     /**
      * 判断文件是否存在
@@ -88,8 +121,9 @@ public interface OssExecutor {
      * @param bucketName    bucket名称
      * @param objectName    文件名称
      * @param multipartFile 文件
+     * @return OssPushObjectResponse
      */
-    void putObject(String bucketName, String objectName, MultipartFile multipartFile);
+    OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile);
 
     /**
      * 上传文件
@@ -97,8 +131,9 @@ public interface OssExecutor {
      * @param bucketName bucket名称
      * @param objectName oss对象名称
      * @param filePath   文件路径
+     * @return OssPushObjectResponse
      */
-    void putObject(String bucketName, String objectName, String filePath);
+    OssPushObjectResponse putObject(String bucketName, String objectName, String filePath);
 
     /**
      * 上传文件
@@ -106,8 +141,9 @@ public interface OssExecutor {
      * @param bucketName bucket名称
      * @param objectName oss对象名称
      * @param url        文件地址
+     * @return OssPushObjectResponse
      */
-    void putObject(String bucketName, String objectName, URL url);
+    OssPushObjectResponse putObject(String bucketName, String objectName, URL url);
 
     /**
      * 分段上传
@@ -148,29 +184,21 @@ public interface OssExecutor {
     boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId);
 
     /**
+     * 中止分片上传
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param uploadId   上传标识ID
+     */
+    boolean abortMultipartUpload(String bucketName, String objectName, String uploadId);
+
+    /**
      * 删除文件
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
      */
     void removeObject(String bucketName, String objectName);
-
-    /**
-     * 下载文件
-     *
-     * @param bucketName bucket名称
-     * @param objectName oss对象名称
-     * @param consumer   消费
-     */
-    void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer);
-
-    /**
-     * 文件url前半段
-     *
-     * @param bucketName bucket名称
-     * @return UrlBuilder
-     */
-    UrlBuilder getObjectPrefixUrl(String bucketName);
 
     /**
      * 获取文件上传地址
@@ -183,9 +211,34 @@ public interface OssExecutor {
     UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType);
 
     /**
+     * 下载文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param consumer   消费
+     */
+    void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer);
+
+    /**
+     * 分片下载文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param fileName   文件名
+     * @param request    HTTP请求
+     * @param response   HTTP响应
+     * @throws IOException IO异常
+     */
+    void downloadMultipartFile(String bucketName,
+                               String objectName,
+                               String fileName,
+                               HttpServletRequest request,
+                               HttpServletResponse response) throws IOException;
+
+    /**
      * 销毁
      */
-    void showdown();
+    void shutdown();
 
     default Configuration obtainConfigInfo() {
         return null;

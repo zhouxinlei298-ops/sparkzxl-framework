@@ -1,17 +1,11 @@
 package com.github.sparkzxl.oss.executor;
 
-import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.URLUtil;
-import com.github.sparkzxl.core.util.TimeUtil;
+import cn.hutool.http.HttpUtil;
 import com.github.sparkzxl.oss.client.CustomMinioClient;
 import com.github.sparkzxl.oss.client.OssClient;
-import com.github.sparkzxl.oss.entity.FileUploadInfo;
-import com.github.sparkzxl.oss.entity.OssObject;
-import com.github.sparkzxl.oss.entity.PartData;
-import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
+import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
 import com.github.sparkzxl.oss.support.OssErrorCode;
@@ -21,21 +15,24 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.Part;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -73,8 +70,9 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public void createBucket(String bucketName) {
-        CustomMinioClient minioClient = obtainClient();
-        try {
+        // 验证 bucketName
+        validateBucketName(bucketName);
+        try (CustomMinioClient minioClient = obtainClient()) {
             CompletableFuture<Boolean> bucketedExists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
             Boolean found = bucketedExists.get(5, TimeUnit.SECONDS);
             if (!found) {
@@ -83,27 +81,31 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                 log.info("bucket [{}] already exists.", bucketName);
             }
         } catch (Exception e) {
+            log.error("MinIO unexpected error during create bucket for {}: {}",
+                    bucketName, e.getMessage(), e);
             throw new OssException(OssErrorCode.CREATE_BUCKET_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
     public void removeBucket(String bucketName) {
-        CustomMinioClient minioClient = obtainClient();
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
             minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
         } catch (Exception e) {
+            log.error("MinIO unexpected error during remove bucket for {}: {}",
+                    bucketName, e.getMessage(), e);
             throw new OssException(OssErrorCode.DELETE_BUCKET_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
     public String getObjectUrl(String bucketName, String objectName, Integer expire) {
-        CustomMinioClient minioClient = obtainClient();
         String objectUrl;
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
             objectUrl = minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().bucket(bucketName).object(objectName).expiry(expire).build());
         } catch (Exception e) {
+            log.error("MinIO unexpected error during get object url for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(), e.getMessage());
         }
         Configuration configInfo = obtainConfigInfo();
@@ -111,30 +113,57 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     }
 
     @Override
-    public String getObjectUrl(String bucketName, String objectName) {
-        return URLUtil.decode(getObjectPrefixUrl(bucketName).addPath(objectName).build());
-    }
-
-    @Override
     public OssObject getObjectInfo(String bucketName, String objectName) {
-        CustomMinioClient minioClient = obtainClient();
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
             CompletableFuture<GetObjectResponse> getObjectResponseCompletableFuture = minioClient.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
             GetObjectResponse minioClientObject = getObjectResponseCompletableFuture.get();
+            if (minioClientObject == null) {
+                throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(),
+                        String.format("Object not found or response is null for bucket [%s], object [%s]", bucketName, objectName));
+            }
             OssObject ossObject = new OssObject();
             ossObject.setBucketName(minioClientObject.bucket());
             ossObject.setKey(minioClientObject.object());
             ossObject.setObjectContent(minioClientObject);
             return ossObject;
         } catch (Exception e) {
+            log.error("MinIO unexpected error during get object info for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
+            throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(), e.getMessage());
+        }
+    }
+
+    @Override
+    public OssMetadata getOssMetadata(String bucketName, String objectName) {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            CompletableFuture<StatObjectResponse> getObjectResponseCompletableFuture = minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .build());
+            StatObjectResponse objectResponse = getObjectResponseCompletableFuture.get();
+            if (objectResponse == null) {
+                throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(),
+                        String.format("Object metadata not found or response is null for bucket [%s], object [%s]", bucketName, objectName));
+            }
+            OssMetadata ossMetadata = new OssMetadata();
+            ossMetadata.setBucketName(bucketName);
+            ossMetadata.setObjectName(objectName);
+            ossMetadata.setSize(objectResponse.size());
+            ossMetadata.setContentType(objectResponse.contentType());
+            ossMetadata.setLastModified(objectResponse.lastModified().toLocalDateTime());
+            ossMetadata.setEtag(objectResponse.etag());
+            ossMetadata.setUserMetadata(objectResponse.userMetadata());
+            return ossMetadata;
+        } catch (Exception e) {
+            log.error("MinIO unexpected error during get object metadata for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
     public boolean exists(String bucketName, String objectName) {
-        CustomMinioClient minioClient = obtainClient();
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
             CompletableFuture<StatObjectResponse> completableFuture = minioClient.statObject(
                     StatObjectArgs.builder()
                             .bucket(bucketName)
@@ -143,46 +172,73 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             StatObjectResponse stat = completableFuture.get();
             return stat != null && stat.lastModified() != null;
         } catch (Exception e) {
+            log.error("MinIO unexpected error during checking whether objectName exists for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, MultipartFile multipartFile) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
         uploadFileLimit(objectName);
-        CustomMinioClient minioClient = obtainClient();
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            long size = multipartFile.getSize();
+            String contentType = multipartFile.getContentType();
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectName)
-                    .stream(multipartFile.getInputStream(), multipartFile.getSize(), PutObjectArgs.MAX_PART_SIZE)
-                    .contentType(multipartFile.getContentType()
+                    .stream(multipartFile.getInputStream(), size, -1)
+                    .contentType(contentType
                     ).build();
-            minioClient.putObject(putObjectArgs);
+            CompletableFuture<ObjectWriteResponse> writeResponseCompletableFuture = minioClient.putObject(putObjectArgs);
+            ObjectWriteResponse objectWriteResponse = writeResponseCompletableFuture.get();
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(contentType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
+            return pushObjectResponse;
         } catch (Exception e) {
+            log.error("MinIO unexpected error during multipartFile upload for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, String filePath) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
         uploadFileLimit(objectName);
-        CustomMinioClient minioClient = obtainClient();
         File tempFile = new File(filePath);
         BufferedInputStream tempInputStream = null;
-        try {
-            long fileSize = tempFile.length();
+        try (CustomMinioClient minioClient = obtainClient()) {
+            long size = FileUtil.size(tempFile);
             tempInputStream = FileUtil.getInputStream(tempFile);
             String mimeType = FileUtil.getType(tempFile);
+            String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
-                    .object(objectName).stream(tempInputStream, fileSize, -1)
-                    .contentType(mimeType)
+                    .object(objectName).stream(tempInputStream, size, -1)
+                    .contentType(finalMimeType)
                     .build();
-            CompletableFuture<ObjectWriteResponse> completableFuture = minioClient.putObject(putObjectArgs);
-            ObjectWriteResponse writeResponse = completableFuture.get();
-            log.info("文件上传成功，ETag: {}", writeResponse.etag());
+            CompletableFuture<ObjectWriteResponse> writeResponseCompletableFuture = minioClient.putObject(putObjectArgs);
+            ObjectWriteResponse objectWriteResponse = writeResponseCompletableFuture.get();
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
+            return pushObjectResponse;
         } catch (Exception e) {
+            log.error("MinIO unexpected error during local file upload for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
             if (tempInputStream != null) {
@@ -192,76 +248,64 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                     log.error("关闭文件流失败：{}", e.getMessage());
                 }
             }
-            if (!tempFile.delete()) {
-                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+            // 删除临时文件
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    boolean deleted = FileUtil.del(tempFile);
+                    if (!deleted) {
+                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+                        tempFile.deleteOnExit();
+                    }
+                } catch (Exception e) {
+                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
+                    tempFile.deleteOnExit();
+                }
             }
         }
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, URL url) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
         uploadFileLimit(objectName);
-        CustomMinioClient minioClient = obtainClient();
         Stopwatch stopwatch = Stopwatch.createStarted();
-        File tempFile = null;
-        HttpURLConnection connection = null;
+        String fileUrl = url.toString();
+        File tempFile = FileUtil.createTempFile();
+        // 注册JVM退出时自动删除临时文件（双重保障）
+        tempFile.deleteOnExit();
         InputStream tempInputStream = null;
-        try {
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(60000);
-            connection.setReadTimeout(300000);
-            connection.setRequestProperty("Accept", "*/*");
-            int responseCode = connection.getResponseCode();
-            // 2. 检查响应状态，非200则抛出异常
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                String errorMsg = String.format("文件下载失败，URL: %s，响应码: %d，响应信息: %s",
-                        url, responseCode, connection.getResponseMessage());
-                log.error(errorMsg);
-                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR.getErrorCode(), errorMsg);
-            }
-            log.info("HTTP下载文件[{}]:开始======", url);
-
-            try (BufferedInputStream in = new BufferedInputStream(connection.getInputStream())) {
-                tempFile = FileUtil.createTempFile();
-                // 注册JVM退出时自动删除临时文件（双重保障）
-                tempFile.deleteOnExit();
-
-                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                    byte[] buffer = new byte[8192];
-                    int bytesRead;
-                    while ((bytesRead = in.read(buffer)) != -1) {
-                        fos.write(buffer, 0, bytesRead);
-                    }
-                }
-            }
-            log.info("HTTP下载文件[{}]:结束======", url);
+        try (CustomMinioClient minioClient = obtainClient()) {
+            log.info("HTTP下载文件[{}]:开始======", fileUrl);
+            long size = HttpUtil.downloadFile(fileUrl, tempFile, 600000);
+            log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, size);
+            String mimeType = FileUtil.getMimeType(fileUrl);
+            String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
+            tempInputStream = FileUtil.getInputStream(tempFile);
             // 4. 上传到MinIO
-            long fileSize = tempFile.length();
-            // 从响应头获取准确的MIME类型
-            String mimeType = connection.getContentType();
-            // 处理可能的null（默认使用二进制流类型）
-            if (mimeType == null) {
-                mimeType = "application/octet-stream";
-            }
-
             tempInputStream = FileUtil.getInputStream(tempFile);
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectName)
-                    .stream(tempInputStream, fileSize, -1)
-                    .contentType(mimeType).build();
+                    .stream(tempInputStream, size, -1)
+                    .contentType(finalMimeType).build();
             CompletableFuture<ObjectWriteResponse> completableFuture = minioClient.putObject(putObjectArgs);
-            ObjectWriteResponse writeResponse = completableFuture.get();
-            log.info("文件上传成功，ETag: {}", writeResponse.etag());
+            ObjectWriteResponse objectWriteResponse = completableFuture.get();
             long totalTime = stopwatch.elapsed(TimeUnit.SECONDS);
-            log.info("文件下载并上传完成，总耗时：[{}]", totalTime);
+            log.info("文件下载并上传完成，总耗时：[{}]秒", totalTime);
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
+            return pushObjectResponse;
         } catch (Exception e) {
+            log.error("MinIO unexpected error during remote file upload for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            // 关闭HTTP连接
-            if (connection != null) {
-                connection.disconnect();
-            }
             if (tempInputStream != null) {
                 try {
                     tempInputStream.close();
@@ -269,9 +313,19 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                     log.error("关闭文件流失败：{}", e.getMessage());
                 }
             }
-            // 删除临时文件（双重保障：主动删除+JVM退出删除）
-            if (tempFile != null && !tempFile.delete()) {
-                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+            // 删除临时文件（使用 Hutool 的 FileUtil.del 提供更可靠的删除机制）
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    boolean deleted = FileUtil.del(tempFile);
+                    if (!deleted) {
+                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+                        // 尝试使用 JVM 退出时删除作为最后的保障
+                        tempFile.deleteOnExit();
+                    }
+                } catch (Exception e) {
+                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
+                    tempFile.deleteOnExit();
+                }
             }
         }
     }
@@ -279,8 +333,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     @Override
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
         uploadFileLimit(objectName);
-        CustomMinioClient minioClient = obtainClient();
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
             List<SnowballObject> snowballObjects = new ArrayList<>();
             InputStream inputStream = multipartFile.getInputStream();
             // 计算文件有多少个分片。
@@ -295,29 +348,38 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             for (int i = 0; i < partCount; i++) {
                 long startPos = i * partSize;
                 long curPartSize = (i + 1 == partCount) ? (fileLength - startPos) : partSize;
-                // 跳过已经上传的分片。
-                inputStream.skip(startPos);
-                SnowballObject snowballObject = new SnowballObject(objectName, inputStream, curPartSize, null);
+                // 每次重新获取 InputStream，避免 skip 位置错误
+                InputStream partInputStream = multipartFile.getInputStream();
+                // 跳过已处理的字节（从文件开头定位到当前分片起始位置）
+                long skipped = 0;
+                while (skipped < startPos) {
+                    long n = partInputStream.skip(startPos - skipped);
+                    if (n <= 0) {
+                        break;
+                    }
+                    skipped += n;
+                }
+                SnowballObject snowballObject = new SnowballObject(objectName, partInputStream, curPartSize, null);
                 snowballObjects.add(snowballObject);
             }
             log.info("objectName [{}] upload started", objectName);
             minioClient.uploadSnowballObjects(UploadSnowballObjectsArgs.builder().bucket(bucketName).object(objectName).objects(snowballObjects).build());
             log.info("objectName [{}] upload complete", objectName);
         } catch (Exception e) {
-            log.error("上传minio失败：{}", ExceptionUtil.stacktraceToString(e));
+            log.error("MinIO unexpected error during multipart file chunk upload for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.MULTIPART_UPLOAD_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
     public UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName) {
-        CustomMinioClient minioClient = obtainClient();
-        Integer chunkCount = fileUploadInfo.getChunkCount();
-        String contentType = fileUploadInfo.getContentType();
-        String uploadId = fileUploadInfo.getUploadId();
-        log.info("文件<{}> - 分片<{}> 初始化分片上传数据 请求头 {}", objectName, chunkCount, contentType);
-        UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            Integer chunkCount = fileUploadInfo.getChunkCount();
+            String contentType = fileUploadInfo.getContentType();
+            String uploadId = fileUploadInfo.getUploadId();
+            log.info("文件<{}> - 分片<{}> 初始化分片上传数据 请求头 {}", objectName, chunkCount, contentType);
+            UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
             HashMultimap<String, String> headers = HashMultimap.create();
             if (StringUtils.isEmpty(contentType)) {
                 contentType = "application/octet-stream";
@@ -343,40 +405,42 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                         .build());
                 partList.add(uploadUrl);
             }
-            log.info("文件初始化分片成功");
+            log.info("文件初始化分片成功,{}/{}: uploadId={}", bucketName, objectName, uploadId);
             uploadUrlsInfo.setUrls(partList);
             return uploadUrlsInfo;
         } catch (Exception e) {
-            log.error("初始化分片上传失败: {}", e.getMessage());
+            log.error("MinIO unexpected error during init multipart upload for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
     public List<PartData> getListParts(String bucketName, String objectName, String uploadId) {
-        List<Part> parts;
         try {
-            parts = getParts(bucketName, objectName, uploadId);
+            List<Part> parts = getParts(bucketName, objectName, uploadId);
+            return parts.stream()
+                    .map(x -> {
+                        PartData partData = new PartData();
+                        partData.setPartNumber(x.partNumber());
+                        partData.setEtag(x.etag());
+                        partData.setSize(x.partSize());
+                        return partData;
+                    })
+                    .collect(Collectors.toList());
         } catch (Exception e) {
+            log.error("MinIO unexpected error during get parts for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
-        return parts.stream()
-                .map(x -> {
-                    PartData partData = new PartData();
-                    partData.setPartNumber(x.partNumber());
-                    partData.setEtag(x.etag());
-                    partData.setSize(x.partSize());
-                    return partData;
-                })
-                .collect(Collectors.toList());
+
     }
 
     @Override
     public boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId) {
-        CustomMinioClient minioClient = obtainClient();
-        log.info("通过 <{}-{}-{}> 合并<分片上传>数据", objectName, uploadId, bucketName);
-        // 获取所有分片
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            // 获取所有分片
+            log.info("start Merge MultipartUpload start. {}/{}，uploadId:{}", bucketName, objectName, uploadId);
             List<Part> partsList = getParts(bucketName, objectName, uploadId);
             Part[] parts = new Part[partsList.size()];
             int partNumber = 1;
@@ -385,119 +449,293 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                 partNumber++;
             }
             // 合并分片
-            minioClient.mergeMultipartUpload(bucketName, null, objectName, uploadId, parts, null, null);
+            ObjectWriteResponse writeResponse = minioClient.mergeMultipartUpload(bucketName, null, objectName, uploadId, parts, null, null);
+            log.info("Merge MultipartUpload was successful. uploadId:{}，etag:{}", uploadId, writeResponse.etag());
+            return true;
         } catch (Exception e) {
+            log.error("MinIO Unexpected error during merge multipart upload completion for {}/{}/{}: {}",
+                    bucketName, objectName, uploadId, e.getMessage(), e);
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
-        return true;
     }
 
-    @NotNull
-    private List<Part> getParts(String bucketName, String objectName, String uploadId) throws Exception {
-        CustomMinioClient minioClient = obtainClient();
-        int partNumberMarker = 0;
-        boolean isTruncated = true;
-        List<Part> parts = new ArrayList<>();
-        while (isTruncated) {
-            ListPartsResponse partResult = minioClient.listMultipart(bucketName, null, objectName, 1000, partNumberMarker, uploadId, null, null);
-            parts.addAll(partResult.result().partList());
-            // 检查是否还有更多分片
-            isTruncated = partResult.result().isTruncated();
-            if (isTruncated) {
-                // 更新partNumberMarker以获取下一页的分片数据
-                partNumberMarker = partResult.result().nextPartNumberMarker();
+    private List<Part> getParts(String bucketName, String objectName, String uploadId) {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            int partNumberMarker = 0;
+            boolean isTruncated = true;
+            List<Part> parts = new ArrayList<>();
+            while (isTruncated) {
+                ListPartsResponse partResult = minioClient.listMultipart(bucketName, null, objectName, 10000, partNumberMarker, uploadId, null, null);
+                parts.addAll(partResult.result().partList());
+                // 检查是否还有更多分片
+                isTruncated = partResult.result().isTruncated();
+                if (isTruncated) {
+                    // 更新partNumberMarker以获取下一页的分片数据
+                    partNumberMarker = partResult.result().nextPartNumberMarker();
+                }
             }
+            return parts;
+        } catch (Exception e) {
+            log.error("MinIO unexpected error during get parts for {}/{} ,uploadId {}: {}",
+                    bucketName, objectName, uploadId, e.getMessage(), e);
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
-        return parts;
     }
 
+    @Override
+    public boolean abortMultipartUpload(String bucketName, String objectName, String uploadId) {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            AbortMultipartUploadResponse abortMultipartUploadResponse = minioClient.abortMultipartUpload(bucketName, null, objectName, uploadId, null, null);
+            log.info("Successfully aborted multipart upload for {}/{}，uploadId:{}", bucketName, objectName, abortMultipartUploadResponse.uploadId());
+            return true;
+        } catch (Exception e) {
+            log.error("MinIO unexpected error during aborted multipart upload {}/{} ,uploadId {}: {}",
+                    bucketName, objectName, uploadId, e.getMessage(), e);
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
+        }
+    }
 
     @Override
     public void removeObject(String bucketName, String objectName) {
-        CustomMinioClient minioClient = obtainClient();
-        try {
-            minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(objectName).build());
+        try (CustomMinioClient minioClient = obtainClient()) {
+            minioClient.removeObject(RemoveObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .build());
         } catch (Exception e) {
+            log.error("MinIO Unexpected error during remove object for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.DELETE_OBJECT_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
-    public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
-        CustomMinioClient minioClient = obtainClient();
-        try {
-            CompletableFuture<GetObjectResponse> responseCompletableFuture = minioClient.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
-            GetObjectResponse objectResponse = responseCompletableFuture.get();
-            consumer.accept(objectResponse);
-        } catch (Exception e) {
-            throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
-        }
-    }
-
-    @Override
-    public UrlBuilder getObjectPrefixUrl(String bucket) {
-        Configuration configInfo = obtainConfigInfo();
-        if (StringUtils.isNotBlank(configInfo.getDomain())) {
-            return UrlBuilder.ofHttp(configInfo.getDomain(), Charset.defaultCharset()).addPath(bucket);
-        } else {
-            return UrlBuilder.ofHttp(configInfo.getEndpoint(), Charset.defaultCharset()).addPath(bucket);
-        }
-    }
-
-    @Override
     public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
-        UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
-        List<String> urlList = new ArrayList<>();
-        // 主要是针对图片，若需要通过浏览器直接查看，而不是下载，需要指定对应的 content-type
-        Map<String, String> headers = Maps.newHashMap();
-        if (contentType == null || contentType.isEmpty()) {
-            contentType = "application/octet-stream";
-        }
-        headers.put("Content-Type", contentType);
-        String uploadId = IdUtil.simpleUUID();
-        Map<String, String> reqParams = new HashMap<>();
-        reqParams.put("uploadId", uploadId);
-        CustomMinioClient minioClient = obtainClient();
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
+            List<String> urlList = new ArrayList<>();
+            // 主要是针对图片，若需要通过浏览器直接查看，而不是下载，需要指定对应的 content-type
+            Map<String, String> headers = Maps.newHashMap();
+            if (contentType == null || contentType.isEmpty()) {
+                contentType = "application/octet-stream";
+            }
+            headers.put("Content-Type", contentType);
+            String uploadId = IdUtil.simpleUUID();
+            Map<String, String> reqParams = new HashMap<>();
             String url = minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.PUT)
                     .bucket(bucketName)
                     .object(objectName)
                     .extraHeaders(headers)
                     .extraQueryParams(reqParams)
-                    .expiry(1, TimeUnit.DAYS)
+                    .expiry(1, TimeUnit.HOURS)
                     .build());
             urlList.add(url);
             uploadUrlsInfo.setUploadId(uploadId).setUrls(urlList);
             return uploadUrlsInfo;
         } catch (Exception e) {
+            log.error("MinIO Unexpected error during get presigned object upload url for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.GET_PRESIGNED_OBJECT_URL_ERROR, e);
         }
     }
 
     @Override
-    public void setBucketPolicy(String bucket, BucketPolicyEnum policy) {
+    public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
+        try (CustomMinioClient minioClient = obtainClient()) {
+            CompletableFuture<GetObjectResponse> responseCompletableFuture = minioClient.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
+            GetObjectResponse objectResponse = responseCompletableFuture.get();
+            if (objectResponse == null) {
+                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR.getErrorCode(),
+                        String.format("Object not found or response is null for bucket [%s], object [%s]", bucketName, objectName));
+            }
+            consumer.accept(objectResponse);
+        } catch (Exception e) {
+            log.error("MinIO Unexpected error during download file for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
+            throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
+        }
+    }
+
+    @Override
+    public void downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) {
         CustomMinioClient minioClient = obtainClient();
+        InputStream stream = null;
+        BufferedOutputStream os = null;
+
         try {
+            // 1. 获取文件元数据
+            StatObjectResponse objectResponse = minioClient.statObject(
+                    StatObjectArgs.builder().bucket(bucketName).object(objectName).build()
+            ).get();
+            long fileSize = objectResponse.size();
+
+            // 文件大小为0的异常处理
+            if (fileSize <= 0) {
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                return;
+            }
+
+            long startByte = 0;
+            long endByte = fileSize - 1;
+            String range = request.getHeader("Range");
+            log.info("下载请求 bucket={}, object={}, range={}", bucketName, objectName, range);
+
+
+            // 2. 解析 Range 头 (断点续传/视频拖动)
+            if (range != null && range.contains("bytes=") && range.contains("-")) {
+                range = range.substring(range.lastIndexOf("=") + 1).trim();
+                String[] ranges = range.split("-", -1);  // 保留空字符串
+
+                try {
+                    if (ranges.length == 2) {
+                        String startPart = ranges[0].trim();
+                        String endPart = ranges[1].trim();
+
+                        if (startPart.isEmpty() && !endPart.isEmpty()) {
+                            // 情况 A: bytes=-500 (最后500字节)
+                            long lastBytes = Long.parseLong(endPart);
+                            if (lastBytes > 0) {
+                                startByte = Math.max(0, fileSize - lastBytes);
+                            }
+                        } else if (!startPart.isEmpty() && endPart.isEmpty()) {
+                            // 情况 B: bytes=500- (从500字节到结束)
+                            startByte = Long.parseLong(startPart);
+                        } else if (!startPart.isEmpty() && !endPart.isEmpty()) {
+                            // 情况 C: bytes=500-1000
+                            startByte = Long.parseLong(startPart);
+                            endByte = Long.parseLong(endPart);
+                        }
+                        // 如果两个都为空（bytes=-），忽略使用默认值
+                    }
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid Range header format: {}, using full file range", range);
+                    startByte = 0;
+                    endByte = fileSize - 1;
+                }
+            }
+
+            // 3. 计算实际要下载的长度 & 严格的Range边界校验（关键！）
+            if (startByte > endByte || startByte >= fileSize || endByte < 0) {
+                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                response.setHeader("Content-Range", "bytes */" + fileSize);
+                return;
+            }
+
+            long contentLength = endByte - startByte + 1;
+
+            // 4. 设置响应头
+            String contentType = request.getServletContext().getMimeType(fileName);
+            if (contentType == null) {
+                contentType = objectResponse.contentType();
+            }
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            // 文件名编码
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
+
+            response.setContentType(contentType);
+            response.setHeader("Accept-Ranges", "bytes");
+
+            // 根据是否有 Range 决定返回 206 还是 200
+            if (request.getHeader("Range") != null) {
+                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+                response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + fileSize);
+            } else {
+                response.setStatus(HttpServletResponse.SC_OK);
+            }
+
+            response.setHeader("Last-Modified", objectResponse.lastModified().toString());
+            response.setHeader("Content-Length", String.valueOf(contentLength));
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+            response.setHeader("ETag", "\"" + objectResponse.etag() + "\"");
+
+            // 5. 获取 MinIO 流
+            // MinIO 的 getObject 已经支持 offset 和 length，返回的流就是精确的片段
+            stream = minioClient.getObject(GetObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .offset(startByte)
+                    .length(contentLength)
+                    .build()).get();
+
+            // 6. 写出数据
+            os = new BufferedOutputStream(response.getOutputStream());
+
+            // 使用 Spring 工具类直接拷贝流，无需手动循环
+            StreamUtils.copy(stream, os);
+
+            os.flush();
+            response.flushBuffer();
+
+        } catch (Exception e) {
+            log.error("MinIO Unexpected error during download multipart file for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
+            // 如果还没有写入响应，可以抛出异常给全局异常处理器
+            if (!response.isCommitted()) {
+                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
+            }
+        } finally {
+            // 安全关闭资源
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) { /* ignore */ }
+            }
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) { /* ignore */ }
+            }
+        }
+    }
+
+    @Override
+    public void shutdown() {
+        // 委托给 OssClient.close() 统一管理资源释放
+        OssClient<CustomMinioClient> ossClient = client;
+        if (ossClient != null) {
+            ossClient.close();
+        }
+    }
+
+    @Override
+    public void setBucketPolicy(String bucketName, BucketPolicyEnum policy) {
+        // 验证 bucketName 以防止 JSON 注入
+        validateBucketName(bucketName);
+        try (CustomMinioClient minioClient = obtainClient()) {
+            String policyConfig;
             switch (policy) {
                 case READ_ONLY:
-                    minioClient.setBucketPolicy(SetBucketPolicyArgs.builder().bucket(bucket).config(READ_ONLY.replace(BUCKET_PARAM, bucket)).build());
+                    policyConfig = READ_ONLY.replace(BUCKET_PARAM, bucketName);
+                    minioClient.setBucketPolicy(SetBucketPolicyArgs.builder()
+                            .bucket(bucketName)
+                            .config(policyConfig)
+                            .build());
                     break;
                 case WRITE_ONLY:
-                    minioClient.setBucketPolicy(SetBucketPolicyArgs.builder().bucket(bucket).config(WRITE_ONLY.replace(BUCKET_PARAM, bucket)).build());
+                    policyConfig = WRITE_ONLY.replace(BUCKET_PARAM, bucketName);
+                    minioClient.setBucketPolicy(SetBucketPolicyArgs.builder()
+                            .bucket(bucketName)
+                            .config(policyConfig)
+                            .build());
                     break;
                 case READ_WRITE:
-                    minioClient.setBucketPolicy(SetBucketPolicyArgs.builder().bucket(bucket).config(READ_WRITE.replace(BUCKET_PARAM, bucket)).build());
+                    policyConfig = READ_WRITE.replace(BUCKET_PARAM, bucketName);
+                    minioClient.setBucketPolicy(SetBucketPolicyArgs.builder()
+                            .bucket(bucketName)
+                            .config(policyConfig)
+                            .build());
                     break;
                 default:
                     break;
             }
         } catch (Exception e) {
+            log.error("MinIO Unexpected error during set bucket policy for {}: {}",
+                    bucketName, e.getMessage());
             throw new OssException(OssErrorCode.SET_BUCKET_POLICY_ERROR.getErrorCode(), e.getMessage());
         }
-    }
-
-    @Override
-    public void showdown() {
     }
 }

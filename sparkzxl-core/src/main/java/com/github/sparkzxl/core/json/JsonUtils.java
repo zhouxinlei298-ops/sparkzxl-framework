@@ -5,6 +5,8 @@ import com.github.sparkzxl.core.json.impl.gson.GsonImpl;
 import com.github.sparkzxl.core.json.impl.jackson.JacksonImpl;
 import java.util.Arrays;
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -13,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
  * @author zhouxinlei
  * @since 2023-01-01 11:49:09
  */
+@Slf4j
 public class JsonUtils {
 
     static String PREFER_JSON_FRAMEWORK_NAME = "spring.json-framework.prefer";
@@ -44,7 +47,7 @@ public class JsonUtils {
                                 json = instance;
                             }
                         } catch (Throwable ignore) {
-                            ignore.printStackTrace();
+                            log.error(ignore.getMessage());
                         }
                     }
                     if (json == null) {

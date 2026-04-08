@@ -79,6 +79,7 @@ public enum ExceptionErrorCode implements IErrorCode {
     UNKNOWN_TABLE("C0311", "表不存在，请联系管理员！"),
     UNKNOWN_COLUMN("C0312", "字段不存在，请联系管理员！"),
     COLUMN_DATA_TO_LONG_EXCEPTION("C0313", "输入数据字段过长"),
+    INVALID_INPUT_SYNTAX("C0314", "数值类型输入格式错误: 请检查参数类型，确保传递的是数字而非对象"),
     PRIMARY_KEY_CONFLICT_EXCEPTION("C0341", "主键冲突"),
     VIOLATION_DATABASE_CONSTRAINT_EXCEPTION("C0342", "违反数据库约束key：[{}]，value：[{}]"),
     TENANT_EXCEPTION("C0350", "租户不存在异常"),

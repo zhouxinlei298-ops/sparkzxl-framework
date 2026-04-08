@@ -1,11 +1,10 @@
 package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.URLUtil;
-import cn.hutool.http.Method;
+import cn.hutool.http.HttpUtil;
 import com.aliyun.oss.ClientException;
 import com.aliyun.oss.HttpMethod;
 import com.aliyun.oss.OSSClient;
@@ -13,29 +12,28 @@ import com.aliyun.oss.OSSException;
 import com.aliyun.oss.internal.Mimetypes;
 import com.aliyun.oss.model.*;
 import com.github.sparkzxl.core.util.DateUtils;
-import com.github.sparkzxl.core.util.TimeUtil;
 import com.github.sparkzxl.oss.client.OssClient;
-import com.github.sparkzxl.oss.entity.FileUploadInfo;
-import com.github.sparkzxl.oss.entity.OssObject;
-import com.github.sparkzxl.oss.entity.PartData;
-import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
+import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
 import com.github.sparkzxl.oss.support.OssErrorCode;
 import com.github.sparkzxl.oss.support.OssException;
 import com.github.sparkzxl.oss.utils.OssUtils;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.Charset;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -57,53 +55,47 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
 
     @Override
     public void createBucket(String bucketName) {
-        OSSClient ossClient = obtainClient();
+        // 验证 bucketName
+        validateBucketName(bucketName);
         try {
+            OSSClient ossClient = obtainClient();
             if (!ossClient.doesBucketExist(bucketName)) {
                 ossClient.createBucket(bucketName);
             } else {
                 log.info("bucket [{}] already exists.", bucketName);
             }
         } catch (OSSException e) {
-            log.error("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{} Error Message:{} Request ID:{} Host ID:{}",
-                    e.getErrorCode(),
-                    e.getErrorMessage(),
-                    e.getRequestId(),
-                    e.getHostId());
+            log.error("AliyunOSS unexpected error during create bucket for {}: {}",
+                    bucketName, e.getErrorMessage(), e);
             throw new OssException(OssErrorCode.CREATE_BUCKET_ERROR.getErrorCode(), e.getErrorMessage());
         }
     }
 
     @Override
     public void removeBucket(String bucketName) {
-        OSSClient ossClient = obtainClient();
         try {
+            OSSClient ossClient = obtainClient();
             ossClient.deleteBucket(bucketName);
         } catch (OSSException e) {
-            log.error("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{} Error Message:{} Request ID:{} Host ID:{}",
-                    e.getErrorCode(),
-                    e.getErrorMessage(),
-                    e.getRequestId(),
-                    e.getHostId());
+            log.error("AliyunOSS unexpected error during remove bucket for {}: {}",
+                    bucketName, e.getErrorMessage(), e);
             throw new OssException(OssErrorCode.DELETE_BUCKET_ERROR.getErrorCode(), e.getErrorMessage());
         }
     }
 
     @Override
     public String getObjectUrl(String bucketName, String objectName, Integer expire) {
-        OSSClient ossClient = obtainClient();
         String objectUrl;
         try {
+            OSSClient ossClient = obtainClient();
             DateTime expireDateTime = DateUtils.offsetSecond(new Date(), expire);
             GeneratePresignedUrlRequest req = new GeneratePresignedUrlRequest(bucketName, objectName, HttpMethod.GET);
             req.setExpiration(expireDateTime);
             URL signedUrl = ossClient.generatePresignedUrl(req);
             objectUrl = signedUrl.toString();
         } catch (Exception e) {
+            log.error("AliyunOSS unexpected error during get object url for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(), e.getMessage());
         }
         Configuration configInfo = obtainConfigInfo();
@@ -111,14 +103,9 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public String getObjectUrl(String bucketName, String objectName) {
-        return URLUtil.decode(getObjectPrefixUrl(bucketName).addPath(objectName).build());
-    }
-
-    @Override
     public OssObject getObjectInfo(String bucketName, String objectName) {
-        OSSClient ossClient = obtainClient();
         try {
+            OSSClient ossClient = obtainClient();
             OSSObject object = ossClient.getObject(bucketName, objectName);
             OssObject ossObject = new OssObject();
             ossObject.setObjectContent(object.getObjectContent());
@@ -126,53 +113,70 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             ossObject.setKey(object.getKey());
             return ossObject;
         } catch (OSSException e) {
-            log.error("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{} Error Message:{} Request ID:{} Host ID:{}",
-                    e.getErrorCode(),
-                    e.getErrorMessage(),
-                    e.getRequestId(),
-                    e.getHostId());
+            log.error("AliyunOSS unexpected error during get object info for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
+            throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(), e.getErrorMessage());
+        }
+    }
+
+    @Override
+    public OssMetadata getOssMetadata(String bucketName, String objectName) {
+        try {
+            OSSClient ossClient = obtainClient();
+            ObjectMetadata objectMetadata = ossClient.getObjectMetadata(bucketName, objectName);
+            OssMetadata ossMetadata = new OssMetadata();
+            ossMetadata.setBucketName(bucketName);
+            ossMetadata.setObjectName(objectName);
+            ossMetadata.setSize(objectMetadata.getContentLength());
+            ossMetadata.setContentType(objectMetadata.getContentType());
+            ossMetadata.setLastModified(DateUtil.toLocalDateTime(objectMetadata.getLastModified()));
+            ossMetadata.setEtag(objectMetadata.getETag());
+            ossMetadata.setUserMetadata(objectMetadata.getUserMetadata());
+            return ossMetadata;
+        } catch (OSSException e) {
+            log.error("AliyunOSS unexpected error during get object metadata for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
             throw new OssException(OssErrorCode.GET_OBJECT_INFO_ERROR.getErrorCode(), e.getErrorMessage());
         }
     }
 
     @Override
     public boolean exists(String bucketName, String objectName) {
-        OSSClient ossClient = obtainClient();
         try {
+            OSSClient ossClient = obtainClient();
             return ossClient.doesObjectExist(bucketName, objectName);
         } catch (OSSException e) {
-            log.warn("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{} Error Message:{} Request ID:{} Host ID:{}",
-                    e.getErrorCode(),
-                    e.getErrorMessage(),
-                    e.getRequestId(),
-                    e.getHostId());
-            e.printStackTrace();
+            log.error("AliyunOSS unexpected error during checking whether objectName exists for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
             throw new OssException(OssErrorCode.OSS_ERROR);
         }
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, MultipartFile multipartFile) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
         uploadFileLimit(objectName);
-        OSSClient ossClient = obtainClient();
         try {
+            OSSClient ossClient = obtainClient();
+            long size = multipartFile.getSize();
+            String contentType = multipartFile.getContentType();
             ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentLength(multipartFile.getSize());
-            objectMetadata.setContentType(multipartFile.getContentType());
+            objectMetadata.setContentLength(size);
+            objectMetadata.setContentType(contentType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, multipartFile.getInputStream(), objectMetadata);
-            ossClient.putObject(putObjectRequest);
+            PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(contentType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
+            return pushObjectResponse;
         } catch (OSSException e) {
-            log.error("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{} Error Message:{} Request ID:{} Host ID:{}",
-                    e.getErrorCode(),
-                    e.getErrorMessage(),
-                    e.getRequestId(),
-                    e.getHostId());
+            log.error("AliyunOSS unexpected error during multipartFile upload for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getErrorMessage());
         } catch (Exception e) {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
@@ -180,28 +184,34 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, String filePath) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
         uploadFileLimit(objectName);
-        OSSClient ossClient = obtainClient();
         File tempFile = new File(filePath);
         BufferedInputStream tempInputStream = null;
         try {
+            OSSClient ossClient = obtainClient();
             tempInputStream = FileUtil.getInputStream(tempFile);
             String mimeType = FileUtil.getType(tempFile);
+            String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
+            long size = FileUtil.size(tempFile);
             ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentLength(tempFile.length());
-            objectMetadata.setContentType(mimeType);
+            objectMetadata.setContentLength(size);
+            objectMetadata.setContentType(finalMimeType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, tempInputStream, objectMetadata);
-            PutObjectResult writeResponse = ossClient.putObject(putObjectRequest);
-            log.info("文件上传成功，ETag: {}", writeResponse.getETag());
+            PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
+            return pushObjectResponse;
         } catch (OSSException e) {
-            log.warn("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{} Error Message:{} Request ID:{} Host ID:{}",
-                    e.getErrorCode(),
-                    e.getErrorMessage(),
-                    e.getRequestId(),
-                    e.getHostId());
+            log.error("AliyunOSS unexpected error during local file upload for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getErrorMessage());
         } catch (Exception e) {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
@@ -213,83 +223,83 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                     log.error("关闭文件流失败：{}", e.getMessage());
                 }
             }
-            if (!tempFile.delete()) {
-                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+            // 删除临时文件
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    boolean deleted = FileUtil.del(tempFile);
+                    if (!deleted) {
+                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+                        tempFile.deleteOnExit();
+                    }
+                } catch (Exception e) {
+                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
+                    tempFile.deleteOnExit();
+                }
             }
         }
     }
 
     @Override
-    public void putObject(String bucketName, String objectName, URL url) {
+    public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
         uploadFileLimit(objectName);
-        OSSClient ossClient = obtainClient();
         Stopwatch stopwatch = Stopwatch.createStarted();
-        File tempFile = null;
-        HttpURLConnection connection = null;
+        String fileUrl = url.toString();
+        File tempFile = FileUtil.createTempFile();
+        // 注册JVM退出时自动删除临时文件（双重保障）
+        tempFile.deleteOnExit();
+        InputStream tempInputStream = null;
         try {
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(60000);
-            connection.setReadTimeout(300000);
-            connection.setRequestProperty("Accept", "*/*");
-            int responseCode = connection.getResponseCode();
-            // 2. 检查响应状态，非200则抛出异常
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                String errorMsg = String.format("文件下载失败，URL: %s，响应码: %d，响应信息: %s",
-                        url, responseCode, connection.getResponseMessage());
-                log.error(errorMsg);
-                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR.getErrorCode(), errorMsg);
-            }
-            log.info("HTTP下载文件[{}]:开始======", url);
-
-            try (BufferedInputStream in = new BufferedInputStream(connection.getInputStream())) {
-                tempFile = FileUtil.createTempFile();
-                // 注册JVM退出时自动删除临时文件（双重保障）
-                tempFile.deleteOnExit();
-
-                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                    byte[] buffer = new byte[8192];
-                    int bytesRead;
-                    while ((bytesRead = in.read(buffer)) != -1) {
-                        fos.write(buffer, 0, bytesRead);
-                    }
-                }
-            }
-            log.info("HTTP下载文件[{}]:结束======", url);
-            // 4. 上传到OSS
-            // 从响应头获取准确的MIME类型
-            String mimeType = connection.getContentType();
-            // 处理可能的null（默认使用二进制流类型）
-            if (mimeType == null) {
-                mimeType = "application/octet-stream";
-            }
-            InputStream tempInputStream = FileUtil.getInputStream(tempFile);
+            OSSClient ossClient = obtainClient();
+            log.info("HTTP下载文件[{}]:开始======", fileUrl);
+            long size = HttpUtil.downloadFile(fileUrl, tempFile, 600000);
+            log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, size);
+            String mimeType = FileUtil.getMimeType(fileUrl);
+            String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
+            tempInputStream = FileUtil.getInputStream(tempFile);
             ObjectMetadata objectMetadata = new ObjectMetadata();
             objectMetadata.setContentLength(tempFile.length());
-            objectMetadata.setContentType(mimeType);
+            objectMetadata.setContentType(finalMimeType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, tempInputStream, objectMetadata);
-            PutObjectResult writeResponse = ossClient.putObject(putObjectRequest);
-            log.info("文件上传成功，ETag: {}", writeResponse.getETag());
+            PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
             long totalTime = stopwatch.elapsed(TimeUnit.SECONDS);
             log.info("文件下载并上传完成，总耗时：[{}]", totalTime);
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
+            return pushObjectResponse;
         } catch (OSSException e) {
-            log.error("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{} Error Message:{} Request ID:{} Host ID:{}",
-                    e.getErrorCode(),
-                    e.getErrorMessage(),
-                    e.getRequestId(),
-                    e.getHostId());
+            log.error("AliyunOSS unexpected error during remote file upload for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getErrorMessage());
         } catch (Exception e) {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            // 关闭HTTP连接
-            if (connection != null) {
-                connection.disconnect();
+            if (tempInputStream != null) {
+                try {
+                    tempInputStream.close();
+                } catch (IOException e) {
+                    log.error("关闭文件流失败：{}", e.getMessage());
+                }
             }
-            // 删除临时文件（双重保障：主动删除+JVM退出删除）
-            if (tempFile != null && !tempFile.delete()) {
-                log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+            // 删除临时文件（使用 Hutool 的 FileUtil.del 提供更可靠的删除机制）
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    boolean deleted = FileUtil.del(tempFile);
+                    if (!deleted) {
+                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
+                        // 尝试使用 JVM 退出时删除作为最后的保障
+                        tempFile.deleteOnExit();
+                    }
+                } catch (Exception e) {
+                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
+                    tempFile.deleteOnExit();
+                }
             }
         }
     }
@@ -297,8 +307,8 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     @Override
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
         uploadFileLimit(objectName);
-        OSSClient ossClient = obtainClient();
         try {
+            OSSClient ossClient = obtainClient();
             long fileLength = multipartFile.getSize();
             InputStream inputStream = multipartFile.getInputStream();
             // 创建InitiateMultipartUploadRequest对象。
@@ -347,13 +357,22 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             for (int i = 0; i < partCount; i++) {
                 long startPos = i * partSize;
                 long curPartSize = (i + 1 == partCount) ? (fileLength - startPos) : partSize;
-                // 跳过已经上传的分片。
-                inputStream.skip(startPos);
+                // 每次重新获取 InputStream，避免 skip 位置错误
+                InputStream partInputStream = multipartFile.getInputStream();
+                // 跳过已处理的字节（从文件开头定位到当前分片起始位置）
+                long skipped = 0;
+                while (skipped < startPos) {
+                    long n = partInputStream.skip(startPos - skipped);
+                    if (n <= 0) {
+                        break;
+                    }
+                    skipped += n;
+                }
                 UploadPartRequest uploadPartRequest = new UploadPartRequest();
                 uploadPartRequest.setBucketName(bucketName);
                 uploadPartRequest.setKey(objectName);
                 uploadPartRequest.setUploadId(uploadId);
-                uploadPartRequest.setInputStream(inputStream);
+                uploadPartRequest.setInputStream(partInputStream);
                 // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
                 uploadPartRequest.setPartSize(curPartSize);
                 // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出此范围，OSS将返回InvalidArgument错误码。
@@ -380,39 +399,30 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             // completeMultipartUploadRequest.setHeaders(headers);
             CompleteMultipartUploadResult completeMultipartUploadResult = ossClient.completeMultipartUpload(completeMultipartUploadRequest);
             log.info("分片上传结果：{}", completeMultipartUploadResult.getETag());
-        } catch (OSSException oe) {
-            log.error("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{}\n"
-                            + "Error Message:{}\n"
-                            + "Request ID:{}\n"
-                            + "Host ID:{}",
-                    oe.getErrorCode(),
-                    oe.getErrorMessage(),
-                    oe.getRequestId(),
-                    oe.getHostId());
-            throw new OssException(OssErrorCode.MULTIPART_UPLOAD_ERROR.getErrorCode(), oe.getErrorMessage());
-        } catch (ClientException ce) {
-            log.warn("Caught an ClientException, which means the client encountered "
-                            + "a serious internal problem while trying to communicate with OSS," +
-                            "such as not being able to access the network.\n "
-                            + "Error Message:{}",
-                    ce.getMessage());
-            throw new OssException(OssErrorCode.MULTIPART_UPLOAD_ERROR.getErrorCode(), ce.getErrorMessage());
+        } catch (OSSException e) {
+            log.error("AliyunOSS OSSException error during multipart file chunk upload for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
+            throw new OssException(OssErrorCode.MULTIPART_UPLOAD_ERROR.getErrorCode(), e.getErrorMessage());
+        } catch (ClientException e) {
+            log.error("AliyunOSS ClientException error during multipart file chunk upload for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
+            throw new OssException(OssErrorCode.MULTIPART_UPLOAD_ERROR.getErrorCode(), e.getErrorMessage());
         } catch (IOException e) {
+            log.error("AliyunOSS IOException error during multipart file chunk upload for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.MULTIPART_UPLOAD_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
     public UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName) {
-        OSSClient ossClient = obtainClient();
-        Integer chunkCount = fileUploadInfo.getChunkCount();
-        String contentType = fileUploadInfo.getContentType();
-        String uploadId = fileUploadInfo.getUploadId();
-        log.info("文件<{}> - 分片<{}> 初始化分片上传数据 请求头 {}", objectName, chunkCount, contentType);
-        UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
         try {
+            OSSClient ossClient = obtainClient();
+            Integer chunkCount = fileUploadInfo.getChunkCount();
+            String contentType = fileUploadInfo.getContentType();
+            String uploadId = fileUploadInfo.getUploadId();
+            log.info("文件<{}> - 分片<{}> 初始化分片上传数据 请求头 {}", objectName, chunkCount, contentType);
+            UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
             Map<String, String> headers = Maps.newHashMap();
             if (StringUtils.isEmpty(contentType)) {
                 contentType = "application/octet-stream";
@@ -441,19 +451,20 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                 String uploadUrl = url.toString();
                 partList.add(uploadUrl);
             }
-            log.info("文件初始化分片成功");
+            log.info("文件初始化分片成功,{}/{}: uploadId={}", bucketName, objectName, uploadId);
             uploadUrlsInfo.setUrls(partList);
             return uploadUrlsInfo;
         } catch (Exception e) {
-            log.error("初始化分片上传失败: {}", e.getMessage());
+            log.error("AliyunOSS unexpected error during init multipart upload for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
     public List<PartData> getListParts(String bucketName, String objectName, String uploadId) {
-        OSSClient ossClient = obtainClient();
         try {
+            OSSClient ossClient = obtainClient();
             // 合并分片，与上传分片不在同一个系统。此时，您需要先列举分片，然后再合并分片。
             ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName, objectName, uploadId);
             PartListing partListing = ossClient.listParts(listPartsRequest);
@@ -467,14 +478,17 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
                     })
                     .collect(Collectors.toList());
         } catch (Exception e) {
+            log.error("AliyunOSS unexpected error during get parts for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
     }
 
     @Override
     public boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId) {
-        OSSClient ossClient = obtainClient();
         try {
+            OSSClient ossClient = obtainClient();
+            log.info("start Merge MultipartUpload start. {}/{}，uploadId:{}", bucketName, objectName, uploadId);
             // 合并分片，与上传分片不在同一个系统。此时，您需要先列举分片，然后再合并分片。
             ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName, objectName, uploadId);
             PartListing partListing = ossClient.listParts(listPartsRequest);
@@ -487,11 +501,27 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             CompleteMultipartUploadRequest completeMultipartUploadRequest =
                     new CompleteMultipartUploadRequest(bucketName, objectName, uploadId, parteTags);
             CompleteMultipartUploadResult completeMultipartUploadResult = ossClient.completeMultipartUpload(completeMultipartUploadRequest);
-            log.info("合并分片成功，上传分片完成.uploadId：{}{}", uploadId, completeMultipartUploadResult.getETag());
+            log.info("Merge MultipartUpload was successful. uploadId:{}，etag:{}", uploadId, completeMultipartUploadResult.getETag());
+            return true;
         } catch (Exception e) {
+            log.error("AliyunOSS Unexpected error during merge multipart upload completion for {}/{}/{}: {}",
+                    bucketName, objectName, uploadId, e.getMessage(), e);
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         }
-        return true;
+    }
+
+    @Override
+    public boolean abortMultipartUpload(String bucketName, String objectName, String uploadId) {
+        try {
+            OSSClient ossClient = obtainClient();
+            ossClient.abortMultipartUpload(new AbortMultipartUploadRequest(bucketName, objectName, uploadId));
+            log.info("Successfully aborted multipart upload for {}/{}，uploadId:{}", bucketName, objectName, uploadId);
+            return true;
+        } catch (Exception e) {
+            log.error("AliyunOSS Unexpected error during merge multipart upload completion for {}/{}/{}: {}",
+                    bucketName, objectName, uploadId, e.getMessage(), e);
+            throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
+        }
     }
 
     @Override
@@ -499,25 +529,43 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         OSSClient ossClient = obtainClient();
         try {
             ossClient.deleteObject(bucketName, objectName);
-        } catch (OSSException oe) {
-            log.error("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.\n"
-                            + "Error Code:{}\n"
-                            + "Error Message:{}\n"
-                            + "Request ID:{}\n"
-                            + "Host ID:{}",
-                    oe.getErrorCode(),
-                    oe.getErrorMessage(),
-                    oe.getRequestId(),
-                    oe.getHostId());
-            throw new OssException(OssErrorCode.DELETE_OBJECT_ERROR.getErrorCode(), oe.getErrorMessage());
-        } catch (ClientException ce) {
-            log.error("Caught an ClientException, which means the client encountered "
-                            + "a serious internal problem while trying to communicate with OSS," +
-                            "such as not being able to access the network.\n "
-                            + "Error Message:{}",
-                    ce.getMessage());
-            throw new OssException(OssErrorCode.DELETE_OBJECT_ERROR.getErrorCode(), ce.getErrorMessage());
+        } catch (OSSException e) {
+            log.error("AliyunOSS OSSException error during remove object for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
+            throw new OssException(OssErrorCode.DELETE_OBJECT_ERROR.getErrorCode(), e.getErrorMessage());
+        } catch (ClientException e) {
+            log.error("AliyunOSS ClientException error during remove object for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
+            throw new OssException(OssErrorCode.DELETE_OBJECT_ERROR.getErrorCode(), e.getErrorMessage());
+        }
+    }
+
+    @Override
+    public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
+        try {
+            UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
+            List<String> urlList = new ArrayList<>();
+            // 主要是针对图片，若需要通过浏览器直接查看，而不是下载，需要指定对应的 content-type
+            Map<String, String> headers = Maps.newHashMap();
+            if (contentType == null || contentType.isEmpty()) {
+                contentType = "application/octet-stream";
+            }
+            headers.put("Content-Type", contentType);
+            String uploadId = IdUtil.simpleUUID();
+            OSSClient ossClient = obtainClient();
+            GeneratePresignedUrlRequest generatePresignedUrlRequest = new GeneratePresignedUrlRequest(bucketName, objectName, HttpMethod.PUT);
+            generatePresignedUrlRequest.setHeaders(headers);
+            // 设置1天有效期
+            DateTime dateTime = DateUtils.offsetHour(new Date(), 1);
+            generatePresignedUrlRequest.setExpiration(dateTime);
+            String url = ossClient.generatePresignedUrl(generatePresignedUrlRequest).toString();
+            urlList.add(url);
+            uploadUrlsInfo.setUploadId(uploadId).setUrls(urlList);
+            return uploadUrlsInfo;
+        } catch (OSSException e) {
+            log.error("AliyunOSS OSSException error during get presigned object upload url for {}/{}: {}",
+                    bucketName, objectName, e.getErrorMessage());
+            throw new OssException(OssErrorCode.GET_PRESIGNED_OBJECT_URL_ERROR, e);
         }
     }
 
@@ -528,49 +576,149 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
         try (InputStream in = ossObject.getObjectContent()) {
             consumer.accept(in);
         } catch (IOException e) {
+            log.error("AliyunOSS Unexpected error during download file for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
         }
     }
 
     @Override
-    public UrlBuilder getObjectPrefixUrl(String bucket) {
-        Configuration configInfo = obtainConfigInfo();
-        if (StringUtils.isNotBlank(configInfo.getDomain())) {
-            return UrlBuilder.ofHttp(configInfo.getDomain(), Charset.defaultCharset())
-                    .addPath(bucket);
-        } else {
-            return UrlBuilder.ofHttp(configInfo.getEndpoint(), Charset.defaultCharset())
-                    .addPath(bucket);
-        }
-    }
-
-    @Override
-    public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
-        UploadUrlsInfo uploadUrlsInfo = new UploadUrlsInfo();
-        List<String> urlList = new ArrayList<>();
-        // 主要是针对图片，若需要通过浏览器直接查看，而不是下载，需要指定对应的 content-type
-        Map<String, String> headers = Maps.newHashMap();
-        if (contentType == null || contentType.isEmpty()) {
-            contentType = "application/octet-stream";
-        }
-        headers.put("Content-Type", contentType);
-        String uploadId = IdUtil.simpleUUID();
-        Map<String, String> reqParams = new HashMap<>();
-        reqParams.put("uploadId", uploadId);
-        OSSClient ossClient = obtainClient();
-        GeneratePresignedUrlRequest generatePresignedUrlRequest = new GeneratePresignedUrlRequest(bucketName, objectName, HttpMethod.PUT);
-        generatePresignedUrlRequest.setQueryParameter(reqParams);
-        generatePresignedUrlRequest.setHeaders(headers);
-        // 设置1天有效期
-        DateTime dateTime = DateUtils.offsetDay(new Date(), 1);
-        generatePresignedUrlRequest.setExpiration(dateTime);
+    public void downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) {
+        InputStream stream = null;
+        BufferedOutputStream os = null;
+        OSSObject ossObject = null;
         try {
-            String url = ossClient.generatePresignedUrl(generatePresignedUrlRequest).toString();
-            urlList.add(url);
-            uploadUrlsInfo.setUploadId(uploadId).setUrls(urlList);
-            return uploadUrlsInfo;
+            OSSClient ossClient = obtainClient();
+            // 1. 获取文件元数据
+            ObjectMetadata objectMetadata = ossClient.getObjectMetadata(bucketName, objectName);
+            long fileSize = objectMetadata.getContentLength();
+
+            // 文件大小为0的异常处理
+            if (fileSize <= 0) {
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                return;
+            }
+
+            long startByte = 0;
+            long endByte = fileSize - 1;
+
+            String range = request.getHeader("Range");
+            log.info("下载请求 bucket={}, object={}, range={}", bucketName, objectName, range);
+
+            // 2. 解析 Range 头 (处理 bytes=0-500, bytes=-500, bytes=500- 等情况)
+            if (range != null && range.contains("bytes=") && range.contains("-")) {
+                range = range.substring(range.lastIndexOf("=") + 1).trim();
+                String[] ranges = range.split("-", -1);  // 保留空字符串
+
+                try {
+                    if (ranges.length == 2) {
+                        String startPart = ranges[0].trim();
+                        String endPart = ranges[1].trim();
+
+                        if (startPart.isEmpty() && !endPart.isEmpty()) {
+                            // 情况 A: bytes=-500 (最后500字节)
+                            long lastBytes = Long.parseLong(endPart);
+                            if (lastBytes > 0) {
+                                startByte = Math.max(0, fileSize - lastBytes);
+                            }
+                        } else if (!startPart.isEmpty() && endPart.isEmpty()) {
+                            // 情况 B: bytes=500- (从500字节到结束)
+                            startByte = Long.parseLong(startPart);
+                        } else if (!startPart.isEmpty() && !endPart.isEmpty()) {
+                            // 情况 C: bytes=500-1000
+                            startByte = Long.parseLong(startPart);
+                            endByte = Long.parseLong(endPart);
+                        }
+                        // 如果两个都为空（bytes=-），忽略使用默认值
+                    }
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid Range header format: {}, using full file range", range);
+                    startByte = 0;
+                    endByte = fileSize - 1;
+                }
+            }
+
+            // 3. 计算实际要下载的长度 & 严格的Range边界校验（关键！）
+            if (startByte > endByte || startByte >= fileSize || endByte < 0) {
+                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                response.setHeader("Content-Range", "bytes */" + fileSize);
+                return;
+            }
+
+            long contentLength = endByte - startByte + 1;
+
+            // 4. 设置响应头
+            String contentType = request.getServletContext().getMimeType(fileName);
+            if (contentType == null) {
+                contentType = objectMetadata.getContentType();
+            }
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            // 文件名编码
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
+
+            response.setContentType(contentType);
+            response.setHeader("Accept-Ranges", "bytes");
+
+            // 根据是否有 Range 决定返回 206 还是 200
+            if (request.getHeader("Range") != null) {
+                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+                response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + fileSize);
+            } else {
+                response.setStatus(HttpServletResponse.SC_OK);
+            }
+
+            response.setHeader("Last-Modified", objectMetadata.getLastModified().toString());
+            response.setHeader("Content-Length", String.valueOf(contentLength));
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+            // ETag 是 HTTP 标准缓存头，OSS通常会提供
+            if (objectMetadata.getETag() != null) {
+                response.setHeader("ETag", "\"" + objectMetadata.getETag() + "\"");
+            }
+
+            // 5. 获取 OSS 数据流
+            GetObjectRequest getObjectRequest = new GetObjectRequest(bucketName, objectName);
+            // 关键修复：阿里云 setRange 参数含义是 (start, end)，是闭区间，不是 (start, length)！
+            getObjectRequest.setRange(startByte, endByte);
+
+            ossObject = ossClient.getObject(getObjectRequest);
+            stream = ossObject.getObjectContent();
+
+            // 6. 写出数据
+            os = new BufferedOutputStream(response.getOutputStream());
+
+            // 使用 Spring 工具类直接拷贝流，无需手动循环
+            StreamUtils.copy(stream, os);
+
+            os.flush();
+            response.flushBuffer();
+
         } catch (Exception e) {
-            throw new OssException(OssErrorCode.GET_PRESIGNED_OBJECT_URL_ERROR, e);
+            log.error("AliyunOSS Unexpected error during download multipart file for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
+            // 如果还没有写入响应，可以抛出异常给全局异常处理器
+            if (!response.isCommitted()) {
+                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
+            }
+        } finally {
+            // 7. 资源关闭
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) { /* ignore */ }
+            }
+            if (ossObject != null) {
+                try {
+                    ossObject.close();
+                } catch (IOException e) { /* ignore */ }
+            }
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) { /* ignore */ }
+            }
         }
     }
 
@@ -580,8 +728,11 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public void showdown() {
-        OSSClient ossClient = obtainClient();
-        ossClient.shutdown();
+    public void shutdown() {
+        // 委托给 OssClient.close() 统一管理资源释放
+        OssClient<OSSClient> ossClient = client;
+        if (ossClient != null) {
+            ossClient.close();
+        }
     }
 }
