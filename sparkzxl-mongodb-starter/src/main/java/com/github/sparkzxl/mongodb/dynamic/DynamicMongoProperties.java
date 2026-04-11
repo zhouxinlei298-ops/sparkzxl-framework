@@ -1,12 +1,12 @@
 package com.github.sparkzxl.mongodb.dynamic;
 
-import static com.github.sparkzxl.mongodb.dynamic.DynamicMongoProperties.DYNAMIC_MONGO_PREFIX;
 
 import com.github.sparkzxl.core.constant.enums.IdTypeEnum;
 import com.github.sparkzxl.core.constant.enums.MultiTenantType;
-import java.util.Map;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import java.util.Map;
 
 /**
  * description: 动态数据源配置属性
@@ -14,7 +14,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author zhouxinlei
  */
 @Data
-@ConfigurationProperties(prefix = DYNAMIC_MONGO_PREFIX)
+@ConfigurationProperties(prefix = DynamicMongoProperties.DYNAMIC_MONGO_PREFIX)
 public class DynamicMongoProperties {
 
     public static final String DYNAMIC_MONGO_PREFIX = "spring.dynamic.mongodb";

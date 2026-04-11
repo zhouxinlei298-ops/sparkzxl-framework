@@ -2,6 +2,7 @@ package com.github.sparkzxl.mongodb.dynamic;
 
 import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.convert.DefaultMongoTypeMapper;
@@ -29,7 +30,7 @@ public class DynamicMongoTemplate extends MongoTemplate {
     }
 
     @Override
-    protected MongoDatabase doGetDatabase() {
+    protected @NotNull MongoDatabase doGetDatabase() {
         MongoDatabaseFactory databaseFactory = mongoDatabaseFactoryContext.determineMongoDatabaseFactory();
         return databaseFactory == null ? super.doGetDatabase() : databaseFactory.getMongoDatabase();
     }

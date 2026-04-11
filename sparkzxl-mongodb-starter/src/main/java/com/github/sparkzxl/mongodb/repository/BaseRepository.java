@@ -1,8 +1,9 @@
 package com.github.sparkzxl.mongodb.repository;
 
 import com.github.sparkzxl.mongodb.entity.Entity;
-import java.io.Serializable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+
+import java.io.Serializable;
 
 /**
  * description: 公共仓储层
