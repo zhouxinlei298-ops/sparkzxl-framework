@@ -1,11 +1,12 @@
 package com.github.sparkzxl.datascope.executor;
 
-import com.alibaba.ttl.TransmittableThreadLocal;
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.util.ArgumentAssert;
+import com.github.sparkzxl.datascope.enums.SqlCondition;
 import com.github.sparkzxl.datascope.expression.*;
+import com.github.sparkzxl.datascope.properties.DataScopeConfProperties;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +19,6 @@ import net.sf.jsqlparser.util.cnfexpression.MultiAndExpression;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.ibatis.mapping.SqlCommandType;
-import com.github.sparkzxl.datascope.enums.SqlCondition;
-import com.github.sparkzxl.datascope.properties.DataScopeConfProperties;
 
 import java.util.Collection;
 import java.util.List;
@@ -113,7 +112,7 @@ public class DefaultDataScopeLineExecutor implements DataScopeLineExecutor {
             return new MultiAndExpression(expressionList);
         }
         if (currentExpression instanceof OrExpression) {
-            return new AndExpression(new ParenthesedExpressionList(currentExpression), new MultiAndExpression(expressionList));
+            return new AndExpression(new ParenthesedExpressionList<>(currentExpression), new MultiAndExpression(expressionList));
         } else {
             return new AndExpression(currentExpression, new MultiAndExpression(expressionList));
         }

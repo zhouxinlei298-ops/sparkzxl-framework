@@ -38,6 +38,15 @@
             <groupId>com.github.sparkzxl</groupId>
             <artifactId>sparkzxl-feign-core</artifactId>
         </dependency>
+        <!-- Apache HttpClient 5 for RestTemplate (官方推荐) -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5-fluent</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>

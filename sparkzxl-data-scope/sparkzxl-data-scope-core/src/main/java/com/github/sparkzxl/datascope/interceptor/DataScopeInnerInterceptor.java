@@ -1,5 +1,6 @@
 package com.github.sparkzxl.datascope.interceptor;
 
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.PluginUtils;
 import com.baomidou.mybatisplus.extension.plugins.inner.BaseMultiTableInnerInterceptor;
@@ -10,12 +11,15 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.WithItem;
 import net.sf.jsqlparser.statement.update.Update;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
 
 import java.sql.Connection;
+import java.util.List;
 
 /**
  * description: 数据权限拦截器
@@ -89,6 +93,31 @@ public class DataScopeInnerInterceptor extends BaseMultiTableInnerInterceptor im
         if (ObjectUtils.isNotEmpty(expression)) {
             delete.setWhere(expression);
         }
+        dataScopeLineExecutor.destroy();
+    }
+
+    /**
+     * select 语句处理
+     * <p>
+     * 参考 DataPermissionInterceptor 和 TenantLineInnerInterceptor 的实现
+     *
+     * @param select select
+     * @param index  index
+     * @param sql    sql
+     * @param obj    obj (whereSegment)
+     */
+    @Override
+    protected void processSelect(Select select, int index, String sql, Object obj) {
+        final String whereSegment = (String) obj;
+        // 处理 SELECT 主体（包括 FROM、WHERE、JOIN 等）
+        // 这会递归处理所有子查询，并最终调用 buildTableExpression
+        processSelectBody(select, whereSegment);
+        // 处理 WITH 子句（CTE）
+        List<WithItem<?>> withItemsList = select.getWithItemsList();
+        if (!CollectionUtils.isEmpty(withItemsList)) {
+            withItemsList.forEach(withItem -> processSelectBody(withItem.getSelect(), whereSegment));
+        }
+        // 清理 ThreadLocal 资源
         dataScopeLineExecutor.destroy();
     }
 

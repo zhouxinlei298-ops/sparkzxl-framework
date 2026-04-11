@@ -6,6 +6,8 @@ import com.github.sparkzxl.core.support.ArgumentException;
 import com.github.sparkzxl.dubbo.support.DubboTransferException;
 import com.github.sparkzxl.dubbo.support.ExceptionHandlerLoad;
 import com.github.sparkzxl.dubbo.support.RpcFallbackException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.common.extension.Activate;
@@ -20,8 +22,6 @@ import org.apache.dubbo.rpc.model.ApplicationModel;
 import org.apache.dubbo.rpc.service.GenericService;
 import org.apache.dubbo.rpc.support.RpcUtils;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
 import java.lang.reflect.Method;
 
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.CONFIG_FILTER_VALIDATION_EXCEPTION;
@@ -74,10 +74,9 @@ public class ExceptionEnhancedFilter implements Filter, Filter.Listener {
                             exception.getMessage()));
                     return;
                 }
-                if (exception instanceof DubboTransferException) {
+                if (exception instanceof DubboTransferException dubboTransferException) {
                     String exceptionJson = appResponse.getAttachment("ORIGINAL_EXCEPTION");
                     String originalServiceName = appResponse.getAttachment("ORIGINAL_SERVICE_NAME");
-                    DubboTransferException dubboTransferException = (DubboTransferException) exception;
                     logger.error("发生异常的服务：{}", originalServiceName);
                     String excClassName = dubboTransferException.getExClassName();
                     try {
@@ -169,7 +168,7 @@ public class ExceptionEnhancedFilter implements Filter, Filter.Listener {
         StringBuilder detailMessage = new StringBuilder();
         for (ConstraintViolation<?> constraintViolation : e.getConstraintViolations()) {
             // 使用 ; 分隔多个错误
-            if (detailMessage.length() > 0) {
+            if (!detailMessage.isEmpty()) {
                 detailMessage.append(";");
             }
             // 拼接内容到其中
