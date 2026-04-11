@@ -26,7 +26,7 @@
         <nacos.version>2.5.1</nacos.version>
 
         <knife4j.version>4.5.0</knife4j.version>
-        <knife4j-swagger-models-v3.version>2.2.28</knife4j-swagger-models-v3.version>
+        <swagger-annotations.version>2.2.43</swagger-annotations.version>
         <log4j.version>2.25.1</log4j.version>
         <dubbo.version>3.3.5</dubbo.version>
 
@@ -187,19 +187,23 @@
             <dependency>
                 <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-annotations-jakarta</artifactId>
-                <version>${knife4j-swagger-models-v3.version}</version>
+                <version>${swagger-annotations.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-models-jakarta</artifactId>
-                <version>${knife4j-swagger-models-v3.version}</version>
+                <version>${swagger-annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-core-jakarta</artifactId>
+                <version>${swagger-annotations.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.dubbo</groupId>
                 <artifactId>dubbo-bom</artifactId>
