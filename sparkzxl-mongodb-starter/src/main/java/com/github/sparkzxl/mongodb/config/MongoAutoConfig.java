@@ -9,17 +9,16 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.mongo.MongoProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
-import org.springframework.data.mongodb.core.convert.DbRefResolver;
-import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
-import org.springframework.data.mongodb.core.convert.DefaultMongoTypeMapper;
-import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
-import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
+import org.springframework.data.mongodb.core.MongoDatabaseFactorySupport;
+import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
+import org.springframework.data.mongodb.core.convert.*;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
@@ -44,6 +43,12 @@ public class MongoAutoConfig {
         return new MongoInsertEventListener();
     }
 
+    @Bean
+    @ConditionalOnProperty(prefix = DynamicMongoProperties.DYNAMIC_MONGO_PREFIX, name = "enabled", havingValue = "false", matchIfMissing = true)
+    public MongoDatabaseFactorySupport<?> mongoDatabaseFactory(MongoClient mongoClient, MongoProperties properties) {
+        return new SimpleMongoClientDatabaseFactory(mongoClient, properties.getMongoClientDatabase());
+    }
+
     /**
      * 目的，就是为了移除 _class field 参考博客 <a href="https://blog.csdn.net/bigtree_3721/article/details/82787411"></a>
      *
@@ -53,7 +58,7 @@ public class MongoAutoConfig {
      * @return MappingMongoConverter
      */
     @Bean
-    @ConditionalOnProperty(prefix = DynamicMongoProperties.DYNAMIC_MONGO_PREFIX, name = "enabled", havingValue = "false")
+    @ConditionalOnProperty(prefix = DynamicMongoProperties.DYNAMIC_MONGO_PREFIX, name = "enabled", havingValue = "false", matchIfMissing = true)
     public MappingMongoConverter mappingMongoConverter(MongoDatabaseFactory mongoDatabaseFactory,
             MongoMappingContext context,
             BeanFactory beanFactory) {
