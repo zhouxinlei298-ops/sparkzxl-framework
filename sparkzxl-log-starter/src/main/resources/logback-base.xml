@@ -182,6 +182,6 @@
 
     <!--nacos 心跳 INFO 屏蔽-->
     <logger name="com.alibaba.nacos" level="OFF">
-        <appender-ref ref="error"/>
+        <appender-ref ref="CONSOLE_APPENDER"/>
     </logger>
 </included>

@@ -44,11 +44,6 @@ public class SwaggerAutoConfiguration {
         this.swaggerProperties = swaggerProperties;
     }
 
-    @Bean
-    public Knife4jProperties knife4jProperties() {
-        return new Knife4jProperties();
-    }
-
     /**
      * 增强自定义配置
      *
