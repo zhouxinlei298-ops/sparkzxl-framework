@@ -2,14 +2,17 @@ package com.github.sparkzxl.swagger.config;
 
 import cn.hutool.core.collection.CollUtil;
 import com.github.sparkzxl.swagger.properties.SwaggerProperties;
+import com.github.xiaoymin.knife4j.spring.filter.JakartaProductionSecurityFilter;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.customizers.GlobalOperationCustomizer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -24,20 +27,18 @@ import java.util.List;
  * @author zhouxinlei
  * @since 2025-08-09 15:24:26
  */
+@Slf4j
 @Configuration
-@Import({
-        Swagger2Configuration.class
-})
+@Import({Swagger2Configuration.class})
 @ConditionalOnProperty(prefix = "swagger", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(SwaggerProperties.class)
 public class SwaggerAutoConfiguration {
 
-    private final SwaggerProperties swaggerProperties;
+    private final SwaggerProperties properties;
 
 
-    public SwaggerAutoConfiguration(
-            SwaggerProperties swaggerProperties) {
-        this.swaggerProperties = swaggerProperties;
+    public SwaggerAutoConfiguration(SwaggerProperties properties) {
+        this.properties = properties;
     }
 
     /**
@@ -77,7 +78,7 @@ public class SwaggerAutoConfiguration {
     @Bean
     public GlobalOperationCustomizer customize2() {
         return (operation, handlerMethod) -> {
-            List<SwaggerProperties.GlobalOperationParameter> globalOperationParameters = swaggerProperties.getGlobalOperationParameters();
+            List<SwaggerProperties.GlobalOperationParameter> globalOperationParameters = properties.getGlobalOperationParameters();
 
             if (CollUtil.isEmpty(globalOperationParameters)) {
                 return operation;
@@ -102,14 +103,21 @@ public class SwaggerAutoConfiguration {
     public OpenAPI customOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title(swaggerProperties.getTitle())
-                        .description(swaggerProperties.getDescription())
-                        .version(swaggerProperties.getVersion())
-                        .termsOfService(swaggerProperties.getTermsOfServiceUrl())
-                        .contact(new Contact().name(swaggerProperties.getContact().getName())
-                                .url(swaggerProperties.getContact().getUrl())
-                                .email(swaggerProperties.getContact().getEmail()))
-                        .license(new License().name(swaggerProperties.getLicense()).url(swaggerProperties.getLicenseUrl())));
+                        .title(properties.getTitle())
+                        .description(properties.getDescription())
+                        .version(properties.getVersion())
+                        .termsOfService(properties.getTermsOfServiceUrl())
+                        .contact(new Contact().name(properties.getContact().getName())
+                                .url(properties.getContact().getUrl())
+                                .email(properties.getContact().getEmail()))
+                        .license(new License().name(properties.getLicense()).url(properties.getLicenseUrl())));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(JakartaProductionSecurityFilter.class)
+    @ConditionalOnProperty(name = "swagger.production", havingValue = "true")
+    public JakartaProductionSecurityFilter productionSecurityFilter() {
+        return new JakartaProductionSecurityFilter(properties.isProduction());
     }
 
 

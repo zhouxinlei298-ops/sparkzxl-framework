@@ -21,7 +21,7 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "swagger")
 public class SwaggerProperties implements Serializable {
 
-    private static final long serialVersionUID = -3404224079115653933L;
+    private static final long serialVersionUID = -3128556796428936361L;
     /**
      * 是否开启
      */
@@ -36,7 +36,7 @@ public class SwaggerProperties implements Serializable {
     /**
      * 描述
      **/
-    private String description = "sparkzxl 在线文档";
+    private String description = "sparkzxl在线文档";
     /**
      * 版本
      **/
@@ -115,6 +115,8 @@ public class SwaggerProperties implements Serializable {
      * 分组文档集合
      */
     private List<MarkdownProperty> documents;
+
+    private boolean production;
 
     public String getGroup() {
         if (group == null || group.isEmpty()) {
