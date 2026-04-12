@@ -1,4 +1,4 @@
-package com.github.sparkzxl.annotation;
+package com.github.sparkzxl.web.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -6,6 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * description:
+ *
+ * @author zhouxinlei
+ * @version 1.0
+ * @since 2026-04-12 11:10:03
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
 public @interface ApiLimit {

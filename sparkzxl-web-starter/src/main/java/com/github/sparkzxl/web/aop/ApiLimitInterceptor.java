@@ -1,6 +1,6 @@
 package com.github.sparkzxl.web.aop;
 
-import com.github.sparkzxl.annotation.ApiLimit;
+import com.github.sparkzxl.web.annotation.ApiLimit;
 import com.github.sparkzxl.core.util.ArgumentAssert;
 import com.github.sparkzxl.web.support.LimitException;
 import com.google.common.collect.Maps;

@@ -1,6 +1,6 @@
 package com.github.sparkzxl.web.config;
 
-import com.github.sparkzxl.annotation.ApiLimit;
+import com.github.sparkzxl.web.annotation.ApiLimit;
 import com.github.sparkzxl.core.constant.Constant;
 import com.github.sparkzxl.web.aop.ApiLimitAnnotationAdvisor;
 import com.github.sparkzxl.web.aop.ApiLimitInterceptor;
