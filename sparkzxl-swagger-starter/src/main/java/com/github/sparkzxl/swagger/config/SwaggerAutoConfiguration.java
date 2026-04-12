@@ -2,8 +2,6 @@ package com.github.sparkzxl.swagger.config;
 
 import cn.hutool.core.collection.CollUtil;
 import com.github.sparkzxl.swagger.properties.SwaggerProperties;
-import com.github.sparkzxl.web.annotation.IgnoreResponseWrap;
-import com.github.sparkzxl.web.annotation.ResponseResult;
 import com.github.xiaoymin.knife4j.spring.filter.JakartaProductionSecurityFilter;
 import com.google.common.collect.Maps;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -13,7 +11,6 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.media.*;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
-import io.swagger.v3.oas.models.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.customizers.GlobalOperationCustomizer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -83,92 +80,44 @@ public class SwaggerAutoConfiguration {
     /**
      * 全局响应配置
      * 为所有接口自动添加预定义的响应模板
+     * 如果接口有 @ResponseResult 注解且没有 @IgnoreResponseWrap 注解，则将响应包装成 R<T> 格式
+     * 200 响应从 operation.getResponses() 获取，其他状态码从 getResponseMessageMap() 获取
      *
      * @return GlobalOperationCustomizer
      */
     @Bean
     public GlobalOperationCustomizer globalResponseCustomizer() {
         return (operation, handlerMethod) -> {
-            // 如果接口已经定义了响应，则跳过（不覆盖自定义响应）
-            if (operation.getResponses() != null && !operation.getResponses().isEmpty()) {
-                return operation;
-            }
-            boolean isResponseResult = handlerMethod.getClass().isAnnotationPresent(ResponseResult.class) && !handlerMethod.hasMethodAnnotation(IgnoreResponseWrap.class);
-            // 获取预定义的响应映射
-            Map<String, ApiResponse> responseMap = getResponseMessageMap();
-
-            // 构建新的响应映射
-            ApiResponses responses = new ApiResponses();
-            responseMap.forEach((code, apiResponse) -> {
-                // 克隆响应对象以避免修改原始响应
-                ApiResponse response = new ApiResponse()
-                        .description(apiResponse.getDescription())
-                        .content(apiResponse.getContent());
-
-                // 如果是 R<T> 类型且是 200 响应，确保 Schema 正确引用
-                if ("200".equals(code) && isResponseResult) {
-                    response.content(new Content()
-                            .addMediaType("application/json",
-                                    new MediaType()
-                                            .schema(new Schema<>().$ref("#/components/schemas/R"))));
-                }
-
-                responses.addApiResponse(code, response);
+            // 获取预定义的错误响应映射
+            Map<String, ApiResponse> errorResponseMap = getResponseMessageMap();
+            // 2. 添加错误响应（400, 401, 403, 404, 500）从 getResponseMessageMap() 获取
+            errorResponseMap.forEach((key, val) -> {
+                operation.getResponses().addApiResponse(key, val);
             });
-
-            operation.responses(responses);
             return operation;
         };
     }
 
     /**
-     * 检测返回类型是否为 R<T>
-     *
-     * @param returnType 返回类型
-     * @return 是否为 R 类型
-     */
-    private boolean isRType(Class<?> returnType) {
-        try {
-            Class<?> rClass = Class.forName("com.github.sparkzxl.core.base.result.R");
-            return rClass.isAssignableFrom(returnType);
-        } catch (ClassNotFoundException e) {
-            log.debug("未找到 R 类，跳过类型检测: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * 获取统一响应格式 R<T> 的 Schema 定义
+     * 获取成功响应的 R<T> Schema 定义
+     * 将原始 Schema 作为 result 字段
      *
      * @return R<T> Schema
      */
-    private Schema<?> getRschema() {
+    private static Schema<?> getRschema() {
         return (Schema<?>) new Schema<>()
                 .type("object")
                 .description("统一响应格式")
-                .addProperty("code", new IntegerSchema()
-                        .description("响应编码")
-                        .example(200))
-                .addProperty("message", new StringSchema()
-                        .description("响应信息")
-                        .example("请求成功"))
-                .addProperty("success", new BooleanSchema()
-                        .description("是否成功")
-                        .example(true))
-                .addProperty("result", new ObjectSchema()
-                        .description("响应数据"))
-                .addProperty("errorCode", new StringSchema()
-                        .description("异常码")
-                        .nullable(true))
-                .addProperty("errorMessage", new StringSchema()
-                        .description("异常信息")
-                        .nullable(true))
+                .addProperty("code", new IntegerSchema().description("响应编码").example(200))
+                .addProperty("message", new StringSchema().description("响应信息").example("请求成功"))
+                .addProperty("success", new BooleanSchema().description("是否成功").example(true))
+                .addProperty("result", new ObjectSchema().description("响应数据"))
+                .addProperty("errorCode", new StringSchema().description("异常码").nullable(true))
+                .addProperty("errorMessage", new StringSchema().description("异常信息").nullable(true))
                 .addProperty("extra", new Schema<>()
                         .type("object")
                         .description("附加数据")
-                        .addProperty("traceId", new StringSchema()
-                                .description("链路追踪ID")
-                                .example("1234567890abcdef")));
+                        .addProperty("traceId", new StringSchema().description("链路追踪ID").example("1234567890abcdef")));
     }
 
     /**
@@ -178,23 +127,14 @@ public class SwaggerAutoConfiguration {
      */
     private Map<String, ApiResponse> getResponseMessageMap() {
         Map<String, ApiResponse> responseMap = Maps.newHashMap();
-
-        // 200 - 成功响应
-        ApiResponse successResponse = new ApiResponse()
-                .description("请求成功")
-                .content(new Content()
-                        .addMediaType("application/json",
-                                new MediaType()
-                                        .schema(new Schema<>().$ref("#/components/schemas/R"))));
-        responseMap.put("200", successResponse);
-
+        Schema<?> rschema = getRschema();
         // 400 - 请求参数错误
         ApiResponse badRequestResponse = new ApiResponse()
                 .description("请求参数错误")
                 .content(new Content()
                         .addMediaType("application/json",
                                 new MediaType()
-                                        .schema(new Schema<>().$ref("#/components/schemas/R"))
+                                        .schema(rschema)
                                         .example(Map.of(
                                                 "code", 400,
                                                 "message", "请求参数错误",
@@ -211,7 +151,7 @@ public class SwaggerAutoConfiguration {
                 .content(new Content()
                         .addMediaType("application/json",
                                 new MediaType()
-                                        .schema(new Schema<>().$ref("#/components/schemas/R"))
+                                        .schema(rschema)
                                         .example(Map.of(
                                                 "code", 401,
                                                 "message", "用户登录已过期",
@@ -228,7 +168,7 @@ public class SwaggerAutoConfiguration {
                 .content(new Content()
                         .addMediaType("application/json",
                                 new MediaType()
-                                        .schema(new Schema<>().$ref("#/components/schemas/R"))
+                                        .schema(rschema)
                                         .example(Map.of(
                                                 "code", 403,
                                                 "message", "用户访问未授权",
@@ -245,7 +185,7 @@ public class SwaggerAutoConfiguration {
                 .content(new Content()
                         .addMediaType("application/json",
                                 new MediaType()
-                                        .schema(new Schema<>().$ref("#/components/schemas/R"))
+                                        .schema(rschema)
                                         .example(Map.of(
                                                 "code", 404,
                                                 "message", "接口不存在",
@@ -262,7 +202,7 @@ public class SwaggerAutoConfiguration {
                 .content(new Content()
                         .addMediaType("application/json",
                                 new MediaType()
-                                        .schema(new Schema<>().$ref("#/components/schemas/R"))
+                                        .schema(rschema)
                                         .example(Map.of(
                                                 "code", 500,
                                                 "message", "系统执行出错",
