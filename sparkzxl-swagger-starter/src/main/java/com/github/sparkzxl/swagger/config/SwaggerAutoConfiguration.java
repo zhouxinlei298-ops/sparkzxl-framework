@@ -1,14 +1,11 @@
 package com.github.sparkzxl.swagger.config;
 
-import cn.hutool.core.collection.CollUtil;
 import com.github.sparkzxl.swagger.properties.SwaggerProperties;
 import com.github.xiaoymin.knife4j.spring.filter.JakartaProductionSecurityFilter;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
-import io.swagger.v3.oas.models.media.StringSchema;
-import io.swagger.v3.oas.models.parameters.Parameter;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.customizers.GlobalOperationCustomizer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -17,8 +14,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 /**
  * description: swagger 包扫描配置
@@ -56,27 +51,8 @@ public class SwaggerAutoConfiguration {
     }
 
     @Bean
-    public GlobalOperationCustomizer customize2() {
-        return (operation, handlerMethod) -> {
-            List<SwaggerProperties.GlobalOperationParameter> globalOperationParameters = properties.getGlobalOperationParameters();
-
-            if (CollUtil.isEmpty(globalOperationParameters)) {
-                return operation;
-            }
-            for (SwaggerProperties.GlobalOperationParameter globalOperationParameter : globalOperationParameters) {
-                operation = operation.addParametersItem(
-                        new Parameter()
-                                .in(globalOperationParameter.getParameterType())
-                                .required(globalOperationParameter.getRequired())
-                                .schema(new StringSchema())
-                                .example(globalOperationParameter.getDefaultValue())
-                                .description(globalOperationParameter.getDescription())
-                                .allowEmptyValue(globalOperationParameter.getAllowEmptyValue())
-                                .name(globalOperationParameter.getName())
-                );
-            }
-            return operation;
-        };
+    public GlobalOperationCustomizer globalOperationCustomizer() {
+        return new SwaggerGlobalOperationCustomizer(properties);
     }
 
 
