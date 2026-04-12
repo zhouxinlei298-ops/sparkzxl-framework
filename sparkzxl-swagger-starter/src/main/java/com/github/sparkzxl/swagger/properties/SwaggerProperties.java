@@ -1,29 +1,37 @@
 package com.github.sparkzxl.swagger.properties;
 
+import com.github.xiaoymin.knife4j.core.model.MarkdownProperty;
+import com.github.xiaoymin.knife4j.spring.configuration.Knife4jSetting;
+import lombok.*;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * description: swagger2 属性配置
+ * description: swagger 属性配置
  *
  * @author zhouxinlei
  */
 @Data
-@ConfigurationProperties(prefix = "knife4j")
-public class SwaggerProperties {
+@ConfigurationProperties(prefix = "swagger")
+public class SwaggerProperties implements Serializable {
+
+    private static final long serialVersionUID = -3404224079115653933L;
+    /**
+     * 是否开启
+     */
+    private boolean enabled;
 
     /**
      * 标题
      **/
     private String title = "在线文档";
+
     private String group = "";
     /**
      * 描述
@@ -51,7 +59,7 @@ public class SwaggerProperties {
     /**
      * swagger会解析的包路径
      **/
-    private String basePackage = "com.github.sparkzxl";
+    private List<String> scanPackages;
     /**
      * 扩展swagger 基础路径
      */
@@ -96,8 +104,20 @@ public class SwaggerProperties {
      **/
     private List<GlobalOperationParameter> globalOperationParameters;
 
+
+    /**
+     * 个性化配置
+     */
+    @NestedConfigurationProperty
+    private Knife4jSetting setting;
+
+    /**
+     * 分组文档集合
+     */
+    private List<MarkdownProperty> documents;
+
     public String getGroup() {
-        if (group == null || "".equals(group)) {
+        if (group == null || group.isEmpty()) {
             return title;
         }
         return group;
@@ -216,7 +236,7 @@ public class SwaggerProperties {
         private Integer order = 1;
 
         public String getGroup() {
-            if (group == null || "".equals(group)) {
+            if (group == null || group.isEmpty()) {
                 return title;
             }
             return group;

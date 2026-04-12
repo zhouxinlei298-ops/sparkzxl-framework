@@ -11,7 +11,7 @@ import static com.github.sparkzxl.swagger.config.Swagger2Configuration.TRUE;
  *
  * @author zhouxinlei
  */
-@ConditionalOnProperty(prefix = "knife4j", name = "enable", havingValue = TRUE, matchIfMissing = true)
+@ConditionalOnProperty(prefix = "swagger", name = "enabled", havingValue = TRUE)
 public class Swagger2Configuration {
 
     public static final String TRUE = "true";

@@ -1,9 +1,9 @@
 package com.github.sparkzxl.swagger.config;
 
+import com.github.sparkzxl.swagger.properties.SwaggerProperties;
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import com.github.xiaoymin.knife4j.core.conf.ExtensionsConstants;
 import com.github.xiaoymin.knife4j.core.conf.GlobalConstants;
-import com.github.xiaoymin.knife4j.spring.configuration.Knife4jProperties;
 import com.github.xiaoymin.knife4j.spring.configuration.Knife4jSetting;
 import com.github.xiaoymin.knife4j.spring.extension.OpenApiExtensionResolver;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,7 +12,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
-import org.springdoc.core.properties.SpringDocConfigProperties;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -34,15 +33,14 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class MyKnife4jOpenApiCustomizer implements GlobalOpenApiCustomizer {
 
-    final Knife4jProperties knife4jProperties;
-    final SpringDocConfigProperties properties;
+    private final SwaggerProperties swaggerProperties;
 
     @Override
     public void customise(OpenAPI openApi) {
         log.debug("Knife4j OpenApiCustomizer");
-        if (knife4jProperties.isEnable()) {
-            Knife4jSetting setting = knife4jProperties.getSetting();
-            OpenApiExtensionResolver openApiExtensionResolver = new OpenApiExtensionResolver(setting, knife4jProperties.getDocuments());
+        if (swaggerProperties.isEnabled()) {
+            Knife4jSetting setting = swaggerProperties.getSetting();
+            OpenApiExtensionResolver openApiExtensionResolver = new OpenApiExtensionResolver(setting, swaggerProperties.getDocuments());
             // 解析初始化
             openApiExtensionResolver.start();
             Map<String, Object> objectMap = new HashMap<>();
@@ -59,16 +57,12 @@ public class MyKnife4jOpenApiCustomizer implements GlobalOpenApiCustomizer {
      * @param openApi openApi
      */
     private void addOrderExtension(OpenAPI openApi) {
-        if (CollectionUtils.isEmpty(properties.getGroupConfigs())) {
+        List<String> scanPackages = swaggerProperties.getScanPackages();
+        if (CollectionUtils.isEmpty(scanPackages)) {
             return;
         }
         // 获取包扫描路径
-        Set<String> packagesToScan =
-                properties.getGroupConfigs().stream()
-                        .map(SpringDocConfigProperties.GroupConfig::getPackagesToScan)
-                        .filter(toScan -> !CollectionUtils.isEmpty(toScan))
-                        .flatMap(List::stream)
-                        .collect(Collectors.toSet());
+        Set<String> packagesToScan = new HashSet<>(scanPackages);
         if (CollectionUtils.isEmpty(packagesToScan)) {
             return;
         }

@@ -2,8 +2,6 @@ package com.github.sparkzxl.swagger.config;
 
 import cn.hutool.core.collection.CollUtil;
 import com.github.sparkzxl.swagger.properties.SwaggerProperties;
-import com.github.xiaoymin.knife4j.spring.configuration.Knife4jAutoConfiguration;
-import com.github.xiaoymin.knife4j.spring.configuration.Knife4jProperties;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
@@ -12,8 +10,6 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.customizers.GlobalOperationCustomizer;
-import org.springdoc.core.properties.SpringDocConfigProperties;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -32,10 +28,10 @@ import java.util.List;
 @Import({
         Swagger2Configuration.class
 })
-@AutoConfigureAfter(value = Knife4jAutoConfiguration.class)
-@ConditionalOnProperty(prefix = "knife4j", name = "enable", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "swagger", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(SwaggerProperties.class)
 public class SwaggerAutoConfiguration {
+
     private final SwaggerProperties swaggerProperties;
 
 
@@ -50,9 +46,8 @@ public class SwaggerAutoConfiguration {
      * @return MyKnife4jOpenApiCustomizer
      */
     @Bean
-    public MyKnife4jOpenApiCustomizer knife4jOpenApiCustomizer(SpringDocConfigProperties docProperties,
-                                                               Knife4jProperties knife4jProperties) {
-        return new MyKnife4jOpenApiCustomizer(knife4jProperties, docProperties);
+    public MyKnife4jOpenApiCustomizer knife4jOpenApiCustomizer(SwaggerProperties swaggerProperties) {
+        return new MyKnife4jOpenApiCustomizer(swaggerProperties);
     }
 
     /**
