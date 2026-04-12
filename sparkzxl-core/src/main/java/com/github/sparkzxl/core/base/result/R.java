@@ -6,11 +6,13 @@ import com.github.sparkzxl.core.base.HttpCode;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.support.BaseException;
 import com.github.sparkzxl.core.support.code.IErrorCode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,19 +26,23 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Accessors(chain = true)
+@Schema(description = "统一响应结果")
 public class R<T> implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = -720885758850999950L;
 
     /**
      * 响应编码
      */
+    @Schema(description = "响应编码", example = "200")
     @JsonProperty(index = 1)
     private int code;
 
     /**
      * 响应信息
      */
+    @Schema(description = "响应信息", example = "请求成功")
     @JsonProperty(index = 2)
     private String message;
 
@@ -44,11 +50,13 @@ public class R<T> implements Serializable {
      * 是否成功
      */
     @JsonProperty(index = 3)
+    @Schema(description = "是否成功", example = "true")
     private boolean success;
 
     /**
      * 响应数据
      */
+    @Schema(description = "响应数据")
     @JsonProperty(index = 4)
     private T result;
 
