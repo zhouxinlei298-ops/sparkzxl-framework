@@ -12,7 +12,7 @@
     <url>https://github.com/zhouxinlei828/sparkzxl-dependencies</url>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>8</java.version>
         <!-- maven -->
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -739,11 +739,6 @@
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-patterns-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.sparkzxl</groupId>
-                <artifactId>sparkzxl-security-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
