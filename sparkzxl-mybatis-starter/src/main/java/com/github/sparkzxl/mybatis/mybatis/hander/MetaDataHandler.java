@@ -71,12 +71,12 @@ public class MetaDataHandler implements MetaObjectHandler {
      *
      * @param metaObject 元对象
      */
-    private void injectId(MetaObject metaObject) {
+    protected void injectId(MetaObject metaObject) {
         if (uidGenerator == null) {
             // 这里使用SpringUtils的方式"异步"获取对象，防止启动时，报循环注入的错
             uidGenerator = SpringContextUtils.getBean(UidGenerator.class);
         }
-        Long id = uidGenerator.getUid();// 这里使用SpringUtils的方式"异步"获取对象，防止启动时，报循环注入的错
+        long id = uidGenerator.getUid();
         if (metaObject.hasGetter(EntityConstant.ID)) {
             Object idVal = this.getFieldValByName(EntityConstant.ID, metaObject);
             if (ObjectUtils.isEmpty(idVal)) {
