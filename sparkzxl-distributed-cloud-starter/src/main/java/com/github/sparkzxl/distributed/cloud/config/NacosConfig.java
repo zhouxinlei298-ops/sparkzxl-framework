@@ -23,6 +23,12 @@ public class NacosConfig {
                                  NacosDiscoveryProperties nacosDiscoveryProperties) {
         //更改服务详情中的元数据，增加服务注册时间
         nacosDiscoveryProperties.getMetadata().put("startup.time", DateUtil.now());
+        // 从环境变量 LOADBALANCE_ZONE 读取
+        String zone = System.getenv("LOADBALANCE_ZONE");
+        if (zone == null || zone.isEmpty()) {
+            zone = "default";
+        }
+        nacosDiscoveryProperties.getMetadata().put("zone", zone);
         return new NacosWatch(nacosServiceManager, nacosDiscoveryProperties);
     }
 
