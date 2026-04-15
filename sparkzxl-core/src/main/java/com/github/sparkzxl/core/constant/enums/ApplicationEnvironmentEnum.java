@@ -32,7 +32,7 @@ public enum ApplicationEnvironmentEnum {
     /**
      * Nacos 分组（使用 NACOS_GROUP 环境变量）
      */
-    NACOS_GROUP("NACOS_GROUP", "nacos.group",  ""),
+    NACOS_GROUP("NACOS_GROUP", "nacos.group",  "DEFAULT_GROUP"),
 
     /**
      * Nacos 用户名（使用 NACOS_USERNAME 环境变量）
