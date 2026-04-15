@@ -1,5 +1,6 @@
 package com.github.sparkzxl.distributed.cloud.environment;
 
+import com.github.sparkzxl.core.constant.enums.ApplicationEnvironmentEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
@@ -29,7 +30,7 @@ public class ApplicationEnvironmentPostProcessor implements EnvironmentPostProce
         Map<String, Object> properties = new HashMap<>();
 
         // 遍历所有映射配置，从环境变量读取并注入
-        for (ApplicationEnvironmentMapping mapping : ApplicationEnvironmentMapping.values()) {
+        for (ApplicationEnvironmentEnum mapping : ApplicationEnvironmentEnum.values()) {
             String envValue = mapping.getEnvValue();
             if (StringUtils.isNotEmpty(envValue)) {
                 properties.putIfAbsent(mapping.getPropertyName(), envValue);
