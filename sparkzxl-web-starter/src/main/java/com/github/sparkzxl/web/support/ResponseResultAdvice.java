@@ -16,6 +16,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import javax.servlet.http.HttpServletRequest;
@@ -48,14 +49,24 @@ public class ResponseResultAdvice implements ResponseBodyAdvice<Object> {
     @Override
     public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType, Class<?
             extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
-        HttpServletResponse servletResponse = HttpRequestUtils.currentHttpServletResponse();
+
+        ServletRequestAttributes requestAttributes = HttpRequestUtils.currentServletRequestAttributes();
+        if (requestAttributes == null){
+            return body;
+        }
+        HttpServletResponse servletResponse = requestAttributes.getResponse();
+        if (servletResponse == null){
+            return body;
+        }
+
+        HttpServletRequest httpServletRequest = requestAttributes.getRequest();
         servletResponse.setCharacterEncoding(StandardCharsets.UTF_8.name());
         servletResponse.setContentType(MediaType.APPLICATION_JSON_VALUE);
         if (body instanceof R) {
             return body;
         }
-        HttpServletRequest httpServletRequest = HttpRequestUtils.currentHttpServletRequest();
-        Boolean fallback = Convert.toBool(HttpRequestUtils.getAttribute(httpServletRequest, BaseContextConstants.REMOTE_CALL), Boolean.FALSE);
+
+        Boolean fallback = Convert.toBool(httpServletRequest.getAttribute(BaseContextConstants.REMOTE_CALL), Boolean.FALSE);
         int status = servletResponse.getStatus();
         R<?> result;
         if (fallback) {
