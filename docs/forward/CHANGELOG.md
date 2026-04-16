@@ -42,7 +42,6 @@
 - sparkzxl-patterns-starter
 - sparkzxl-pdf-starter
 - sparkzxl-redisson-starter
-- sparkzxl-security-starter
 - sparkzxl-sentinel-starter
 - sparkzxl-swagger-starter
 - sparkzxl-user-starter
