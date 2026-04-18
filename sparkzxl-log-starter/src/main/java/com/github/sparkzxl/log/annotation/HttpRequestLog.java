@@ -38,7 +38,7 @@ public @interface HttpRequestLog {
      *
      * @return 是否记录返回值
      */
-    boolean response() default true;
+    boolean response() default false;
 
     Class<?>[] excludeClass() default {};
 
