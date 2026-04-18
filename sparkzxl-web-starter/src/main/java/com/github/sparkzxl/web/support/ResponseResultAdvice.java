@@ -5,7 +5,7 @@ import com.github.sparkzxl.core.base.HttpCode;
 import com.github.sparkzxl.core.base.result.R;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
-import com.github.sparkzxl.core.util.HttpRequestUtils;
+import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.github.sparkzxl.web.annotation.IgnoreResponseWrap;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class ResponseResultAdvice implements ResponseBodyAdvice<Object> {
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
         final IgnoreResponseWrap[] declaredAnnotationsByType = returnType.getExecutable()
                 .getDeclaredAnnotationsByType(IgnoreResponseWrap.class);
-        HttpServletRequest httpServletRequest = HttpRequestUtils.currentHttpServletRequest();
+        HttpServletRequest httpServletRequest = RequestContextHelper.currentHttpServletRequest();
         Object responseResult = httpServletRequest.getAttribute(BaseContextConstants.RESPONSE_RESULT_ANN);
         boolean supported = ObjectUtils.isNotEmpty(responseResult) && declaredAnnotationsByType.length == 0;
         if (log.isDebugEnabled()) {
@@ -50,10 +50,7 @@ public class ResponseResultAdvice implements ResponseBodyAdvice<Object> {
     public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType, Class<?
             extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
 
-        ServletRequestAttributes requestAttributes = HttpRequestUtils.currentServletRequestAttributes();
-        if (requestAttributes == null){
-            return body;
-        }
+        ServletRequestAttributes requestAttributes = RequestContextHelper.currentServletRequestAttributes();
         HttpServletResponse servletResponse = requestAttributes.getResponse();
         if (servletResponse == null){
             return body;
