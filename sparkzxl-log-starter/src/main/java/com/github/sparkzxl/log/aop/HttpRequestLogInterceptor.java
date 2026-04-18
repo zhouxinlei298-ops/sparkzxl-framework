@@ -3,21 +3,21 @@ package com.github.sparkzxl.log.aop;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.URLUtil;
-import cn.hutool.extra.servlet.ServletUtil;
 import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.util.AopUtil;
+import com.github.sparkzxl.core.util.NetworkUtil;
 import com.github.sparkzxl.log.annotation.HttpRequestLog;
 import com.github.sparkzxl.log.entity.RequestInfoLog;
 import com.github.sparkzxl.log.event.HttpRequestLogEvent;
+import jakarta.servlet.http.HttpServletRequest;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.lang3.ObjectUtils;
 
 import javax.annotation.Nonnull;
-import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -78,7 +78,7 @@ public class HttpRequestLogInterceptor implements MethodInterceptor {
                 .setCategory(httpRequestLog.value())
                 .setUserId(userId)
                 .setUserName(name)
-                .setIp(ServletUtil.getClientIP(request))
+                .setIp(NetworkUtil.getIpAddress(request))
                 .setRequestUrl(URLUtil.getPath(request.getRequestURI()))
                 .setHttpMethod(request.getMethod())
                 .setClassMethod(String.format("%s.%s", method.getDeclaringClass().getName(), method.getName()))
