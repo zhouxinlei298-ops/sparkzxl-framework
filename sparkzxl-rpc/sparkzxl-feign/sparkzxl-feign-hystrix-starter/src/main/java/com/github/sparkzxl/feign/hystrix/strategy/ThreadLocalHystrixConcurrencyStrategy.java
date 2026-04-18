@@ -13,6 +13,9 @@ import com.netflix.hystrix.strategy.metrics.HystrixMetricsPublisher;
 import com.netflix.hystrix.strategy.properties.HystrixPropertiesStrategy;
 import com.netflix.hystrix.strategy.properties.HystrixProperty;
 import io.seata.core.context.RootContext;
+import org.slf4j.MDC;
+
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -122,17 +125,22 @@ public class ThreadLocalHystrixConcurrencyStrategy extends HystrixConcurrencyStr
         private final Callable<T> target;
         private final RequestContextHelper.ContextSnapshot snapshot;
         private final String xid;
+        private final Map<String, String> mdcContextMap;
 
         WrappedCallable(Callable<T> target) {
             this.target = target;
             this.snapshot = RequestContextHelper.capture();
             this.xid = RootContext.getXID();
+            this.mdcContextMap = MDC.getCopyOfContextMap();
         }
 
         @Override
         public T call() throws Exception {
             try {
                 RequestContextHelper.restore(snapshot);
+                if (mdcContextMap != null) {
+                    MDC.setContextMap(mdcContextMap);
+                }
                 if (StringUtils.isNotEmpty(this.xid)) {
                     RootContext.bind(this.xid);
                 }
@@ -142,6 +150,7 @@ public class ThreadLocalHystrixConcurrencyStrategy extends HystrixConcurrencyStr
                     RootContext.unbind();
                 }
                 RequestContextHelper.reset();
+                MDC.clear();
             }
         }
     }
