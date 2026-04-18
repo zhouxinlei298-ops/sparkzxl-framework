@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
  *
  * @author zhouxinlei
  */
-@Target({ElementType.METHOD, ElementType.TYPE})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface HttpRequestLog {
 

@@ -5,7 +5,8 @@ import com.github.sparkzxl.log.annotation.OptLogRecord;
 import com.github.sparkzxl.log.aop.OptLogRecordAnnotationAdvisor;
 import com.github.sparkzxl.log.aop.OptLogRecordInterceptor;
 import com.github.sparkzxl.log.aspect.ExceptionHandlerAspect;
-import com.github.sparkzxl.log.aspect.HttpRequestLogAspect;
+import com.github.sparkzxl.log.aop.HttpRequestLogAnnotationAdvisor;
+import com.github.sparkzxl.log.aop.HttpRequestLogInterceptor;
 import com.github.sparkzxl.log.event.HttpRequestLogListener;
 import com.github.sparkzxl.log.event.OptLogListener;
 import com.github.sparkzxl.log.handler.DefaultOptLogVariablesHandler;
@@ -51,8 +52,13 @@ public class LogAutoConfiguration {
     }
 
     @Bean
-    public HttpRequestLogAspect httpRequestLogAspect() {
-        return new HttpRequestLogAspect();
+    public HttpRequestLogInterceptor httpRequestLogInterceptor() {
+        return new HttpRequestLogInterceptor();
+    }
+
+    @Bean
+    public HttpRequestLogAnnotationAdvisor httpRequestLogAnnotationAdvisor(HttpRequestLogInterceptor httpRequestLogInterceptor) {
+        return new HttpRequestLogAnnotationAdvisor(httpRequestLogInterceptor, Ordered.HIGHEST_PRECEDENCE);
     }
 
     @Bean

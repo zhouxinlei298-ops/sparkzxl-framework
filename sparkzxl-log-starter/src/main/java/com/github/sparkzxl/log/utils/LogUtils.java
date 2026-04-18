@@ -17,20 +17,15 @@ import org.aspectj.lang.reflect.MethodSignature;
 public class LogUtils {
 
     /**
-     * 优先从子类获取 @SysLog： 1，若子类重写了该方法，有标记就记录日志，没标记就忽略日志 2，若子类没有重写该方法，就从父类获取，父类有标记就记录日志，没标记就忽略日志
+     * 从方法上获取 @HttpRequestLog 注解
      */
     public static HttpRequestLog getTargetAnnotation(JoinPoint point) {
         try {
-            HttpRequestLog annotation = null;
             if (point.getSignature() instanceof MethodSignature) {
                 Method method = ((MethodSignature) point.getSignature()).getMethod();
-                if (AnnotationUtil.hasAnnotation(method, HttpRequestLog.class)) {
-                    annotation = AnnotationUtil.getAnnotation(method, HttpRequestLog.class);
-                } else {
-                    annotation = AnnotationUtil.getAnnotation(point.getSignature().getDeclaringType(), HttpRequestLog.class);
-                }
+                return AnnotationUtil.getAnnotation(method, HttpRequestLog.class);
             }
-            return annotation;
+            return null;
         } catch (Exception e) {
             log.warn("获取 {}.{} 的 @HttpRequestLog 注解失败", point.getSignature().getDeclaringTypeName(), point.getSignature().getName(),
                     e);
