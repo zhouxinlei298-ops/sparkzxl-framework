@@ -5,8 +5,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.MDC;
 import org.springframework.core.task.TaskDecorator;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
 
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -55,22 +53,20 @@ public class ContextTaskDecorator implements TaskDecorator {
     public @NotNull Runnable decorate(@NotNull Runnable runnable) {
         // 注意：这里的代码仍在「主线程」执行（任务提交时），而非子线程
         // 核心逻辑：包装原任务，在子线程执行原任务前后插入上下文操作
-        Map<String, Object> localMap = RequestLocalContextHolder.getLocalMap();
+        RequestContextHelper.ContextSnapshot snapshot = RequestContextHelper.capture();
         Map<String, String> mdcContextMap = MDC.getCopyOfContextMap();
-        final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
         String tenantId = RequestLocalContextHolder.getTenantId();
         return () -> {
             try {
-                // 1. 子线程执行任务前：复制主线程上下文，创建独立副本
-                RequestContextHolder.setRequestAttributes(requestAttributes);
-                RequestLocalContextHolder.setLocalMap(localMap);
+                // 1. 子线程执行任务前：恢复主线程上下文
+                RequestContextHelper.restore(snapshot);
                 if (mdcContextMap != null) {
                     MDC.setContextMap(mdcContextMap);
                 }
                 // 2. 动态执行DynamicDataSourceContextHolder.push(tenantId)（若依赖存在）
                 if (DATA_SOURCE_HOLDER != null && PUSH_METHOD != null && StringUtils.isNotEmpty(tenantId)) {
                     try {
-                        PUSH_METHOD.invoke(null, tenantId); // 静态方法调用，第一个参数为null
+                        PUSH_METHOD.invoke(null, tenantId);
                     } catch (Exception e) {
                         log.warn("调用DynamicDataSourceContextHolder.push失败", e);
                     }
@@ -81,14 +77,13 @@ public class ContextTaskDecorator implements TaskDecorator {
                 // 4. 动态执行DynamicDataSourceContextHolder.clear()（若依赖存在）
                 if (DATA_SOURCE_HOLDER != null && CLEAR_METHOD != null) {
                     try {
-                        CLEAR_METHOD.invoke(null); // 静态方法调用
+                        CLEAR_METHOD.invoke(null);
                     } catch (Exception e) {
                         log.warn("调用DynamicDataSourceContextHolder.clear失败", e);
                     }
                 }
-                // 5. 清理其他上下文
-                RequestContextHolder.resetRequestAttributes();
-                RequestLocalContextHolder.remove();
+                // 5. 清理上下文
+                RequestContextHelper.reset();
                 MDC.clear();
             }
         };

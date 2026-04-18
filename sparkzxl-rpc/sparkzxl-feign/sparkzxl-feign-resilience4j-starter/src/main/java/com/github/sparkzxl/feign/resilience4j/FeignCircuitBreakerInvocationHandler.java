@@ -1,6 +1,6 @@
 package com.github.sparkzxl.feign.resilience4j;
 
-import com.github.sparkzxl.core.context.RequestLocalContextHolder;
+import com.github.sparkzxl.core.context.RequestContextHelper;
 import feign.InvocationHandlerFactory;
 import feign.Target;
 import org.apache.skywalking.apm.toolkit.trace.SupplierWrapper;
@@ -10,8 +10,6 @@ import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.cloud.client.circuitbreaker.NoFallbackAvailableException;
 import org.springframework.cloud.openfeign.CircuitBreakerNameResolver;
 import org.springframework.cloud.openfeign.FallbackFactory;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -112,16 +110,14 @@ public class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
     }
 
     private Supplier<Object> asSupplier(final Method method, final Object[] args) {
-        final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        final Map<String, Object> localMap = RequestLocalContextHolder.getLocalMap();
+        final RequestContextHelper.ContextSnapshot snapshot = RequestContextHelper.capture();
         final Map<String, String> mdcContextMap = MDC.getCopyOfContextMap();
         final Thread caller = Thread.currentThread();
         return () -> {
             boolean isAsync = caller != Thread.currentThread();
             try {
                 if (isAsync) {
-                    RequestContextHolder.setRequestAttributes(requestAttributes);
-                    RequestLocalContextHolder.setLocalMap(localMap);
+                    RequestContextHelper.restore(snapshot);
                     if (mdcContextMap != null) {
                         MDC.setContextMap(mdcContextMap);
                     }
@@ -133,7 +129,8 @@ public class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
                 throw new RuntimeException(throwable);
             } finally {
                 if (isAsync) {
-                    RequestContextHolder.resetRequestAttributes();
+                    RequestContextHelper.reset();
+                    MDC.clear();
                 }
             }
         };

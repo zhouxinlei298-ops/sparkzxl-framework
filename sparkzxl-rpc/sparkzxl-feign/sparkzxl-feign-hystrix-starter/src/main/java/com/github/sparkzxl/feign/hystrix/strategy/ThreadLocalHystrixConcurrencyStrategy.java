@@ -1,6 +1,6 @@
 package com.github.sparkzxl.feign.hystrix.strategy;
 
-import com.github.sparkzxl.core.context.RequestLocalContextHolder;
+import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.netflix.hystrix.HystrixThreadPoolKey;
 import com.netflix.hystrix.HystrixThreadPoolProperties;
 import com.netflix.hystrix.strategy.HystrixPlugins;
@@ -13,15 +13,12 @@ import com.netflix.hystrix.strategy.metrics.HystrixMetricsPublisher;
 import com.netflix.hystrix.strategy.properties.HystrixPropertiesStrategy;
 import com.netflix.hystrix.strategy.properties.HystrixProperty;
 import io.seata.core.context.RootContext;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
 
 /**
  * description: 本地线程 Hystrix并发策略
@@ -90,8 +87,7 @@ public class ThreadLocalHystrixConcurrencyStrategy extends HystrixConcurrencyStr
         if (wrappedCallable instanceof WrappedCallable) {
             return wrappedCallable;
         }
-        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        return new WrappedCallable<>(callable, requestAttributes);
+        return new WrappedCallable<>(callable);
     }
 
     @Override
@@ -124,32 +120,28 @@ public class ThreadLocalHystrixConcurrencyStrategy extends HystrixConcurrencyStr
     static class WrappedCallable<T> implements Callable<T> {
 
         private final Callable<T> target;
-        private final RequestAttributes requestAttributes;
+        private final RequestContextHelper.ContextSnapshot snapshot;
         private final String xid;
-        private final Map<String, Object> threadLocalMap; //研究并发是否会冲突
 
-        WrappedCallable(Callable<T> target, RequestAttributes requestAttributes) {
+        WrappedCallable(Callable<T> target) {
             this.target = target;
-            this.requestAttributes = requestAttributes;
-            this.threadLocalMap = RequestLocalContextHolder.getLocalMap();
+            this.snapshot = RequestContextHelper.capture();
             this.xid = RootContext.getXID();
         }
 
         @Override
         public T call() throws Exception {
             try {
-                RequestContextHolder.setRequestAttributes(this.requestAttributes);
-                RequestLocalContextHolder.setLocalMap(this.threadLocalMap);
+                RequestContextHelper.restore(snapshot);
                 if (StringUtils.isNotEmpty(this.xid)) {
                     RootContext.bind(this.xid);
                 }
                 return this.target.call();
             } finally {
-                RequestContextHolder.resetRequestAttributes();
                 if (StringUtils.isNotEmpty(this.xid)) {
                     RootContext.unbind();
                 }
-                RequestLocalContextHolder.remove();
+                RequestContextHelper.reset();
             }
         }
     }

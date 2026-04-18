@@ -11,7 +11,7 @@ import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.util.AopUtil;
 import com.github.sparkzxl.core.util.DateUtils;
-import com.github.sparkzxl.core.util.HttpRequestUtils;
+import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.github.sparkzxl.log.annotation.HttpRequestLog;
 import com.github.sparkzxl.log.entity.RequestInfoLog;
 import com.github.sparkzxl.log.event.HttpRequestLogEvent;
@@ -51,7 +51,7 @@ public class HttpRequestLogAspect {
     public void beforeMethod(JoinPoint joinPoint) {
         tryCatch((x) -> {
             HttpRequestLog httpRequestLog = LogUtils.getTargetAnnotation(joinPoint);
-            HttpServletRequest httpServletRequest = HttpRequestUtils.currentHttpServletRequest();
+            HttpServletRequest httpServletRequest = RequestContextHelper.currentHttpServletRequest();
             assert httpRequestLog != null;
             RequestInfoLog requestResultInfo = buildRequestInfoLog(httpServletRequest, joinPoint, httpRequestLog);
             THREAD_LOCAL.set(requestResultInfo);

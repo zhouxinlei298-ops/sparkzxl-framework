@@ -5,7 +5,7 @@ import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.util.AopUtil;
 import com.github.sparkzxl.core.util.ArgumentAssert;
-import com.github.sparkzxl.core.util.HttpRequestUtils;
+import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.github.sparkzxl.core.util.NetworkUtil;
 import com.github.sparkzxl.log.annotation.OptLogRecord;
 import com.github.sparkzxl.log.entity.OptRecordLog;
@@ -65,7 +65,7 @@ public class OptLogRecordInterceptor implements MethodInterceptor {
         OptLogRecord annotation = invocation.getMethod().getAnnotation(OptLogRecord.class);
         String userId = operatorService.getUserId();
         String name = operatorService.getUserName();
-        HttpServletRequest httpServletRequest = HttpRequestUtils.currentHttpServletRequest();
+        HttpServletRequest httpServletRequest = RequestContextHelper.currentHttpServletRequest();
         OptRecordLog optRecordLog = new OptRecordLog();
         optRecordLog.setIp(NetworkUtil.getIpAddress(httpServletRequest))
                 .setRequestUrl(URLUtil.getPath(httpServletRequest.getRequestURI()))

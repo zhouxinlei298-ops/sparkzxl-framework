@@ -4,8 +4,8 @@ import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
+import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
-import com.github.sparkzxl.core.util.HttpRequestUtils;
 import com.github.sparkzxl.core.util.StrPool;
 import com.github.sparkzxl.feign.properties.FeignProperties;
 import com.google.common.net.HttpHeaders;
@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.context.request.RequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
@@ -59,16 +58,11 @@ public class FeignHeaderRequestInterceptor implements RequestInterceptor {
                 template.header(RootContext.KEY_XID, xid);
             }
         }
-        RequestAttributes requestAttributes = HttpRequestUtils.currentRequestAttributes();
-        if (requestAttributes == null) {
-            Map<String, Object> localMap = RequestLocalContextHolder.getLocalMap();
-            localMap.forEach((key, value) -> template.header(key, URLUtil.encode(Convert.toStr(value))));
-            return;
-        }
-
-        HttpServletRequest httpServletRequest = HttpRequestUtils.currentHttpServletRequest();
+        HttpServletRequest httpServletRequest = RequestContextHelper.getHttpServletRequestOrNull();
         if (httpServletRequest == null) {
-            log.warn("path={}, 在FeignClient API接口未配置FeignConfiguration类， 故而无法在远程调用时获取请求头中的参数!", template.path());
+            // 非 Web 上下文场景（异步线程、定时任务、消息消费者），使用 ThreadLocal 回退
+            RequestLocalContextHolder.getLocalMap()
+                    .forEach((key, value) -> template.header(key, URLUtil.encode(Convert.toStr(value))));
             return;
         }
         HEADER_NAME_LIST.forEach((headerName) -> {

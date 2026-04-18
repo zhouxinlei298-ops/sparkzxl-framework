@@ -11,9 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.util.AntPathMatcher;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import javax.servlet.http.HttpServletRequest;
@@ -50,18 +47,6 @@ public class HttpRequestUtils {
     public static boolean isJsonRequest(String contentType) {
         return StringUtils.isNotBlank(contentType) &&
                 MediaType.valueOf(contentType).isCompatibleWith(MediaType.APPLICATION_JSON);
-    }
-
-    /**
-     * 获取请求属性
-     *
-     * @param requestAttributes 请求属性
-     * @param name              key
-     * @return T
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> T getRequestAttribute(RequestAttributes requestAttributes, String name) {
-        return (T) requestAttributes.getAttribute(name, RequestAttributes.SCOPE_REQUEST);
     }
 
     /**
@@ -216,29 +201,6 @@ public class HttpRequestUtils {
         }
         return null;
     }
-
-    public static HttpServletRequest currentHttpServletRequest() {
-        ServletRequestAttributes requestAttributes = currentServletRequestAttributes();
-        return requestAttributes.getRequest();
-    }
-
-    public static HttpServletResponse currentHttpServletResponse() {
-        ServletRequestAttributes requestAttributes = currentServletRequestAttributes();
-        return requestAttributes.getResponse();
-    }
-
-    public static ServletRequestAttributes currentServletRequestAttributes() {
-        ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
-        RequestContextHolder.setRequestAttributes(servletRequestAttributes, true);
-        return servletRequestAttributes;
-    }
-
-    public static RequestAttributes currentRequestAttributes() {
-        RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
-        RequestContextHolder.setRequestAttributes(requestAttributes, true);
-        return requestAttributes;
-    }
-
 
     public static void failResponse(HttpServletResponse response, IErrorCode errorCode) {
         int status = response.getStatus();
