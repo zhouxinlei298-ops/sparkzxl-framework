@@ -1,16 +1,14 @@
 package com.github.sparkzxl.log.aspect;
 
-import cn.hutool.core.date.BetweenFormatter;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.URLUtil;
-import com.alibaba.ttl.TransmittableThreadLocal;
+import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.util.AopUtil;
-import com.github.sparkzxl.core.util.DateUtils;
-import com.github.sparkzxl.core.context.RequestContextHelper;
+import com.github.sparkzxl.core.util.NetworkUtil;
 import com.github.sparkzxl.log.annotation.HttpRequestLog;
 import com.github.sparkzxl.log.entity.RequestInfoLog;
 import com.github.sparkzxl.log.event.HttpRequestLogEvent;
