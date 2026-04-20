@@ -1,11 +1,13 @@
 package com.github.sparkzxl.lock.spring.boot.autoconfigure;
 
+import com.github.sparkzxl.lock.autoconfigure.LockAutoConfiguration;
 import com.github.sparkzxl.lock.condition.ZookeeperCondition;
 import com.github.sparkzxl.lock.executor.ZookeeperLockExecutor;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -23,6 +25,7 @@ import org.springframework.core.annotation.Order;
 @Conditional(ZookeeperCondition.class)
 @Configuration
 @EnableConfigurationProperties(CuratorProperties.class)
+@AutoConfigureBefore(LockAutoConfiguration.class)
 class ZookeeperLockAutoConfiguration {
 
     @Bean(initMethod = "start", destroyMethod = "close")

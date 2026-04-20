@@ -1,6 +1,8 @@
 package com.github.sparkzxl.lock.spring.boot.autoconfigure;
 
+import com.github.sparkzxl.lock.autoconfigure.LockAutoConfiguration;
 import com.github.sparkzxl.lock.executor.RedisTemplateLockExecutor;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +18,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  */
 @Configuration
 @ConditionalOnClass(RedisOperations.class)
+@AutoConfigureBefore(LockAutoConfiguration.class)
 public class RedisTemplateLockAutoConfiguration {
 
     @Bean

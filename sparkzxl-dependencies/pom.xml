@@ -53,7 +53,7 @@
         <guava.version>33.4.8-jre</guava.version>
         <hutool.version>5.8.39</hutool.version>
         <!-- redisson -->
-        <redisson-spring-boot-starter.version>3.50.0</redisson-spring-boot-starter.version>
+        <redisson-spring-boot-starter.version>4.3.0</redisson-spring-boot-starter.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <curator.version>5.9.0</curator.version>
 
