@@ -1,1 +1,2 @@
-com.github.sparkzxl.distributed.dubbo.config.NacosConfig
+com.github.sparkzxl.distributed.dubbo.config.DubboNacosLoadAutoConfig
+com.github.sparkzxl.distributed.dubbo.config.DubboEnvironmentAutoConfig

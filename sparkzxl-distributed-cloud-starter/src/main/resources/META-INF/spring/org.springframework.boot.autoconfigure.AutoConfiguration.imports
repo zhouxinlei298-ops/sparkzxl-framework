@@ -1,3 +1,4 @@
+com.github.sparkzxl.distributed.cloud.config.EnvironmentAutoConfig
 com.github.sparkzxl.distributed.cloud.config.LoadBalancerAutoConfiguration
 com.github.sparkzxl.distributed.cloud.config.RestTemplateConfiguration
-com.github.sparkzxl.distributed.cloud.config.NacosConfig
+com.github.sparkzxl.distributed.cloud.config.NacosLoadAutoConfig
