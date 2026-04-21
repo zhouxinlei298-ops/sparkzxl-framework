@@ -20,7 +20,7 @@ public enum ApplicationEnvironmentEnum {
     NACOS_URL("NACOS_URL", "nacos.url", "") {
         @Override
         public String getEnvValue() {
-            return appendDefaultPort(super.getEnvValue());
+            return appendDefaultPort(super.getEnvValue(), 8848);
         }
     },
 
@@ -30,7 +30,7 @@ public enum ApplicationEnvironmentEnum {
     NACOS_SERVER_ADDR("SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR", "nacos.url",  "") {
         @Override
         public String getEnvValue() {
-            return appendDefaultPort(super.getEnvValue());
+            return appendDefaultPort(super.getEnvValue(), 8848);
         }
     },
 
@@ -95,10 +95,13 @@ public enum ApplicationEnvironmentEnum {
         return (value != null && !value.isEmpty()) ? value : defaultValue;
     }
 
-    private static String appendDefaultPort(String address) {
+    /**
+     * 为地址补全默认端口，如果地址中不包含端口则拼接指定端口
+     */
+    public static String appendDefaultPort(String address, int port) {
         if (address == null || address.isEmpty()) {
             return address;
         }
-        return address.contains(":") ? address : address + ":8848";
+        return address.contains(":") ? address : address + ":"+port;
     }
 }
