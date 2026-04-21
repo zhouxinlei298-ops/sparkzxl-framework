@@ -17,12 +17,22 @@ public enum ApplicationEnvironmentEnum {
     /**
      * Nacos 配置中心服务器地址
      */
-    NACOS_URL("NACOS_URL", "nacos.url", ""),
+    NACOS_URL("NACOS_URL", "nacos.url", "") {
+        @Override
+        public String getEnvValue() {
+            return appendDefaultPort(super.getEnvValue(), 8848);
+        }
+    },
 
     /**
      * Nacos 配置中心服务器地址
      */
-    NACOS_SERVER_ADDR("SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR", "nacos.url",  ""),
+    NACOS_SERVER_ADDR("SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR", "nacos.url",  "") {
+        @Override
+        public String getEnvValue() {
+            return appendDefaultPort(super.getEnvValue(), 8848);
+        }
+    },
 
     /**
      * Nacos 命名空间
@@ -47,6 +57,11 @@ public enum ApplicationEnvironmentEnum {
     /**
      * 负载均衡器区域
      */
+    SPRING_CLOUD_NACOS_DISCOVERY_METADATA_ZONE("SPRING_CLOUD_NACOS_DISCOVERY_METADATA_ZONE", "loadbalancer.zone", "default" ),
+
+    /**
+     * 负载均衡器区域
+     */
     LOADBALANCER_ZONE("LOADBALANCE_ZONE", "loadbalancer.zone", "default" );
 
     /**
@@ -60,7 +75,7 @@ public enum ApplicationEnvironmentEnum {
     private final String propertyName;
 
     /**
-     * Spring 属性名
+     * 默认值
      */
     private final String defaultValue;
 
@@ -78,5 +93,15 @@ public enum ApplicationEnvironmentEnum {
     public String getEnvValue() {
         String value = System.getenv(envName);
         return (value != null && !value.isEmpty()) ? value : defaultValue;
+    }
+
+    /**
+     * 为地址补全默认端口，如果地址中不包含端口则拼接指定端口
+     */
+    public static String appendDefaultPort(String address, int port) {
+        if (address == null || address.isEmpty()) {
+            return address;
+        }
+        return address.contains(":") ? address : address + ":"+port;
     }
 }
