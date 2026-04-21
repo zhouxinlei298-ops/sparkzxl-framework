@@ -17,12 +17,22 @@ public enum ApplicationEnvironmentEnum {
     /**
      * Nacos 配置中心服务器地址
      */
-    NACOS_URL("NACOS_URL", "nacos.url", ""),
+    NACOS_URL("NACOS_URL", "nacos.url", "") {
+        @Override
+        public String getEnvValue() {
+            return appendDefaultPort(super.getEnvValue());
+        }
+    },
 
     /**
      * Nacos 配置中心服务器地址
      */
-    NACOS_SERVER_ADDR("SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR", "nacos.url",  ""),
+    NACOS_SERVER_ADDR("SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR", "nacos.url",  "") {
+        @Override
+        public String getEnvValue() {
+            return appendDefaultPort(super.getEnvValue());
+        }
+    },
 
     /**
      * Nacos 命名空间
@@ -83,5 +93,12 @@ public enum ApplicationEnvironmentEnum {
     public String getEnvValue() {
         String value = System.getenv(envName);
         return (value != null && !value.isEmpty()) ? value : defaultValue;
+    }
+
+    private static String appendDefaultPort(String address) {
+        if (address == null || address.isEmpty()) {
+            return address;
+        }
+        return address.contains(":") ? address : address + ":8848";
     }
 }
