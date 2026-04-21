@@ -34,7 +34,7 @@ public class ApplicationEnvironmentPostProcessor implements EnvironmentPostProce
             String envValue = mapping.getEnvValue();
             if (StringUtils.isNotEmpty(envValue)) {
                 properties.putIfAbsent(mapping.getPropertyName(), envValue);
-                System.out.println("loaded environment variable: {} "+mapping.getEnvName()+ " = {}" + envValue);
+                System.out.println("loaded environment variable: "+mapping.getEnvName()+ " = " + envValue);
             }
         }
 
