@@ -5,11 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Nacos 环境变量后置处理器
@@ -21,12 +23,19 @@ import java.util.Map;
  * @since 2026-04-15
  */
 @Slf4j
-public class ApplicationEnvironmentPostProcessor implements EnvironmentPostProcessor {
+public class ApplicationEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
     private static final String PROPERTY_SOURCE_NAME = "applicationEnvironmentVariables";
 
+    private static final AtomicBoolean PROCESSED = new AtomicBoolean(false);
+
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+        if (!PROCESSED.compareAndSet(false, true)) {
+            System.out.println("Environment post-processing already done, skipping duplicate invocation");
+            return;
+        }
+
         Map<String, Object> properties = new HashMap<>();
 
         // 遍历所有映射配置，从环境变量读取并注入
@@ -43,5 +52,10 @@ public class ApplicationEnvironmentPostProcessor implements EnvironmentPostProce
             MapPropertySource propertySource = new MapPropertySource(PROPERTY_SOURCE_NAME, properties);
             environment.getPropertySources().addFirst(propertySource);
         }
+    }
+
+    @Override
+    public int getOrder() {
+        return Integer.MIN_VALUE;
     }
 }
