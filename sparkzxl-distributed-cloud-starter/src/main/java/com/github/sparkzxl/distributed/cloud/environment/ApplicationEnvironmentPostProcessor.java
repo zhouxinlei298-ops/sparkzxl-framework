@@ -31,10 +31,6 @@ public class ApplicationEnvironmentPostProcessor implements EnvironmentPostProce
 
         // 遍历所有映射配置，从环境变量读取并注入
         for (ApplicationEnvironmentEnum mapping : ApplicationEnvironmentEnum.values()) {
-            String propertyValue = environment.getProperty(mapping.getPropertyName());
-            if (StringUtils.isNotEmpty(propertyValue)) {
-                continue;
-            }
             String envValue = mapping.getEnvValue();
             if (StringUtils.isNotEmpty(envValue)) {
                 properties.putIfAbsent(mapping.getPropertyName(), envValue);
