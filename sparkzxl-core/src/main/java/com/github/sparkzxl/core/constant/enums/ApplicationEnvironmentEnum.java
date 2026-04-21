@@ -75,7 +75,7 @@ public enum ApplicationEnvironmentEnum {
     private final String propertyName;
 
     /**
-     * Spring 属性名
+     * 默认值
      */
     private final String defaultValue;
 
