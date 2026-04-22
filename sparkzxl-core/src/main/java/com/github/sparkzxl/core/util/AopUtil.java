@@ -4,13 +4,8 @@ import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.map.MapUtil;
 import com.github.sparkzxl.core.json.JsonUtils;
 import com.google.common.collect.Maps;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,8 +21,13 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * description: 切面工具类
@@ -211,8 +211,7 @@ public class AopUtil {
                 if (value == null){
                     continue;
                 }
-                if (value instanceof MultipartFile) {
-                    MultipartFile file = (MultipartFile) value;
+                if (value instanceof MultipartFile file) {
                     //获取文件名
                     value = file.getOriginalFilename();
                 }
@@ -224,7 +223,12 @@ public class AopUtil {
                     List<Class<?>> classList = Arrays.asList(excludeClass);
                     if (CollectionUtils.isNotEmpty(classList)) {
                         Object finalValue = value;
-                        boolean anyMatch = classList.stream().anyMatch(x -> x.getName().equals(finalValue.getClass().getName()));
+                        boolean anyMatch = classList.stream().anyMatch(x -> {
+                            if (finalValue != null) {
+                                return x.getName().equals(finalValue.getClass().getName());
+                            }
+                            return false;
+                        });
                         if (anyMatch) {
                             continue;
                         }
