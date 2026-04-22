@@ -208,6 +208,9 @@ public class AopUtil {
         if (args != null && paramNames != null) {
             for (int i = 0; i < args.length; i++) {
                 Object value = args[i];
+                if (value == null){
+                    continue;
+                }
                 if (value instanceof MultipartFile) {
                     MultipartFile file = (MultipartFile) value;
                     //获取文件名
