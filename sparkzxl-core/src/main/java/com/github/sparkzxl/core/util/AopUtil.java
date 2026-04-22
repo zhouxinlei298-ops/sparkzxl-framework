@@ -4,13 +4,6 @@ import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.map.MapUtil;
 import com.github.sparkzxl.core.json.JsonUtils;
 import com.google.common.collect.Maps;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -28,6 +21,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * description: 切面工具类
@@ -208,6 +208,9 @@ public class AopUtil {
         if (args != null && paramNames != null) {
             for (int i = 0; i < args.length; i++) {
                 Object value = args[i];
+                if (value == null){
+                    continue;
+                }
                 if (value instanceof MultipartFile) {
                     MultipartFile file = (MultipartFile) value;
                     //获取文件名
