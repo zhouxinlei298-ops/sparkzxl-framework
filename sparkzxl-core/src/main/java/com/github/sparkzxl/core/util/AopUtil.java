@@ -224,7 +224,12 @@ public class AopUtil {
                     List<Class<?>> classList = Arrays.asList(excludeClass);
                     if (CollectionUtils.isNotEmpty(classList)) {
                         Object finalValue = value;
-                        boolean anyMatch = classList.stream().anyMatch(x -> x.getName().equals(finalValue.getClass().getName()));
+                        boolean anyMatch = classList.stream().anyMatch(x -> {
+                            if (finalValue != null) {
+                                return x.getName().equals(finalValue.getClass().getName());
+                            }
+                            return false;
+                        });
                         if (anyMatch) {
                             continue;
                         }
