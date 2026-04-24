@@ -40,7 +40,6 @@ public class RequestContextInnerInterceptor extends AbstractInnerInterceptor {
         }
         //设置当前请求线程全局信息
         THREAD_LOCAL_ATTRIBUTE.forEach(header -> RequestLocalContextHolder.set(header, HttpRequestUtils.getHeader(request, header)));
-        MDC.put(BaseContextConstants.TENANT_ID, HttpRequestUtils.getHeader(request, BaseContextConstants.TENANT_ID));
         MDC.put(BaseContextConstants.JWT_KEY_USER_ID, HttpRequestUtils.getHeader(request, BaseContextConstants.JWT_KEY_USER_ID));
         Boolean feign = Convert.toBool(request.getHeader(BaseContextConstants.REMOTE_CALL), Boolean.FALSE);
         if (feign) {

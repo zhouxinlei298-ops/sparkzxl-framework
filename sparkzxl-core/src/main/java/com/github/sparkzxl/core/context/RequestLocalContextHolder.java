@@ -6,6 +6,7 @@ import com.github.sparkzxl.core.util.ListUtils;
 import com.github.sparkzxl.core.util.StrPool;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.slf4j.MDC;
 
 import java.util.*;
 
@@ -130,6 +131,7 @@ public class RequestLocalContextHolder {
 
     public static void setTenantId(String val) {
         set(BaseContextConstants.TENANT_ID, val);
+        MDC.put(BaseContextConstants.TENANT_ID, val);
     }
 
     public static String getVersion() {
