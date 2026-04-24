@@ -28,6 +28,10 @@
             <artifactId>spring-boot-starter-logging</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.skywalking</groupId>
             <artifactId>apm-toolkit-logback-1.x</artifactId>
         </dependency>

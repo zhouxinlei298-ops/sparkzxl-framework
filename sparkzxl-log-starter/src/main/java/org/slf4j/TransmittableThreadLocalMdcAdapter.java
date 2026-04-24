@@ -2,11 +2,10 @@ package org.slf4j;
 
 import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import com.alibaba.ttl.TransmittableThreadLocal;
-
-import java.util.*;
-
 import org.slf4j.helpers.ThreadLocalMapOfStacks;
 import org.slf4j.spi.MDCAdapter;
+
+import java.util.*;
 
 /**
  * description: 重构{@link LogbackMDCAdapter}类，搭配TransmittableThreadLocal实现父子线程之间的数据传递
@@ -17,11 +16,11 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
 
     private static final int WRITE_OPERATION = 1;
     private static final int MAP_COPY_OPERATION = 2;
-    private static final TransmittableThreadLocalMdcAdapter mtcMDCAdapter;
+    private static final TransmittableThreadLocalMdcAdapter MTCMDC_ADAPTER;
 
     static {
-        mtcMDCAdapter = new TransmittableThreadLocalMdcAdapter();
-        MDC.MDC_ADAPTER = mtcMDCAdapter;
+        MTCMDC_ADAPTER = new TransmittableThreadLocalMdcAdapter();
+        MDC.MDC_ADAPTER = MTCMDC_ADAPTER;
     }
 
     private final ThreadLocalMapOfStacks threadLocalMapOfDeques = new ThreadLocalMapOfStacks();
@@ -32,7 +31,7 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
     private final ThreadLocal<Integer> lastOperation = new ThreadLocal<>();
 
     public static MDCAdapter getInstance() {
-        return mtcMDCAdapter;
+        return MTCMDC_ADAPTER;
     }
 
     private static boolean wasLastOpReadOrNull(Integer lastOp) {

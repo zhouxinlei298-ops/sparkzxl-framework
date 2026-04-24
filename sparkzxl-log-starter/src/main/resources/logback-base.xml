@@ -11,6 +11,8 @@
     <springProperty scope="context" name="FILE_PATTERN" source="logging.file-pattern"
                     defaultValue="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{tid}] [tenantId: %X{tenantId:-N/A}] [${LOG_LEVEL_PATTERN:-%5p}] ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
+    <!-- 链路追踪类型 -->
+    <springProperty scope="context" name="traceType" source="spring.trace.type" defaultValue="local"/>
     <!-- 应用名称 -->
     <springProperty name="springAppName" scope="context" source="spring.application.name" defaultValue="application"/>
     <!-- 日志文件保存路径 -->
@@ -25,7 +27,7 @@
     <springProperty name="robotId" scope="context" source="logging.alarm.robotId" defaultValue=""/>
 
     <!-- 文件日志 -->
-    <springProperty name="fileEnabled" scope="context" source="logging.file.enable" defaultValue="false"/>
+    <springProperty name="fileEnabled" scope="context" source="logging.file.enabled" defaultValue="false"/>
     <springProperty name="maxHistory" scope="context" source="logging.file.maxHistory" defaultValue="30"/>
     <springProperty name="maxFileSize" scope="context" source="logging.file.maxFileSize" defaultValue="100MB"/>
     <springProperty name="totalSizeCap" scope="context" source="logging.file.totalSizeCap" defaultValue="20GB"/>
@@ -69,7 +71,8 @@
         </filter>
         <!-- 日志的格式化 -->
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
-            <layout class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.mdc.TraceIdMDCPatternLogbackLayout">
+            <layout class="com.github.sparkzxl.log.layout.ConditionalTraceLayout">
+                <traceType>${traceType}</traceType>
                 <pattern>${COMMON_PATTERN_COLOR}</pattern>
             </layout>
             <charset>${CONSOLE_LOG_CHARSET}</charset>
@@ -105,7 +108,8 @@
         </encoder>
     </appender>
     <!-- 异步输出文件 -->
-    <appender name="ASYNC_FILE_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="ASYNC_FILE_APPENDER" class="com.github.sparkzxl.log.appender.ConditionalAsyncAppender">
+        <enabled>${fileEnabled}</enabled>
         <discardingThreshold>0</discardingThreshold>
         <queueSize>256</queueSize>
         <appender-ref ref="FILE_APPENDER"/>
@@ -171,10 +175,9 @@
         <timeZone>${timeZone}</timeZone>
         <mdcFields>tenantId,tid</mdcFields>
     </appender>
-    <appender name="ASYNC_ALIYUN_SLS_LOG_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
-        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+    <appender name="ASYNC_ALIYUN_SLS_LOG_APPENDER" class="com.github.sparkzxl.log.appender.ConditionalAsyncAppender">
+        <enabled>${aliYunLogEnabled}</enabled>
         <discardingThreshold>0</discardingThreshold>
-        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
         <queueSize>256</queueSize>
         <appender-ref ref="ALIYUN_SLS_LOG_APPENDER"/>
     </appender>

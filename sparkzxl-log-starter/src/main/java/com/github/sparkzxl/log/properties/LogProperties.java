@@ -1,18 +1,17 @@
 package com.github.sparkzxl.log.properties;
 
-import static com.github.sparkzxl.log.properties.LogProperties.LOG_PREFIX;
-
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.List;
-
 import cn.hutool.core.date.DatePattern;
-import com.github.sparkzxl.log.enums.LogTypeEnum;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.List;
+
+import static com.github.sparkzxl.log.properties.LogProperties.LOG_PREFIX;
 
 /**
  * description: 日志配置类
@@ -54,7 +53,7 @@ public class LogProperties implements Serializable {
         /**
          * 是否开启日志持久化
          */
-        private boolean enable;
+        private boolean enabled;
 
         /**
          * 是否开启日志json化存储
