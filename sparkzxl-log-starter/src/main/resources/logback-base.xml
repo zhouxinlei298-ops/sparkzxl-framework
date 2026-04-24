@@ -102,8 +102,11 @@
             <maxFileSize>${maxFileSize}</maxFileSize>
             <totalSizeCap>${totalSizeCap}</totalSizeCap>
         </rollingPolicy>
-        <encoder>
-            <pattern>${FILE_PATTERN}</pattern>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.github.sparkzxl.log.layout.ConditionalTraceLayout">
+                <traceType>${traceType}</traceType>
+                <pattern>${FILE_PATTERN}</pattern>
+            </layout>
             <charset>${CONSOLE_LOG_CHARSET}</charset>
         </encoder>
     </appender>
