@@ -3,11 +3,9 @@ package com.github.sparkzxl.log.layout;
 import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Layout;
-import com.github.sparkzxl.core.constant.BaseContextConstants;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.skywalking.apm.toolkit.log.logback.v1.x.mdc.TraceIdMDCPatternLogbackLayout;
-import org.slf4j.MDC;
 
 /**
  * 根据 spring.trace.type 条件选择 Layout
@@ -40,10 +38,6 @@ public class ConditionalTraceLayout extends PatternLayout {
 
     @Override
     public String doLayout(ILoggingEvent event) {
-        String tenantId = MDC.get(BaseContextConstants.TENANT_ID);
-        System.out.println("tenantId："+tenantId);
-        String tid = MDC.get(BaseContextConstants.LOG_TRACE_ID);
-        System.out.println("tid："+tid);
         if (delegate != null) {
             return delegate.doLayout(event);
         }
