@@ -4,6 +4,7 @@ import com.github.sparkzxl.mongodb.aware.AuditAwareImpl;
 import com.github.sparkzxl.mongodb.dynamic.DynamicMongoProperties;
 import com.github.sparkzxl.mongodb.event.MongoInsertEventListener;
 import com.mongodb.client.MongoClient;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,8 @@ import org.springframework.data.mongodb.core.convert.*;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import java.util.TimeZone;
+
 /**
  * description: MongoDB事务自动管理
  *
@@ -32,6 +35,14 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 @EnableMongoAuditing
 public class MongoAutoConfig {
+
+    @PostConstruct
+    public void setDefaultTimezone() {
+        TimeZone defaultTz = TimeZone.getDefault();
+        if (!"Asia/Shanghai".equals(defaultTz.getID())) {
+            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
+        }
+    }
 
     @Bean
     public AuditorAware<String> auditorAware() {
