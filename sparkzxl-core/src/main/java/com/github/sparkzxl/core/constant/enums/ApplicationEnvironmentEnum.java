@@ -57,7 +57,7 @@ public enum ApplicationEnvironmentEnum {
     /**
      * 负载均衡器区域
      */
-    SPRING_CLOUD_NACOS_DISCOVERY_METADATA_ZONE("SPRING_CLOUD_NACOS_DISCOVERY_METADATA_ZONE", "loadbalancer.zone", "default" ),
+    SPRING_CLOUD_NACOS_DISCOVERY_METADATA_ZONE("SPRING_CLOUD_NACOS_DISCOVERY_METADATA_ZONE", "loadbalancer.zone", "" ),
 
     /**
      * 负载均衡器区域
