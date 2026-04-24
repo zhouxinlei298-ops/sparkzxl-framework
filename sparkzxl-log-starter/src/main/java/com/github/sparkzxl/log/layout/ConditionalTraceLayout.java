@@ -11,7 +11,7 @@ import org.apache.skywalking.apm.toolkit.log.logback.v1.x.mdc.TraceIdMDCPatternL
  * 根据 spring.trace.type 条件选择 Layout
  * <p>
  * skywalking → TraceIdMDCPatternLogbackLayout（SkyWalking 自动注入 tid）
- * local（默认）→ PatternLayout（直接读取 MDC 中由 Interceptor 设置的 tid）
+ * local（默认）→ LocalTraceIdMDCPatternLogbackLayout（tid 不存在时输出 N/A）
  *
  * @author zhouxinlei
  * @since 2026-04-24
@@ -32,7 +32,11 @@ public class ConditionalTraceLayout extends PatternLayout {
             swLayout.start();
             this.delegate = swLayout;
         } else {
-            super.start();
+            LocalTraceIdMDCPatternLogbackLayout localLayout = new LocalTraceIdMDCPatternLogbackLayout();
+            localLayout.setPattern(getPattern());
+            localLayout.setContext(getContext());
+            localLayout.start();
+            this.delegate = localLayout;
         }
     }
 

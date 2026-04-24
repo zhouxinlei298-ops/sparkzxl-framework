@@ -8,5 +8,7 @@ package com.github.sparkzxl.core.constant.enums;
  */
 public enum TraceTypeEnum {
 
-    LOCAL, SKYWALKING;
+    LOCAL,
+    SKYWALKING,
+    SLEUTH;
 }

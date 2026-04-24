@@ -97,7 +97,7 @@
         <file>${logHome}/${springAppName}.log</file>
         <immediateFlush>false</immediateFlush>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${logHome}/${springAppName}-%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <fileNamePattern>${logHome}/%d{yyyy-MM-dd}/${springAppName}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
             <maxHistory>${maxHistory}</maxHistory>
             <maxFileSize>${maxFileSize}</maxFileSize>
             <totalSizeCap>${totalSizeCap}</totalSizeCap>
