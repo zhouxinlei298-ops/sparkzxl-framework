@@ -5,6 +5,7 @@ import com.github.sparkzxl.mongodb.dynamic.DynamicMongoProperties;
 import com.github.sparkzxl.mongodb.event.MongoInsertEventListener;
 import com.mongodb.client.MongoClient;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ import java.util.TimeZone;
  *
  * @author zhouxinlei
  */
+@Slf4j
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass({MongoClient.class})
 @EnableTransactionManagement
@@ -39,8 +41,10 @@ public class MongoAutoConfig {
     @PostConstruct
     public void setDefaultTimezone() {
         TimeZone defaultTz = TimeZone.getDefault();
+        log.info("jvm环境默认时区：{}",defaultTz.getID());
         if (!"Asia/Shanghai".equals(defaultTz.getID())) {
             TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
+            log.info("jvm环境已切换至时区：{}","Asia/Shanghai");
         }
     }
 
