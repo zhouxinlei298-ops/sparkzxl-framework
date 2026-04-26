@@ -16,6 +16,14 @@ import org.springframework.web.servlet.ModelAndView;
 @SPI
 public interface InnerInterceptor extends Ordered {
 
+    /**
+     * 拦截器名称标识，用于工厂管理和配置匹配
+     *
+     * @return 名称
+     */
+    default String named() {
+        return this.getClass().getSimpleName();
+    }
 
     /**
      * 初始化拦截器

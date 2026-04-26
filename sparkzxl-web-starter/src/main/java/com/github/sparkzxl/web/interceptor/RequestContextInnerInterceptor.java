@@ -7,7 +7,6 @@ import com.github.sparkzxl.core.util.HttpRequestUtils;
 import com.github.sparkzxl.spi.Join;
 import com.github.sparkzxl.web.annotation.ResponseResult;
 import com.google.common.collect.Lists;
-import org.slf4j.MDC;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -35,26 +34,21 @@ public class RequestContextInnerInterceptor extends AbstractInnerInterceptor {
 
     @Override
     public void doPreHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        if (!(handler instanceof HandlerMethod)) {
+        if (!(handler instanceof HandlerMethod handlerMethod)) {
             return;
         }
         //设置当前请求线程全局信息
         THREAD_LOCAL_ATTRIBUTE.forEach(header -> RequestLocalContextHolder.set(header, HttpRequestUtils.getHeader(request, header)));
-        MDC.put(BaseContextConstants.TENANT_ID, HttpRequestUtils.getHeader(request, BaseContextConstants.TENANT_ID));
-        MDC.put(BaseContextConstants.JWT_KEY_USER_ID, HttpRequestUtils.getHeader(request, BaseContextConstants.JWT_KEY_USER_ID));
         Boolean feign = Convert.toBool(request.getHeader(BaseContextConstants.REMOTE_CALL), Boolean.FALSE);
         if (feign) {
             return;
         }
-        if (handler instanceof HandlerMethod) {
-            final HandlerMethod handlerMethod = (HandlerMethod) handler;
-            final Class<?> classz = handlerMethod.getBeanType();
-            final Method method = handlerMethod.getMethod();
-            if (classz.isAnnotationPresent(ResponseResult.class)) {
-                request.setAttribute(BaseContextConstants.RESPONSE_RESULT_ANN, classz.getAnnotation(ResponseResult.class));
-            } else if (method.isAnnotationPresent(ResponseResult.class)) {
-                request.setAttribute(BaseContextConstants.RESPONSE_RESULT_ANN, method.getAnnotation(ResponseResult.class));
-            }
+        final Class<?> classz = handlerMethod.getBeanType();
+        final Method method = handlerMethod.getMethod();
+        if (classz.isAnnotationPresent(ResponseResult.class)) {
+            request.setAttribute(BaseContextConstants.RESPONSE_RESULT_ANN, classz.getAnnotation(ResponseResult.class));
+        } else if (method.isAnnotationPresent(ResponseResult.class)) {
+            request.setAttribute(BaseContextConstants.RESPONSE_RESULT_ANN, method.getAnnotation(ResponseResult.class));
         }
     }
 
@@ -62,6 +56,11 @@ public class RequestContextInnerInterceptor extends AbstractInnerInterceptor {
     public void doPostHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView)
             throws Exception {
 
+    }
+
+    @Override
+    public String named() {
+        return "context";
     }
 
     @Override

@@ -42,7 +42,7 @@
         <hikaricp.version>7.0.1</hikaricp.version>
         <p6spy.version>3.9.1</p6spy.version>
         <logstash.version>8.1</logstash.version>
-        <vavr.version>0.10.4</vavr.version>
+        <vavr.version>1.0.1</vavr.version>
 
         <!-- common组件-->
         <commons-lang3.version>3.18.0</commons-lang3.version>
@@ -211,7 +211,11 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
+            <dependency>
+                <groupId>io.vavr</groupId>
+                <artifactId>vavr</artifactId>
+                <version>${vavr.version}</version>
+            </dependency>
             <dependency>
                 <groupId>mysql</groupId>
                 <artifactId>mysql-connector-java</artifactId>
