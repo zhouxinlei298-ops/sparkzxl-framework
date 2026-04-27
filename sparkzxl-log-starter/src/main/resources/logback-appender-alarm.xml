@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<included>
+    <!-- 告警日志属性 -->
+    <springProperty name="alarmEnabled" scope="context" source="logging.alarm.enabled" defaultValue="false"/>
+    <springProperty name="robotId" scope="context" source="logging.alarm.robotId" defaultValue=""/>
+
+    <appender name="ASYNC_ALARM_APPENDER" class="com.github.sparkzxl.log.appender.AlarmLogLogbackAsyncAppender">
+        <enabled>${alarmEnabled}</enabled>
+        <robotId>${robotId}</robotId>
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>256</queueSize>
+        <appender-ref ref="CONSOLE_APPENDER"/>
+    </appender>
+</included>

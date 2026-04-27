@@ -173,4 +173,13 @@ public class LogProperties implements Serializable {
         private String timeZone = "Asia/Shanghai";
     }
 
+    @NestedConfigurationProperty
+    private ScheduleJobLog schedulejob = new ScheduleJobLog();
+
+    @Getter
+    @Setter
+    public static class ScheduleJobLog {
+        private String consumerClass;
+    }
+
 }

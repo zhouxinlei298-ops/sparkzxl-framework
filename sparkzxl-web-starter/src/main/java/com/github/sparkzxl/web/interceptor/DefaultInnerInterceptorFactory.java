@@ -1,7 +1,6 @@
 package com.github.sparkzxl.web.interceptor;
 
 import cn.hutool.core.text.StrFormatter;
-import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.spi.ExtensionLoader;
 import com.github.sparkzxl.web.properties.InterceptorProperties;
 import com.github.sparkzxl.web.properties.WebProperties;
@@ -37,8 +36,6 @@ public class DefaultInnerInterceptorFactory implements InnerInterceptorFactory {
         interceptorList.clear();
 
         List<InterceptorProperties> configList = webProperties.getInterceptorConfigList();
-        System.out.println(JsonUtils.getJson().toJsonPretty(webProperties.getInterceptorConfigList()));
-
         // 默认加载 RequestContextInnerInterceptor（通过 SPI key "context"）
         InnerInterceptor contextInterceptor = ExtensionLoader
                 .getExtensionLoader(InnerInterceptor.class).getJoin("context");

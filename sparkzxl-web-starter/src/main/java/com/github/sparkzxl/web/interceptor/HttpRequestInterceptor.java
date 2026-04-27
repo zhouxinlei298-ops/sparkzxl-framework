@@ -5,6 +5,7 @@ import io.vavr.control.Try;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.AsyncHandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -16,6 +17,7 @@ import java.util.List;
  * @author zhouxinlei
  * @since 2022-12-08 19:24:09
  */
+@Slf4j
 @Getter
 public class HttpRequestInterceptor implements AsyncHandlerInterceptor {
 
@@ -26,6 +28,7 @@ public class HttpRequestInterceptor implements AsyncHandlerInterceptor {
     }
 
     public void reloadInterceptors(List<InnerInterceptor> interceptors) {
+        log.info("InnerInterceptor拦截器已刷新加载");
         this.innerInterceptorList = interceptors;
     }
 

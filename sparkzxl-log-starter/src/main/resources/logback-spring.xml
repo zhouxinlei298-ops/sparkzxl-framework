@@ -6,6 +6,7 @@
         <appender-ref ref="ASYNC_CONSOLE_APPENDER"/>
         <appender-ref ref="ASYNC_FILE_APPENDER"/>
         <appender-ref ref="ASYNC_ALARM_APPENDER"/>
+        <appender-ref ref="SCHEDULE_JOB_LOG_APPENDER"/>
         <appender-ref ref="ASYNC_ALIYUN_SLS_LOG_APPENDER"/>
     </root>
 </configuration>
