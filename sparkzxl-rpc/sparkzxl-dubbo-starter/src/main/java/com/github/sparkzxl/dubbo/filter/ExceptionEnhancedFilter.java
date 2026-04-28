@@ -56,6 +56,7 @@ public class ExceptionEnhancedFilter implements Filter, Filter.Listener {
                 }
                 // <2> 如果是参数 ArgumentException 异常，直接返回（异常已存在，无需重复设置）
                 if (exception instanceof ArgumentException) {
+                    appResponse.setException(new IllegalArgumentException(exception.getMessage()));
                     return;
                 }
                 // <3> 如果是RPC降级的异常，直接返回（异常已存在，无需重复设置）
