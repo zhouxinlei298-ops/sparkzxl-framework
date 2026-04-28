@@ -165,7 +165,7 @@ public class ExceptionEnhancedFilter implements Filter, Filter.Listener {
      * @param e MethodValidatedException
      * @return ArgumentException
      */
-    private ArgumentException handleConstraintViolationException(ConstraintViolationException e) {
+    private IllegalArgumentException handleConstraintViolationException(ConstraintViolationException e) {
         // 拼接错误
         StringBuilder detailMessage = new StringBuilder();
         for (ConstraintViolation<?> constraintViolation : e.getConstraintViolations()) {
@@ -178,7 +178,7 @@ public class ExceptionEnhancedFilter implements Filter, Filter.Listener {
 
         }
         // 返回异常
-        return new ArgumentException(detailMessage.toString());
+        return new IllegalArgumentException(detailMessage.toString());
     }
 
     @Override
