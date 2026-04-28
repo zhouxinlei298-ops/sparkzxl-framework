@@ -48,7 +48,7 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
             if (Objects.nonNull(throwableProxy)) {
                 AlarmRequest alarmRequest = new AlarmRequest();
                 alarmRequest.setTitle("服务系统异常告警");
-                String traceId = MDC.get(BaseContextConstants.LOG_TRACE_ID);
+                String traceId = MDC.getCopyOfContextMap().get(BaseContextConstants.LOG_TRACE_ID);
                 String applicationName = SpringContextUtils.getApplicationName();
                 String environment = SpringContextUtils.getEnvironment();
                 Throwable throwable = throwableProxy.getThrowable();
@@ -72,13 +72,13 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
                     sendLogAlarm(alarmRequest, message);
                 }
             } else if (level.equals(Level.ERROR)) {
-                String exceptionClass = MDC.get("exceptionClass");
+                String exceptionClass = MDC.getCopyOfContextMap().get("exceptionClass");
                 if (StringUtils.isNotBlank(exceptionClass) && AlarmLogContext.doWarnException(exceptionClass)) {
                     StackTraceElement[] callerData = loggingEvent.getCallerData();
                     if (callerData != null && callerData.length > 0) {
                         AlarmRequest alarmRequest = new AlarmRequest();
                         alarmRequest.setTitle("服务系统异常告警");
-                        String traceId = MDC.get(BaseContextConstants.LOG_TRACE_ID);
+                        String traceId = MDC.getCopyOfContextMap().get(BaseContextConstants.LOG_TRACE_ID);
                         String applicationName = SpringContextUtils.getApplicationName();
                         String environment = SpringContextUtils.getEnvironment();
                         AlarmLogInfo alarmLogInfo = AlarmLogInfo.builder()

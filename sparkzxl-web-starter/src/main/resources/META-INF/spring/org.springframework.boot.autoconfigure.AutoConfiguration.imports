@@ -1,2 +1,3 @@
+com.github.sparkzxl.web.config.CloudRefreshInterceptorAutoConfiguration
 com.github.sparkzxl.web.config.DefaultWebConfig
 com.github.sparkzxl.web.config.JacksonConfig

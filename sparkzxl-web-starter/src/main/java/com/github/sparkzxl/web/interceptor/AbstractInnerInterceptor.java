@@ -2,12 +2,13 @@ package com.github.sparkzxl.web.interceptor;
 
 import com.github.sparkzxl.web.properties.InterceptorProperties;
 import com.google.common.collect.Lists;
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.servlet.ModelAndView;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * description: 抽象内部拦截器
@@ -23,6 +24,12 @@ public abstract class AbstractInnerInterceptor implements InnerInterceptor {
 
     private List<String> excludePatterns = Lists.newArrayList();
 
+    private boolean matchPatterns(HttpServletRequest request){
+        String requestUri = request.getRequestURI();
+        boolean match = excludePatterns.stream().noneMatch((url) -> antPathMatcher.match(url, requestUri) || requestUri.startsWith(url));
+        boolean anyMatch = includePatterns.stream().anyMatch((url) -> antPathMatcher.match(url, requestUri) || requestUri.startsWith(url));
+        return match && anyMatch;
+    }
     @Override
     public void initInnerInterceptor(InterceptorProperties properties) {
         if (CollectionUtils.isNotEmpty(properties.getExcludePatterns())) {
@@ -35,10 +42,7 @@ public abstract class AbstractInnerInterceptor implements InnerInterceptor {
 
     @Override
     public void preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String requestUri = request.getRequestURI();
-        boolean match = excludePatterns.stream().noneMatch((url) -> antPathMatcher.match(url, requestUri) || requestUri.startsWith(url));
-        boolean anyMatch = includePatterns.stream().anyMatch((url) -> antPathMatcher.match(url, requestUri) || requestUri.startsWith(url));
-        if (match && anyMatch) {
+        if (matchPatterns(request)) {
             doPreHandle(request, response, handler);
         }
     }
@@ -56,10 +60,7 @@ public abstract class AbstractInnerInterceptor implements InnerInterceptor {
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView)
             throws Exception {
-        String requestUri = request.getRequestURI();
-        boolean match = excludePatterns.stream().noneMatch((url) -> antPathMatcher.match(url, requestUri) || requestUri.startsWith(url));
-        boolean anyMatch = includePatterns.stream().anyMatch((url) -> antPathMatcher.match(url, requestUri) || requestUri.startsWith(url));
-        if (match && anyMatch) {
+        if (matchPatterns(request)) {
             doPostHandle(request, response, handler, modelAndView);
         }
     }

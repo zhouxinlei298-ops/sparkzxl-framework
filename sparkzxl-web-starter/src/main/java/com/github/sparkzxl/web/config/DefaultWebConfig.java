@@ -4,7 +4,9 @@ import com.github.sparkzxl.annotation.ApiLimit;
 import com.github.sparkzxl.core.constant.Constant;
 import com.github.sparkzxl.web.aop.ApiLimitAnnotationAdvisor;
 import com.github.sparkzxl.web.aop.ApiLimitInterceptor;
-import com.github.sparkzxl.web.interceptor.WebRequestInterceptor;
+import com.github.sparkzxl.web.interceptor.DefaultInnerInterceptorFactory;
+import com.github.sparkzxl.web.interceptor.HttpRequestInterceptor;
+import com.github.sparkzxl.web.interceptor.InnerInterceptorFactory;
 import com.github.sparkzxl.web.properties.WebProperties;
 import com.github.sparkzxl.web.support.DefaultExceptionHandler;
 import com.github.sparkzxl.web.support.ResponseResultAdvice;
@@ -37,6 +39,8 @@ public class DefaultWebConfig implements WebMvcConfigurer {
     @Autowired
     private WebProperties webProperties;
 
+    @Autowired
+    private HttpRequestInterceptor httpRequestInterceptor;
 
     /**
      * 交换MappingJackson2HttpMessageConverter与第一位元素
@@ -57,13 +61,20 @@ public class DefaultWebConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public WebRequestInterceptor webRequestInterceptor() {
-        return new WebRequestInterceptor(webProperties);
+    @ConditionalOnMissingBean(InnerInterceptorFactory.class)
+    public InnerInterceptorFactory innerInterceptorFactory() {
+        return new DefaultInnerInterceptorFactory(webProperties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(HttpRequestInterceptor.class)
+    public HttpRequestInterceptor httpRequestInterceptor(InnerInterceptorFactory factory) {
+        return new HttpRequestInterceptor(factory);
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(webRequestInterceptor())
+        registry.addInterceptor(httpRequestInterceptor)
                 .order(Ordered.HIGHEST_PRECEDENCE)
                 .addPathPatterns("/**")
                 .excludePathPatterns(Constant.EXCLUDE_STATIC_PATTERNS);

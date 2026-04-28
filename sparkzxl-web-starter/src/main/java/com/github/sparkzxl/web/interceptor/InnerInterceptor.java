@@ -2,10 +2,11 @@ package com.github.sparkzxl.web.interceptor;
 
 import com.github.sparkzxl.spi.SPI;
 import com.github.sparkzxl.web.properties.InterceptorProperties;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.ModelAndView;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /***
  * description: 内部拦截器
@@ -16,6 +17,14 @@ import org.springframework.web.servlet.ModelAndView;
 @SPI
 public interface InnerInterceptor extends Ordered {
 
+    /**
+     * 拦截器名称标识，用于工厂管理和配置匹配
+     *
+     * @return 名称
+     */
+    default String named() {
+        return this.getClass().getSimpleName();
+    }
 
     /**
      * 初始化拦截器
