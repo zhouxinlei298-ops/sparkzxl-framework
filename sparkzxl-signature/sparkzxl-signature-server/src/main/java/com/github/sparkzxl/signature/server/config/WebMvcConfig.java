@@ -1,11 +1,13 @@
 package com.github.sparkzxl.signature.server.config;
 
 import com.github.sparkzxl.core.constant.Constant;
+import com.github.sparkzxl.signature.server.interceptor.CachedBodyRequestFilter;
 import com.github.sparkzxl.signature.server.interceptor.SignAuthInterceptor;
 import com.github.sparkzxl.signature.server.properties.SignatureServerProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -31,11 +33,21 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
     private SignatureServerProperties signatureServerProperties;
 
-
     @Bean
     @ConditionalOnProperty(prefix = CONFIG_PREFIX, name = "enabled", havingValue = "true")
     public SignAuthInterceptor signAuthInterceptor() {
         return new SignAuthInterceptor();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = CONFIG_PREFIX, name = "enabled", havingValue = "true")
+    public FilterRegistrationBean<CachedBodyRequestFilter> cachedBodyRequestFilter() {
+        FilterRegistrationBean<CachedBodyRequestFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new CachedBodyRequestFilter());
+        registration.addUrlPatterns("/*");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        registration.setName("cachedBodyRequestFilter");
+        return registration;
     }
 
     @Override
