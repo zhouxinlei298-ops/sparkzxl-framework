@@ -10,10 +10,6 @@
 
     <artifactId>sparkzxl-distributed-dubbo-starter</artifactId>
 
-    <properties>
-        <dubbo.version>3.1.7</dubbo.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
