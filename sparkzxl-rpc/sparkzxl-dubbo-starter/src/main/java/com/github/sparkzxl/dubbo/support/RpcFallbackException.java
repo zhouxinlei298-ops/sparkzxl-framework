@@ -1,7 +1,7 @@
 package com.github.sparkzxl.dubbo.support;
 
 
-import lombok.Getter;
+import com.github.sparkzxl.core.support.BaseUncheckedException;
 
 /**
  * description: RPC降级异常
@@ -9,18 +9,12 @@ import lombok.Getter;
  * @author zhouxinlei
  * @since 2025-09-05 13:47:55
  */
-@Getter
-public class RpcFallbackException extends RuntimeException {
+public class RpcFallbackException extends BaseUncheckedException {
 
     private static final long serialVersionUID = -7879378284877993323L;
-    private final String errorCode;
-    private final String message;
 
-    public RpcFallbackException(String errorCode,
-                                String message) {
-        super(message);
-        this.errorCode = errorCode;
-        this.message = message;
+    public RpcFallbackException(String errorCode, String errorMsg) {
+        super(errorCode, errorMsg);
     }
 
 }

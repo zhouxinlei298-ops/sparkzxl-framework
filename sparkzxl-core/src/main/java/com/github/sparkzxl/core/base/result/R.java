@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.sparkzxl.core.base.HttpCode;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.support.BaseException;
+import com.github.sparkzxl.core.support.ExceptionCodeResolver;
 import com.github.sparkzxl.core.support.code.IErrorCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -181,6 +182,14 @@ public class R<T> implements Serializable {
 
     public static R failDetail(String errorCode, String errorMessage) {
         return new R<>(HttpCode.FAILURE, errorCode, errorMessage);
+    }
+
+    public static R failDetail(IErrorCode errorCode) {
+        return new R<>(HttpCode.FAILURE, errorCode.getErrorCode(), errorCode.getErrorMsg());
+    }
+
+    public static R failDetail(ExceptionCodeResolver.ResolvedError resolved) {
+        return new R<>(HttpCode.FAILURE, resolved.errorCode(), resolved.errorMessage());
     }
 
     public static R fail(IErrorCode iBaseErrorCode) {

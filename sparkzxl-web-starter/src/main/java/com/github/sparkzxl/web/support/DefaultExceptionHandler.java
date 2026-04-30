@@ -1,22 +1,14 @@
 package com.github.sparkzxl.web.support;
 
-import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.github.sparkzxl.core.base.HttpCode;
 import com.github.sparkzxl.core.base.result.R;
 import com.github.sparkzxl.core.constant.enums.BeanOrderEnum;
 import com.github.sparkzxl.core.support.*;
-import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.Ordered;
-import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -31,16 +23,9 @@ import org.springframework.web.util.NestedServletException;
 
 import javax.security.auth.login.AccountNotFoundException;
 import javax.servlet.ServletException;
-import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 import javax.validation.ValidationException;
 import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * description: 全局异常处理
@@ -55,35 +40,31 @@ public class DefaultExceptionHandler implements Ordered {
     @ExceptionHandler(BizException.class)
     public R<?> handleBizException(BizException e) {
         log.error("BizException 异常:", e);
-        return R.failDetail(e.getErrorCode(), e.getMessage());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(JsonParseException.class)
     public R<?> handleJwtParseException(JsonParseException e) {
         log.error("JwtParseException:", e);
-        return R.failDetail(e.getErrorCode(), e.getMessage());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(ArgumentException.class)
     public R<?> handleArgumentException(ArgumentException e) {
         log.warn("ArgumentException 异常:", e);
-        return R.failDetail(e.getErrorCode(), e.getErrorMsg());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(NestedServletException.class)
     public R<?> handleNestedServletException(NestedServletException e) {
         log.error("NestedServletException 异常:", e);
-        return R.failDetail(ExceptionErrorCode.FAILURE.getErrorCode(), e.getMessage());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(ServletException.class)
     public R<?> handleServletException(ServletException e) {
         log.warn("ServletException:", e);
-        String msg = "UT010016: Not a multi part request";
-        if (msg.equalsIgnoreCase(e.getMessage())) {
-            return R.fail(ExceptionErrorCode.FILE_UPLOAD_ERROR);
-        }
-        return R.failDetail(ExceptionErrorCode.FAILURE.getErrorCode(), e.getMessage());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     /**
@@ -92,9 +73,7 @@ public class DefaultExceptionHandler implements Ordered {
     @ExceptionHandler(ConstraintViolationException.class)
     public R<?> handleConstraintViolationException(ConstraintViolationException ex) {
         log.warn("ConstraintViolationException:", ex);
-        Set<ConstraintViolation<?>> violations = ex.getConstraintViolations();
-        String message = violations.stream().map(ConstraintViolation::getMessage).collect(Collectors.joining(";"));
-        return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), message);
+        return R.failDetail(ExceptionCodeResolver.resolve(ex));
     }
 
     /**
@@ -103,40 +82,26 @@ public class DefaultExceptionHandler implements Ordered {
     @ExceptionHandler(ValidationException.class)
     public R<?> handleValidationException(ValidationException ex) {
         log.warn("ValidationException:", ex);
-        System.out.println(ex.getCause().getMessage());
-        return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), ex.getMessage());
+        return R.failDetail(ExceptionCodeResolver.resolve(ex));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public R<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.warn("方法参数无效异常:", e);
-        return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(),
-                bindingResult(e.getBindingResult()));
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public R<?> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("IllegalArgumentException 异常:", e);
-        return R.fail(ExceptionErrorCode.PARAM_VALID_ERROR);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public R<?> handleIllegalStateException(IllegalStateException e) {
         log.warn("IllegalStateException:", e);
-        return R.fail(ExceptionErrorCode.PARAM_VALID_ERROR);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
-
-    private String bindingResult(BindingResult bindingResult) {
-        StringBuilder stringBuilder = new StringBuilder();
-        List<ObjectError> allErrors = bindingResult.getAllErrors();
-        if (CollectionUtils.isNotEmpty(allErrors)) {
-            stringBuilder.append(allErrors.get(0).getDefaultMessage() == null ? "" : allErrors.get(0).getDefaultMessage());
-        } else {
-            stringBuilder.append(ExceptionErrorCode.PARAM_MISS.getErrorMsg());
-        }
-        return stringBuilder.toString();
-    }
-
 
     /**
      * form非法参数验证
@@ -147,118 +112,67 @@ public class DefaultExceptionHandler implements Ordered {
     @ExceptionHandler(BindException.class)
     public R<?> handleBindException(BindException e) {
         log.warn("form非法参数验证异常:{}", e.getMessage());
-        try {
-            String msg = Objects.requireNonNull(e.getBindingResult().getFieldError()).getDefaultMessage();
-            if (StrUtil.isNotEmpty(msg)) {
-                return R.failDetail(ExceptionErrorCode.PARAM_EX.getErrorCode(), msg);
-            }
-        } catch (Exception ee) {
-            log.debug("获取异常描述失败", ee);
-        }
-        StringBuilder msg = new StringBuilder();
-        List<FieldError> fieldErrors = e.getFieldErrors();
-        fieldErrors.forEach((oe) ->
-                msg.append("参数:[").append(oe.getObjectName())
-                        .append(".").append(oe.getField())
-                        .append("]的传入值:[").append(oe.getRejectedValue()).append("]与预期的字段类型不匹配.")
-        );
-        return R.failDetail(ExceptionErrorCode.PARAM_EX.getErrorCode(), msg.toString());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler({AccountNotFoundException.class})
     public R<?> handleAccountNotFoundException(AccountNotFoundException e) {
         log.warn("AccountNotFoundException异常:{}", e.getMessage());
-        return R.fail(ExceptionErrorCode.USER_NOT_FOUND);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public R<?> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
         log.error("请求方法不支持异常:{}", e.getMessage());
-        return R.fail(ExceptionErrorCode.METHOD_NOT_SUPPORTED);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public R<?> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         log.error("HttpMessageNotReadableException 异常:", e);
-        String prefix = "Could not read document:";
-        String message = e.getMessage();
-        if (StringUtils.isNotEmpty(message)) {
-            if (StrUtil.containsAny(message, prefix)) {
-                String errorMessage = String.format("无法正确的解析json类型的参数：%s", StrUtil.subBetween(message, prefix, " at "));
-                return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), errorMessage);
-            }
-            Pattern pattern = Pattern.compile("Cannot deserialize value of type `([^`]+)` from String \"([^\"]+)\"");
-            Matcher matcher = pattern.matcher(message);
-            if (matcher.find()) {
-                String type = matcher.group(1);
-                String value = matcher.group(2);
-                String errorMessage = "参数值[" + value + "]与预期字段类型:[" + type + "]不匹配";
-                return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), errorMessage);
-            }
-        }
-        return R.failDetail(ExceptionErrorCode.MSG_NOT_READABLE.getErrorCode(), ExceptionErrorCode.MSG_NOT_READABLE.getErrorMsg());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)
     public R<?> handleNoHandlerFoundException(NoHandlerFoundException e) {
         log.error("NoHandlerFoundException 异常:{}", e.getMessage());
-        return R.failDetail(ExceptionErrorCode.NOT_FOUND.getErrorCode(), e.getMessage());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
-
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public R<?> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException e) {
         log.error("HttpMediaTypeNotSupportedException 异常:{}", e.getMessage());
-        MediaType contentType = e.getContentType();
-        if (contentType != null) {
-            return R.failDetail(
-                    ExceptionErrorCode.MEDIA_TYPE_NOT_SUPPORTED.getErrorCode(),
-                    "请求类型(Content-Type)[" + contentType + "] 与实际接口的请求类型不匹配");
-        }
-        return R.fail(ExceptionErrorCode.MEDIA_TYPE_NOT_SUPPORTED);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public R<?> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         log.error("MethodArgumentTypeMismatchException:", e);
-        String msg = "参数：[" + e.getName() + "]的传入值：[" + e.getValue() +
-                "]与预期的字段类型：[" + Objects.requireNonNull(e.getRequiredType()).getName() + "]不匹配";
-        return R.failDetail(ExceptionErrorCode.PARAM_TYPE_ERROR.getErrorCode(), msg);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(InvalidFormatException.class)
     public R<?> handleInvalidFormatException(InvalidFormatException e) {
         log.error("InvalidFormatException异常:", e);
-        String message = e.getMessage();
-        Pattern pattern = Pattern.compile("Cannot deserialize value of type `([^`]+)` from String \"([^\"]+)\"");
-        Matcher matcher = pattern.matcher(message);
-        if (matcher.find()) {
-            String type = matcher.group(1);
-            String value = matcher.group(2);
-            String errorMessage = "参数值[" + value + "]与预期的字段类型:[" + type + "]不匹配";
-            return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), errorMessage);
-        }
-        return R.failDetail(ExceptionErrorCode.PARAM_VALID_ERROR.getErrorCode(), message);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(NullPointerException.class)
     public R<?> handleNullPointerException(NullPointerException e) {
         log.error("NullPointerException 异常:", e);
-        return R.fail(ExceptionErrorCode.NULL_POINTER_EXCEPTION_ERROR);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(MultipartException.class)
     public R<?> handleMultipartException(MultipartException e) {
         log.error("MultipartException 异常:", e);
-        return R.fail(ExceptionErrorCode.FILE_UPLOAD_ERROR);
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public R<?> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
         log.error("MissingServletRequestParameterException 异常:", e);
-        return R.failDetail(
-                ExceptionErrorCode.PARAM_MISS.getErrorCode(),
-                "缺少必须的[" + e.getParameterType() + "]类型的参数[" + e.getParameterName() + "]");
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(LoginExpireException.class)
@@ -270,25 +184,25 @@ public class DefaultExceptionHandler implements Ordered {
     @ExceptionHandler(UserNotFoundException.class)
     public R<?> handleUserNotFoundException(UserNotFoundException e) {
         log.error("UserNotFoundException 异常:{}", e.getMessage());
-        return R.failDetail(e.getErrorCode(), e.getErrorMsg());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(UserPasswordErrorException.class)
     public R<?> handleUserPasswordErrorException(UserPasswordErrorException e) {
         log.error("UserPasswordErrorException 异常:{}", e.getMessage());
-        return R.failDetail(e.getErrorCode(), e.getErrorMsg());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(UnknownHostException.class)
     public R<?> handleUnknownHostException(UnknownHostException e) {
         log.warn("UnknownHostException:{}", e.getMessage());
-        return R.failDetail(ExceptionErrorCode.IP_OR_DOMAIN_NAME_UNREACHABLE.getErrorCode(), ExceptionErrorCode.IP_OR_DOMAIN_NAME_UNREACHABLE.getErrorMsg());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(LimitException.class)
     public R<?> handleLimitException(LimitException e) {
         log.warn("LimitException:{}", e.getErrorMsg());
-        return R.failDetail(ExceptionErrorCode.REQ_LIMIT.getErrorCode(), e.getErrorMsg());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @Override

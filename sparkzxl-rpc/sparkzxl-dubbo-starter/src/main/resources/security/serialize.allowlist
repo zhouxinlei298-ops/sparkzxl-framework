@@ -1,2 +1,2 @@
-com.github.sparkzxl.core.support.ArgumentException
-com.github.sparkzxl.dubbo.support.DubboTransferException
+com.github.sparkzxl.dubbo.support.RpcCaptureException
+com.github.sparkzxl.dubbo.support.RpcFallbackException

@@ -4,6 +4,7 @@ import com.github.sparkzxl.alarm.exception.AlarmException;
 import com.github.sparkzxl.alarm.exception.AsyncCallException;
 import com.github.sparkzxl.core.base.result.R;
 import com.github.sparkzxl.core.constant.enums.BeanOrderEnum;
+import com.github.sparkzxl.core.support.ExceptionCodeResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,13 +23,13 @@ public class AlarmExceptionHandler implements Ordered {
     @ExceptionHandler(AlarmException.class)
     public R<?> handleAlarmException(AlarmException e) {
         log.error("AlarmException 异常:", e);
-        return R.failDetail(e.getErrorCode(), e.getErrorMsg());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @ExceptionHandler(AsyncCallException.class)
     public R<?> handleAsyncCallException(AsyncCallException e) {
         log.error("AsyncCallException 异常:", e);
-        return R.failDetail(e.getErrorCode(), e.getErrorMsg());
+        return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
     @Override
