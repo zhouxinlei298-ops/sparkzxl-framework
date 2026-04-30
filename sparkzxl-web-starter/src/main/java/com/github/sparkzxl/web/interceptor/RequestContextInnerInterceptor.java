@@ -37,6 +37,7 @@ public class RequestContextInnerInterceptor extends AbstractInnerInterceptor {
         if (!(handler instanceof HandlerMethod handlerMethod)) {
             return;
         }
+        final HandlerMethod handlerMethod = (HandlerMethod) handler;
         //设置当前请求线程全局信息
         THREAD_LOCAL_ATTRIBUTE.forEach(header -> RequestLocalContextHolder.set(header, HttpRequestUtils.getHeader(request, header)));
         Boolean feign = Convert.toBool(request.getHeader(BaseContextConstants.REMOTE_CALL), Boolean.FALSE);

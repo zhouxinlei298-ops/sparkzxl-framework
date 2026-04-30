@@ -9,14 +9,15 @@ import com.github.sparkzxl.core.support.ArgumentException;
 import com.github.sparkzxl.core.util.StrPool;
 import com.github.sparkzxl.signature.constant.SignatureConstant;
 import com.github.sparkzxl.signature.server.method.SignProcessor;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.Part;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.servlet.AsyncHandlerInterceptor;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -78,7 +79,8 @@ public class SignAuthInterceptor implements AsyncHandlerInterceptor {
      * 读取JSON请求体
      */
     private String readJsonBody(HttpServletRequest request) {
-        if (request instanceof CachedBodyHttpServletRequest cachedRequest) {
+        if (request instanceof CachedBodyHttpServletRequest) {
+            CachedBodyHttpServletRequest cachedRequest = (CachedBodyHttpServletRequest) request;
             return new String(cachedRequest.getCachedBody(), StandardCharsets.UTF_8);
         }
         return null;
@@ -101,7 +103,7 @@ public class SignAuthInterceptor implements AsyncHandlerInterceptor {
                 fileNamesMap.computeIfAbsent(fieldName, k -> new ArrayList<>()).add(fileName);
             } else {
                 // 普通表单字段：读取文本内容
-                String value = new String(part.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+                String value = new String(StreamUtils.copyToByteArray(part.getInputStream()), StandardCharsets.UTF_8);
                 dataMap.put(fieldName, value);
             }
         }

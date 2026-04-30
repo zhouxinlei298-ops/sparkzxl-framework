@@ -1,6 +1,6 @@
 package com.github.sparkzxl.oss.support;
 
-import com.github.sparkzxl.core.support.BaseException;
+import com.github.sparkzxl.core.support.BaseUncheckedException;
 import com.github.sparkzxl.core.support.code.IErrorCode;
 
 /**
@@ -9,50 +9,21 @@ import com.github.sparkzxl.core.support.code.IErrorCode;
  * @author zhouxinlei
  * @since 2022-05-03 17:13:39
  */
-public class OssException extends RuntimeException implements BaseException {
-
-    /**
-     * 异常信息
-     */
-    private final String errorMsg;
-
-    /**
-     * 具体异常码
-     */
-    private final String errorCode;
-
+public class OssException extends BaseUncheckedException {
 
     public OssException(String errorCode, String errorMsg) {
-        super(errorMsg);
-        this.errorMsg = errorMsg;
-        this.errorCode = errorCode;
+        super(errorCode, errorMsg);
     }
 
     public OssException(IErrorCode errorCode) {
-        super(errorCode.getErrorMsg());
-        this.errorCode = errorCode.getErrorCode();
-        this.errorMsg = errorCode.getErrorMsg();
+        super(errorCode);
     }
 
     public OssException(IErrorCode errorCode, Throwable cause) {
-        super(errorCode.getErrorMsg(), cause);
-        this.errorCode = errorCode.getErrorCode();
-        this.errorMsg = errorCode.getErrorMsg();
+        super(errorCode.getErrorCode(), errorCode.getErrorMsg(), cause);
     }
 
     public OssException(String errorCode, String errorMsg, Throwable cause) {
-        super(errorMsg, cause);
-        this.errorCode = errorCode;
-        this.errorMsg = errorMsg;
-    }
-
-    @Override
-    public String getErrorMsg() {
-        return errorMsg;
-    }
-
-    @Override
-    public String getErrorCode() {
-        return errorCode;
+        super(errorCode, errorMsg, cause);
     }
 }

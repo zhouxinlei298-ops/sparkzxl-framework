@@ -1,12 +1,12 @@
 package com.github.sparkzxl.web.config;
 
-import com.github.sparkzxl.web.annotation.ApiLimit;
+import com.github.sparkzxl.annotation.ApiLimit;
 import com.github.sparkzxl.core.constant.Constant;
 import com.github.sparkzxl.web.aop.ApiLimitAnnotationAdvisor;
 import com.github.sparkzxl.web.aop.ApiLimitInterceptor;
 import com.github.sparkzxl.web.interceptor.DefaultInnerInterceptorFactory;
-import com.github.sparkzxl.web.interceptor.InnerInterceptorFactory;
 import com.github.sparkzxl.web.interceptor.HttpRequestInterceptor;
+import com.github.sparkzxl.web.interceptor.InnerInterceptorFactory;
 import com.github.sparkzxl.web.properties.WebProperties;
 import com.github.sparkzxl.web.support.DefaultExceptionHandler;
 import com.github.sparkzxl.web.support.ResponseResultAdvice;
