@@ -1,11 +1,15 @@
 package com.github.sparkzxl.web.support;
 
 import cn.hutool.core.util.StrUtil;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.github.sparkzxl.core.support.ExceptionCodeResolver;
+import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
+import jakarta.servlet.ServletException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.ValidationException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
-import com.github.sparkzxl.core.support.ExceptionCodeResolver;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -21,13 +25,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import org.springframework.web.util.NestedServletException;
 
 import javax.security.auth.login.AccountNotFoundException;
-import javax.servlet.ServletException;
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.ValidationException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Objects;
@@ -54,7 +53,6 @@ public class WebExceptionCodeRegistration implements InitializingBean {
         ExceptionCodeResolver.register(UnknownHostException.class, ExceptionErrorCode.IP_OR_DOMAIN_NAME_UNREACHABLE);
         ExceptionCodeResolver.register(IllegalArgumentException.class, ExceptionErrorCode.PARAM_VALID_ERROR);
         ExceptionCodeResolver.register(IllegalStateException.class, ExceptionErrorCode.PARAM_VALID_ERROR);
-        ExceptionCodeResolver.register(NestedServletException.class, ExceptionErrorCode.FAILURE);
 
         // ===== C 类：消息谓词匹配 =====
         ExceptionCodeResolver.register(ServletException.class,

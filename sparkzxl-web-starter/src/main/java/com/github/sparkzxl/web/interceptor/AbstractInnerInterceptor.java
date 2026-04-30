@@ -2,12 +2,12 @@ package com.github.sparkzxl.web.interceptor;
 
 import com.github.sparkzxl.web.properties.InterceptorProperties;
 import com.google.common.collect.Lists;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**

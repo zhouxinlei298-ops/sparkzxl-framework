@@ -5,6 +5,9 @@ import com.github.sparkzxl.core.base.HttpCode;
 import com.github.sparkzxl.core.base.result.R;
 import com.github.sparkzxl.core.constant.enums.BeanOrderEnum;
 import com.github.sparkzxl.core.support.*;
+import jakarta.servlet.ServletException;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -19,13 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import org.springframework.web.util.NestedServletException;
 
-import jakarta.security.auth.login.AccountNotFoundException;
-import jakarta.servlet.ServletException;
-import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.ValidationException;
-import jakarta.servlet.ServletException;
+import javax.security.auth.login.AccountNotFoundException;
 import java.net.UnknownHostException;
 
 /**
@@ -53,12 +51,6 @@ public class DefaultExceptionHandler implements Ordered {
     @ExceptionHandler(ArgumentException.class)
     public R<?> handleArgumentException(ArgumentException e) {
         log.warn("ArgumentException 异常:", e);
-        return R.failDetail(ExceptionCodeResolver.resolve(e));
-    }
-
-    @ExceptionHandler(NestedServletException.class)
-    public R<?> handleNestedServletException(NestedServletException e) {
-        log.error("NestedServletException 异常:", e);
         return R.failDetail(ExceptionCodeResolver.resolve(e));
     }
 
