@@ -5,7 +5,6 @@ import cn.hutool.core.exceptions.ExceptionUtil;
 import com.github.sparkzxl.log.AlarmLogContext;
 import com.github.sparkzxl.log.entity.AlarmLogInfo;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -91,33 +90,6 @@ public class ThrowableUtils {
 
     private static boolean isNativeMethod(int lineNumber) {
         return lineNumber == -2;
-    }
-
-
-    public static boolean doWarnExceptionName(Throwable warnExceptionClass, List<Class<? extends Throwable>> doWarnExceptionList) {
-        return doWarnExceptionList.contains(warnExceptionClass.getClass());
-    }
-
-    public static boolean doWarnExceptionName(String warnExceptionClassName, List<Class<? extends Throwable>> doWarnExceptionList) {
-        return doWarnExceptionList.stream().anyMatch(x -> x.getName().equalsIgnoreCase(warnExceptionClassName));
-    }
-
-    public static boolean doWarnExceptionExtend(Throwable warnExceptionClass, List<Class<? extends Throwable>> doExtendWarnExceptionList) {
-        for (Class<?> aClass : doExtendWarnExceptionList) {
-            if (aClass.isAssignableFrom(warnExceptionClass.getClass())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static boolean doWarnExceptionExtend(String warnExceptionClassName, List<Class<? extends Throwable>> doExtendWarnExceptionList) {
-        for (Class<?> aClass : doExtendWarnExceptionList) {
-            if (aClass.getName().equalsIgnoreCase(warnExceptionClassName)) {
-                return true;
-            }
-        }
-        return false;
     }
 
 }

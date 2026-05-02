@@ -10,7 +10,6 @@ import org.slf4j.MDC;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
 
 /**
  * description: 异常处理切面
@@ -29,16 +28,30 @@ public class ExceptionHandlerAspect {
     @Around("pointCut()")
     public Object aroundExceptionHandler(ProceedingJoinPoint joinPoint) throws Throwable {
         try {
-            Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
-            ExceptionHandler annotation = AnnotationUtil.getAnnotation(method, ExceptionHandler.class);
-            Class<? extends Throwable>[] classes = annotation.value();
-            // 设置MDC
-            MDC.put("exceptionClass", Arrays.stream(classes).findFirst().get().getName());
-            // 执行原异常处理方法
+            String exceptionClassName = resolveExceptionClassName(joinPoint);
+            if (exceptionClassName != null) {
+                MDC.put("exceptionClass", exceptionClassName);
+            }
             return joinPoint.proceed();
         } finally {
-            // 清除MDC
             MDC.remove("exceptionClass");
         }
+    }
+
+    private String resolveExceptionClassName(ProceedingJoinPoint joinPoint) {
+        Object[] args = joinPoint.getArgs();
+        if (args != null) {
+            for (Object arg : args) {
+                if (arg instanceof Throwable) {
+                    return arg.getClass().getName();
+                }
+            }
+        }
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        ExceptionHandler annotation = AnnotationUtil.getAnnotation(method, ExceptionHandler.class);
+        if (annotation != null && annotation.value().length > 0) {
+            return annotation.value()[0].getName();
+        }
+        return null;
     }
 }

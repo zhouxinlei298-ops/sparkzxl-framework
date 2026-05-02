@@ -146,11 +146,11 @@ public class LogProperties {
 
         private String robotId;
 
+        private String title = "服务系统异常告警";
+
         private boolean printStackTrace = false;
 
         private boolean simpleWarnInfo = false;
-
-        private boolean warnExceptionExtend = false;
 
         private List<Class<? extends Throwable>> doWarnException;
     }

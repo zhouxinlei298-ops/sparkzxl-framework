@@ -15,6 +15,7 @@
     <springProperty name="enableJson" scope="context" source="logging.file.enable-json" defaultValue="false"/>
     <springProperty name="alarmEnabled" scope="context" source="logging.alarm.enabled" defaultValue="false"/>
     <springProperty name="robotId" scope="context" source="logging.alarm.robotId" defaultValue=""/>
+    <springProperty name="alarmTitle" scope="context" source="logging.alarm.title" defaultValue="服务系统异常告警"/>
 
     <springProperty name="enableFile" scope="context" source="logging.file.enable" defaultValue="false"/>
     <springProperty name="maxHistory" scope="context" source="logging.file.maxHistory" defaultValue="7"/>
@@ -256,7 +257,7 @@
     <appender name="AlarmLog" class="com.github.sparkzxl.log.appender.AlarmLogLogbackAsyncAppender">
         <enabled>${alarmEnabled}</enabled>
         <robotId>${robotId}</robotId>
-        <appender-ref ref="CONSOLE_APPENDER"/>
+        <title>${alarmTitle}</title>
     </appender>
 
     <logger name="springfox.documentation" level="ERROR"/>

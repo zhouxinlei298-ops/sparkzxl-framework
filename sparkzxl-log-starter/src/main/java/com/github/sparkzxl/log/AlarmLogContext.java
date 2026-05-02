@@ -1,70 +1,54 @@
 package com.github.sparkzxl.log;
 
-import com.github.sparkzxl.log.utils.ThrowableUtils;
 import lombok.Getter;
+import lombok.Setter;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * description: 日志告警全局信息
  *
  * @author zhoux
  */
+@Getter
+@Setter
 public class AlarmLogContext {
 
-    private static final List<Class<? extends Throwable>> DO_EXTEND_WARN_EXCEPTION_LIST = new ArrayList<>();
     @Getter
+    @Setter
     private static Boolean printStackTrace = false;
     @Getter
+    @Setter
     private static Boolean simpleWarnInfo = false;
-    private static Boolean warnExceptionExtend = false;
     @Getter
-    private static List<Class<? extends Throwable>> doWarnExceptionList = new ArrayList<>();
+    private static List<Class<? extends Throwable>> warnExceptionList = new CopyOnWriteArrayList<>();
 
-    public static void setPrintStackTrace(Boolean printStackTrace) {
-        AlarmLogContext.printStackTrace = printStackTrace;
+    public static void addWarnExceptionList(List<Class<? extends Throwable>> warnExceptionList) {
+        AlarmLogContext.warnExceptionList.addAll(warnExceptionList);
     }
 
-    public static void setSimpleWarnInfo(Boolean simpleWarnInfo) {
-        AlarmLogContext.simpleWarnInfo = simpleWarnInfo;
+    public static boolean match(Throwable throwable) {
+        return match(throwable.getClass());
     }
 
-    public static void setWarnExceptionExtend(Boolean warnExceptionExtend) {
-        AlarmLogContext.warnExceptionExtend = warnExceptionExtend;
-        if (warnExceptionExtend && !AlarmLogContext.doWarnExceptionList.isEmpty()) {
-            genExtendWarnExceptionList();
+    public static boolean match(String className) {
+        if (warnExceptionList.isEmpty()) {
+            return true;
         }
+        return warnExceptionList.stream().anyMatch(x -> x.getName().equals(className));
     }
 
-    public static void setDoWarnExceptionList(List<Class<? extends Throwable>> doWarnExceptionList) {
-        AlarmLogContext.doWarnExceptionList = doWarnExceptionList;
-        if (AlarmLogContext.warnExceptionExtend) {
-            genExtendWarnExceptionList();
+    private static boolean match(Class<?> actualClass) {
+        if (warnExceptionList.isEmpty()) {
+            return true;
         }
-    }
-
-    public static void addDoWarnExceptionList(List<Class<? extends Throwable>> doWarnExceptionList) {
-        AlarmLogContext.doWarnExceptionList.addAll(doWarnExceptionList);
-        if (AlarmLogContext.warnExceptionExtend) {
-            genExtendWarnExceptionList(doWarnExceptionList);
+        for (Class<?> configured : warnExceptionList) {
+            if (configured.isAssignableFrom(actualClass)) {
+                return true;
+            }
         }
-    }
-
-    public static boolean doWarnException(Throwable warnExceptionClass) {
-        return AlarmLogContext.warnExceptionExtend ? ThrowableUtils.doWarnExceptionExtend(warnExceptionClass, AlarmLogContext.DO_EXTEND_WARN_EXCEPTION_LIST) : ThrowableUtils.doWarnExceptionName(warnExceptionClass, AlarmLogContext.doWarnExceptionList);
-    }
-
-    public static boolean doWarnException(String warnExceptionClassName) {
-        return AlarmLogContext.warnExceptionExtend ? ThrowableUtils.doWarnExceptionExtend(warnExceptionClassName, AlarmLogContext.DO_EXTEND_WARN_EXCEPTION_LIST) : ThrowableUtils.doWarnExceptionName(warnExceptionClassName, AlarmLogContext.doWarnExceptionList);
-    }
-
-    private static void genExtendWarnExceptionList() {
-        AlarmLogContext.DO_EXTEND_WARN_EXCEPTION_LIST.addAll(AlarmLogContext.doWarnExceptionList);
-    }
-
-    private static void genExtendWarnExceptionList(List<Class<? extends Throwable>> doWarnExceptionList) {
-        AlarmLogContext.DO_EXTEND_WARN_EXCEPTION_LIST.addAll(doWarnExceptionList);
+        return false;
     }
 
 }

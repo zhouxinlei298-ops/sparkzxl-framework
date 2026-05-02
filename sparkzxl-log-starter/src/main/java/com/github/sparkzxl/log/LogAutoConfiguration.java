@@ -35,8 +35,7 @@ public class LogAutoConfiguration {
     public LogAutoConfiguration(LogProperties logProperties) {
         LogProperties.AlarmProperties alarmProperties = logProperties.getAlarm();
         if (alarmProperties.isEnabled()) {
-            Optional.ofNullable(alarmProperties.getDoWarnException()).ifPresent(AlarmLogContext::addDoWarnExceptionList);
-            Optional.of(alarmProperties.isWarnExceptionExtend()).ifPresent(AlarmLogContext::setWarnExceptionExtend);
+            Optional.ofNullable(alarmProperties.getDoWarnException()).ifPresent(AlarmLogContext::addWarnExceptionList);
             Optional.of(alarmProperties.isPrintStackTrace()).ifPresent(AlarmLogContext::setPrintStackTrace);
             Optional.of(alarmProperties.isSimpleWarnInfo()).ifPresent(AlarmLogContext::setSimpleWarnInfo);
         }

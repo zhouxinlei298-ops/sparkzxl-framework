@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.WriteResultChecking;
 import org.springframework.data.mongodb.core.convert.DefaultMongoTypeMapper;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
@@ -27,6 +28,7 @@ public class DynamicMongoTemplate extends MongoTemplate {
         if (removeClass) {
             ((MappingMongoConverter) converter).setTypeMapper(new DefaultMongoTypeMapper(null));
         }
+        setWriteResultChecking(WriteResultChecking.EXCEPTION);
     }
 
     @Override
