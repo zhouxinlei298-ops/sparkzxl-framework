@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 public class OssRustfsAutoConfig {
 
     @Bean
-    public OssClientCreator minioOssClientCreator() {
+    public OssClientCreator rustfsOssClientCreator() {
         return new RustfsOssClientCreator();
     }
 }
