@@ -241,7 +241,7 @@ public class CaffeineCacheImpl implements CacheService {
 
     @Override
     public <T> List<T> find(@NonNull Collection<CacheKey> keys) {
-        return keys.stream().map(k -> (T) get(k, false)).filter(Objects::nonNull).collect(Collectors.toList());
+        return keys.stream().map(k -> (T) get(k, false)).collect(Collectors.toList());
     }
 
     @Override

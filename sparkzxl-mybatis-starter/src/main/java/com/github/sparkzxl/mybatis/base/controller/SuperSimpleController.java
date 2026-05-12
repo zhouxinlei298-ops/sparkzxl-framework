@@ -1,8 +1,9 @@
 package com.github.sparkzxl.mybatis.base.controller;
 
-import com.github.sparkzxl.mybatis.base.repository.SuperRepository;
-import java.lang.reflect.ParameterizedType;
+import com.github.sparkzxl.mybatis.base.service.SuperService;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.lang.reflect.ParameterizedType;
 
 /**
  * description: 简单的实现了BaseController，为了获取注入 Service 和 实体类型
@@ -12,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  * @author zhouxinlei
  */
-public abstract class SuperSimpleController<S extends SuperRepository<Entity>, Entity> implements BaseController<Entity> {
+public abstract class SuperSimpleController<S extends SuperService<Entity>, Entity> implements BaseController<Entity> {
 
     protected Class<Entity> entityClass = null;
     @Autowired
@@ -27,7 +28,7 @@ public abstract class SuperSimpleController<S extends SuperRepository<Entity>, E
     }
 
     @Override
-    public SuperRepository<Entity> getBaseService() {
+    public SuperService<Entity> getBaseService() {
         return baseService;
     }
 }

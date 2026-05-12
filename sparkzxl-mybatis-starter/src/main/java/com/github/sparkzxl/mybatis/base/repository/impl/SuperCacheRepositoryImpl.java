@@ -160,6 +160,12 @@ public abstract class SuperCacheRepositoryImpl<M extends SuperMapper<T>, T> exte
         return deleted;
     }
 
+    /**
+     * 注意：此方法采用"先查询再删除再清缓存"模式，在查询与清缓存的时间窗口内，
+     * 若有并发新增的数据匹配wrapper条件，则这些数据的缓存可能不会被清除，
+     * 导致后续读取到过期数据。这是Cache-Aside模式的已知限制。
+     * 如需更强的一致性保证，可考虑在业务层使用双删+延迟策略或分布式锁。
+     */
     @Override
     public boolean deletePhysical(Wrapper<T> queryWrapper) {
         List<T> list = list(queryWrapper);
@@ -172,6 +178,12 @@ public abstract class SuperCacheRepositoryImpl<M extends SuperMapper<T>, T> exte
         return deleted;
     }
 
+    /**
+     * 注意：此方法采用"先查询再修改再清缓存"模式，在查询与清缓存的时间窗口内，
+     * 若有并发新增的数据匹配wrapper条件，则这些数据的缓存可能不会被清除，
+     * 导致后续读取到过期数据。这是Cache-Aside模式的已知限制。
+     * 如需更强的一致性保证，可考虑在业务层使用双删+延迟策略或分布式锁。
+     */
     @Override
     public boolean update(Wrapper<T> updateWrapper) {
         List<T> list = list(updateWrapper);
@@ -184,6 +196,12 @@ public abstract class SuperCacheRepositoryImpl<M extends SuperMapper<T>, T> exte
         return updated;
     }
 
+    /**
+     * 注意：此方法采用"先查询再修改再清缓存"模式，在查询与清缓存的时间窗口内，
+     * 若有并发新增的数据匹配wrapper条件，则这些数据的缓存可能不会被清除，
+     * 导致后续读取到过期数据。这是Cache-Aside模式的已知限制。
+     * 如需更强的一致性保证，可考虑在业务层使用双删+延迟策略或分布式锁。
+     */
     @Override
     public boolean update(T entity, Wrapper<T> updateWrapper) {
         Object id = getId(entity);
@@ -214,6 +232,12 @@ public abstract class SuperCacheRepositoryImpl<M extends SuperMapper<T>, T> exte
         return updateBool;
     }
 
+    /**
+     * 注意：此方法采用"先查询再删除再清缓存"模式，在查询与清缓存的时间窗口内，
+     * 若有并发新增的数据匹配wrapper条件，则这些数据的缓存可能不会被清除，
+     * 导致后续读取到过期数据。这是Cache-Aside模式的已知限制。
+     * 如需更强的一致性保证，可考虑在业务层使用双删+延迟策略或分布式锁。
+     */
     @Override
     public boolean remove(Wrapper<T> queryWrapper) {
         List<T> list = list(queryWrapper);

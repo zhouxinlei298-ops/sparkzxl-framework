@@ -91,10 +91,12 @@ public interface CacheService {
 
 
     /**
-     * 根据keys获取对象
+     * 根据keys批量获取对象。
+     * 返回的列表与输入keys一一对应（按顺序对齐，长度相同）；
+     * 对于不存在的key，对应位置返回null。
      *
-     * @param keys redis主键
-     * @return 值 不存在时，返回空集合
+     * @param keys 缓存主键集合
+     * @return 值列表，与keys顺序对齐，不存在的key对应位置为null
      */
     <T> List<T> find(@NonNull Collection<CacheKey> keys);
 
