@@ -1,6 +1,6 @@
 package com.github.sparkzxl.mybatis.base.controller;
 
-import com.github.sparkzxl.mybatis.base.service.SuperCacheService;
+import com.github.sparkzxl.mybatis.base.service.SuperCacheRepository;
 import java.io.Serializable;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
  *
  * @author zhouxinlei
  */
-public abstract class SuperCacheController<S extends SuperCacheService<Entity>, Id extends Serializable, Entity, SaveDTO, UpdateDTO, QueryDTO, ExcelEntity>
+public abstract class SuperCacheController<S extends SuperCacheRepository<Entity>, Id extends Serializable, Entity, SaveDTO, UpdateDTO, QueryDTO, ExcelEntity>
         extends SuperController<S, Id, Entity, SaveDTO, UpdateDTO, QueryDTO, ExcelEntity> {
 
     /**

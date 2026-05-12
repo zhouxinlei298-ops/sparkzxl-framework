@@ -2,7 +2,7 @@ package com.github.sparkzxl.mybatis.base.service;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.repository.IRepository;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import com.github.sparkzxl.core.support.ExceptionAssert;
 import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
@@ -13,7 +13,7 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * description: 基于MP的 IService 新增了4个方法： saveBatchSomeColumn、updateAllById、deletePhysical、deletePhysicalById
+ * description: 基于MP的 IRepository 新增了4个方法： saveBatchSomeColumn、updateAllById、deletePhysical、deletePhysicalById
  * 1，saveBatchSomeColumn 批量插入
  * 2，updateAllById 执行后，会清除缓存
  * 2，deletePhysical 执行后，会物理删除
@@ -21,7 +21,7 @@ import java.util.List;
  *
  * @author zhouxinlei
  */
-public interface SuperService<T> extends IService<T> {
+public interface SuperRepository<T> extends IRepository<T> {
 
     /**
      * 批量保存

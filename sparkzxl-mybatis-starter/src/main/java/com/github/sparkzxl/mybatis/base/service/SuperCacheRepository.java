@@ -12,7 +12,7 @@ import java.util.function.Function;
  *
  * @author zhouxinlei
  */
-public interface SuperCacheService<T> extends SuperService<T>, CacheOperationService<T> {
+public interface SuperCacheRepository<T> extends SuperRepository<T>, CacheOperationService<T> {
 
 
     /**

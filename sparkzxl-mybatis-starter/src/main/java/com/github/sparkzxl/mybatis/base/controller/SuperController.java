@@ -1,6 +1,6 @@
 package com.github.sparkzxl.mybatis.base.controller;
 
-import com.github.sparkzxl.mybatis.base.service.SuperService;
+import com.github.sparkzxl.mybatis.base.service.SuperRepository;
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
 
@@ -26,7 +26,7 @@ import java.lang.reflect.ParameterizedType;
  *
  * @author zhouxinlei
  */
-public abstract class SuperController<S extends SuperService<Entity>, Id extends Serializable, Entity, SaveDTO, UpdateDTO, QueryDTO, ExcelEntity>
+public abstract class SuperController<S extends SuperRepository<Entity>, Id extends Serializable, Entity, SaveDTO, UpdateDTO, QueryDTO, ExcelEntity>
         extends SuperSimpleController<S, Entity>
         implements CurdController<Entity, Id, SaveDTO, UpdateDTO, QueryDTO, ExcelEntity> {
 

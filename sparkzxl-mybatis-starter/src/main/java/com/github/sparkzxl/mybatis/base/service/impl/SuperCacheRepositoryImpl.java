@@ -9,14 +9,13 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
-import com.baomidou.mybatisplus.core.toolkit.ReflectionKit;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import com.github.sparkzxl.cache.service.CacheService;
 import com.github.sparkzxl.core.entity.cache.CacheKey;
 import com.github.sparkzxl.core.entity.cache.CacheKeyBuilder;
 import com.github.sparkzxl.mybatis.base.mapper.SuperMapper;
-import com.github.sparkzxl.mybatis.base.service.SuperCacheService;
+import com.github.sparkzxl.mybatis.base.service.SuperCacheRepository;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
@@ -49,7 +48,7 @@ import java.util.stream.Collectors;
  * @param <T>
  * @author zhouxinlei
  */
-public abstract class SuperCacheServiceImpl<M extends SuperMapper<T>, T> extends SuperServiceImpl<M, T> implements SuperCacheService<T> {
+public abstract class SuperCacheRepositoryImpl<M extends SuperMapper<T>, T> extends SuperRepositoryImpl<M, T> implements SuperCacheRepository<T> {
 
     @Autowired
     protected CacheService cacheService;
@@ -234,7 +233,7 @@ public abstract class SuperCacheServiceImpl<M extends SuperMapper<T>, T> extends
         String keyProperty = tableInfo.getKeyProperty();
         Assert.notEmpty(keyProperty, "error: can not execute. because can not find column for id from entity!");
         BiPredicate<SqlSession, T> predicate = (sqlSession, entity) -> {
-            Object idVal = ReflectionKit.getFieldValue(entity, keyProperty);
+            Object idVal = tableInfo.getPropertyValue(entity, keyProperty);
             return StringUtils.checkValNull(idVal)
                     || CollectionUtils.isEmpty(sqlSession.selectList(getSqlStatement(SqlMethod.SELECT_BY_ID), entity));
         };
@@ -246,7 +245,7 @@ public abstract class SuperCacheServiceImpl<M extends SuperMapper<T>, T> extends
             delCache(entity);
         };
         String sqlStatement = SqlHelper.getSqlStatement(this.getMapperClass(), SqlMethod.INSERT_ONE);
-        return SqlHelper.executeBatch(getEntityClass(), log, entityList, batchSize, (sqlSession, entity) -> {
+        return SqlHelper.executeBatch(getSqlSessionFactory(), log, entityList, batchSize, (sqlSession, entity) -> {
             if (predicate.test(sqlSession, entity)) {
                 sqlSession.insert(sqlStatement, entity);
             } else {

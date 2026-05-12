@@ -1,0 +1,16 @@
+package com.github.sparkzxl.mybatis.base.service.impl;
+
+import com.baomidou.mybatisplus.extension.repository.CrudRepository;
+import com.github.sparkzxl.mybatis.base.mapper.SuperMapper;
+import com.github.sparkzxl.mybatis.base.service.SuperRepository;
+
+/**
+ * description:
+ *
+ * @author zhouxinlei
+ */
+public class SuperRepositoryImpl<M extends SuperMapper<T>, T> extends CrudRepository<M, T> implements SuperRepository<T> {
+
+    public SuperRepositoryImpl() {
+    }
+}

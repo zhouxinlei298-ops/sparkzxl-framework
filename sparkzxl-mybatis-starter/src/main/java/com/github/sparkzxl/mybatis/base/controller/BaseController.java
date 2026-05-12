@@ -1,6 +1,6 @@
 package com.github.sparkzxl.mybatis.base.controller;
 
-import com.github.sparkzxl.mybatis.base.service.SuperService;
+import com.github.sparkzxl.mybatis.base.service.SuperRepository;
 
 /**
  * description: 基础controller
@@ -21,6 +21,6 @@ public interface BaseController<Entity> {
      *
      * @return SuperService<Entity>
      */
-    SuperService<Entity> getBaseService();
+    SuperRepository<Entity> getBaseService();
 
 }
