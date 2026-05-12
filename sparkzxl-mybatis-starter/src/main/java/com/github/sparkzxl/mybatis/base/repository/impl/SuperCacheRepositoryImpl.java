@@ -1,4 +1,4 @@
-package com.github.sparkzxl.mybatis.base.service.impl;
+package com.github.sparkzxl.mybatis.base.repository.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
@@ -15,7 +15,7 @@ import com.github.sparkzxl.cache.service.CacheService;
 import com.github.sparkzxl.core.entity.cache.CacheKey;
 import com.github.sparkzxl.core.entity.cache.CacheKeyBuilder;
 import com.github.sparkzxl.mybatis.base.mapper.SuperMapper;
-import com.github.sparkzxl.mybatis.base.service.SuperCacheRepository;
+import com.github.sparkzxl.mybatis.base.repository.SuperCacheRepository;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;

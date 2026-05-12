@@ -1,4 +1,4 @@
-package com.github.sparkzxl.mybatis.base.service;
+package com.github.sparkzxl.mybatis.base.repository;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Constants;

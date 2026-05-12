@@ -1,6 +1,6 @@
 package com.github.sparkzxl.mybatis.base.controller;
 
-import com.github.sparkzxl.mybatis.base.service.SuperRepository;
+import com.github.sparkzxl.mybatis.base.repository.SuperRepository;
 import java.lang.reflect.ParameterizedType;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -1,6 +1,6 @@
 package com.github.sparkzxl.mybatis.base.controller;
 
-import com.github.sparkzxl.mybatis.base.service.SuperCacheRepository;
+import com.github.sparkzxl.mybatis.base.repository.SuperCacheRepository;
 import java.io.Serializable;
 import org.springframework.web.bind.annotation.PathVariable;
 

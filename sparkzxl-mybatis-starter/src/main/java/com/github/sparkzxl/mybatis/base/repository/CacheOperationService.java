@@ -1,4 +1,4 @@
-package com.github.sparkzxl.mybatis.base.service;
+package com.github.sparkzxl.mybatis.base.repository;
 
 import com.github.sparkzxl.core.entity.cache.CacheKey;
 

@@ -1,4 +1,4 @@
-package com.github.sparkzxl.mybatis.base.service;
+package com.github.sparkzxl.mybatis.base.repository;
 
 import org.springframework.lang.NonNull;
 

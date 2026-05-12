@@ -1,6 +1,6 @@
 package com.github.sparkzxl.mybatis.base.controller;
 
-import com.github.sparkzxl.mybatis.base.service.SuperRepository;
+import com.github.sparkzxl.mybatis.base.repository.SuperRepository;
 
 /**
  * description: 基础controller
