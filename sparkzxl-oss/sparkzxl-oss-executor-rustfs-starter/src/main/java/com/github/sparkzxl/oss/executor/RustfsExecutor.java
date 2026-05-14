@@ -1,6 +1,7 @@
 package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpUtil;
 import com.github.sparkzxl.oss.client.CustomRustfsClient;
@@ -264,13 +265,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
                     bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            if (tempInputStream != null) {
-                try {
-                    tempInputStream.close();
-                } catch (IOException e) {
-                    log.error("关闭文件流失败：{}", e.getMessage());
-                }
-            }
+            IoUtil.close(tempInputStream);
             // 删除临时文件
             if (tempFile != null && tempFile.exists()) {
                 try {
@@ -282,6 +277,58 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
                 } catch (Exception e) {
                     log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
                     tempFile.deleteOnExit();
+                }
+            }
+        }
+    }
+
+    @Override
+    public OssPushObjectResponse putObject(String bucketName, String objectName, File file, boolean delete) {
+        objectNameValidate(objectName);
+        CustomRustfsClient rustfsClient = obtainClient();
+        BufferedInputStream tempInputStream = null;
+        try {
+            long size = FileUtil.size(file);
+            tempInputStream = FileUtil.getInputStream(file);
+            String mimeType = FileUtil.getType(file);
+            String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
+
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectName)
+                    .contentType(finalMimeType).build();
+
+            PutObjectResponse putObjectResponse = rustfsClient.getClient().putObject(putObjectRequest,
+                    RequestBody.fromInputStream(tempInputStream, size));
+
+            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
+            pushObjectResponse.setBucketName(bucketName);
+            pushObjectResponse.setObjectName(objectName);
+            pushObjectResponse.setSize(size);
+            pushObjectResponse.setContentType(finalMimeType);
+            pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
+            String uploadFileUrl = getObjectUrl(bucketName, objectName);
+            pushObjectResponse.setUrl(uploadFileUrl);
+            log.info("文件上传成功，ETag: {}", putObjectResponse.eTag());
+            return pushObjectResponse;
+        } catch (Exception e) {
+            log.error("Rustfs unexpected error during local file upload for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
+            throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
+        } finally {
+            IoUtil.close(tempInputStream);
+            // 删除临时文件
+            if (delete && file != null && file.exists()) {
+                try {
+                    boolean deleted = FileUtil.del(file);
+                    if (!deleted) {
+                        log.warn("临时文件删除失败，文件路径：{}", file.getAbsolutePath());
+                        file.deleteOnExit();
+                    }
+                } catch (Exception e) {
+                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", file.getAbsolutePath(), e.getMessage());
+                    file.deleteOnExit();
                 }
             }
         }
@@ -331,13 +378,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
                     bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            if (tempInputStream != null) {
-                try {
-                    tempInputStream.close();
-                } catch (IOException e) {
-                    log.error("关闭文件流失败：{}", e.getMessage());
-                }
-            }
+            IoUtil.close(tempInputStream);
             // 删除临时文件（使用 Hutool 的 FileUtil.del 提供更可靠的删除机制）
             if (tempFile != null && tempFile.exists()) {
                 try {

@@ -1,6 +1,7 @@
 package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpUtil;
 import com.github.sparkzxl.oss.client.CustomMinioClient;
@@ -214,11 +215,19 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
     public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
         objectNameValidate(objectName);
         File tempFile = new File(filePath);
+        // 注册JVM退出时自动删除临时文件（双重保障）
+        tempFile.deleteOnExit();
+        return putObject(bucketName,objectName,tempFile,true);
+    }
+
+    @Override
+    public OssPushObjectResponse putObject(String bucketName, String objectName, File file, boolean delete) {
+        objectNameValidate(objectName);
         BufferedInputStream tempInputStream = null;
         try (CustomMinioClient minioClient = obtainClient()) {
-            long size = FileUtil.size(tempFile);
-            tempInputStream = FileUtil.getInputStream(tempFile);
-            String mimeType = FileUtil.getType(tempFile);
+            long size = FileUtil.size(file);
+            tempInputStream = FileUtil.getInputStream(file);
+            String mimeType = FileUtil.getType(file);
             String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
@@ -243,24 +252,18 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                     bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            if (tempInputStream != null) {
-                try {
-                    tempInputStream.close();
-                } catch (IOException e) {
-                    log.error("关闭文件流失败：{}", e.getMessage());
-                }
-            }
+            IoUtil.close(tempInputStream);
             // 删除临时文件
-            if (tempFile != null && tempFile.exists()) {
+            if (delete && file != null && file.exists()) {
                 try {
-                    boolean deleted = FileUtil.del(tempFile);
+                    boolean deleted = FileUtil.del(file);
                     if (!deleted) {
-                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
-                        tempFile.deleteOnExit();
+                        log.warn("临时文件删除失败，文件路径：{}", file.getAbsolutePath());
+                        file.deleteOnExit();
                     }
                 } catch (Exception e) {
-                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
-                    tempFile.deleteOnExit();
+                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", file.getAbsolutePath(), e.getMessage());
+                    file.deleteOnExit();
                 }
             }
         }
@@ -307,13 +310,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                     bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            if (tempInputStream != null) {
-                try {
-                    tempInputStream.close();
-                } catch (IOException e) {
-                    log.error("关闭文件流失败：{}", e.getMessage());
-                }
-            }
+            IoUtil.close(tempInputStream);
             // 删除临时文件（使用 Hutool 的 FileUtil.del 提供更可靠的删除机制）
             if (tempFile != null && tempFile.exists()) {
                 try {

@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -133,6 +134,17 @@ public interface OssExecutor {
      * @return OssPushObjectResponse
      */
     OssPushObjectResponse putObject(String bucketName, String objectName, String filePath);
+
+    /**
+     * 上传本地文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param file   本地文件
+     * @param delete   上传成功是否删除文件
+     * @return OssPushObjectResponse
+     */
+    OssPushObjectResponse putObject(String bucketName, String objectName, File file, boolean delete);
 
     /**
      * 上传文件
