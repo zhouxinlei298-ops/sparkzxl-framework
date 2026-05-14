@@ -1,16 +1,16 @@
 package com.github.sparkzxl.log.properties;
 
-import static com.github.sparkzxl.log.properties.LogProperties.LOG_PREFIX;
-
-import java.util.List;
-
 import cn.hutool.core.date.DatePattern;
-import com.github.sparkzxl.log.enums.LogTypeEnum;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
+
+import java.io.Serializable;
+import java.util.List;
+
+import static com.github.sparkzxl.log.properties.LogProperties.LOG_PREFIX;
 
 /**
  * description: 日志配置类
@@ -19,19 +19,14 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  */
 @Data
 @ConfigurationProperties(prefix = LOG_PREFIX)
-public class LogProperties {
+public class LogProperties implements Serializable {
 
     public static final String LOG_PREFIX = "logging";
+    private static final long serialVersionUID = -399144487553652642L;
 
-    /**
-     * 是否开启控制台输出
-     */
-    private boolean enableConsole = true;
+    private String consolePattern;
 
-    /**
-     * 是否开启埋点日志
-     */
-    private boolean enableBizPoint = true;
+    private String filePattern;
 
     private FileProperties file = new FileProperties();
 
@@ -41,12 +36,6 @@ public class LogProperties {
      * 日志告警
      */
     private AlarmProperties alarm = new AlarmProperties();
-
-
-    @NestedConfigurationProperty
-    private PlumeLogProperties plumelog = new PlumeLogProperties();
-
-
 
     /**
      * description: 日志文件配置类
@@ -60,7 +49,7 @@ public class LogProperties {
         /**
          * 是否开启日志持久化
          */
-        private boolean enable;
+        private boolean enabled;
 
         /**
          * 是否开启日志json化存储
@@ -119,7 +108,7 @@ public class LogProperties {
          *     <li><code>acks=0</code> 如果设置为0，则生产者根本不会等待来自服务器的任何确认。该记录将立即添加到套接字缓冲区并被视为已发送。这种情况下不能保证服务端已经收到记录， <code>retries</code> 配置也不会生效（因为客户端一般不会知道任何失败）。每条记录返回的偏移量将始终设置为 <code>-1</code>。
          * <li><code>acks=1</code> 这意味着领导者会将记录写入其本地日志，但会在不等待所有追随者的完全确认的情况下做出响应。在这种情况下，如果领导者在确认记录后但在追随者复制它之前立即失败，那么记录将丢失。
          * <li><code>acks=all</code> 这意味着领导者将等待完整的同步副本集来确认记录。这保证了只要至少一个同步副本保持活动状态，记录就不会丢失。这是最有力的保证。这等效于 acks=-1 设置。</ul>
-         * 请注意，启用幂等性要求此配置值为“all”。如果设置了冲突配置并且没有显式启用幂等性，则禁用幂等性。
+         * 请注意，启用幂等性要求此配置值为"all"。如果设置了冲突配置并且没有显式启用幂等性，则禁用幂等性。
          * </P>
          */
         private String acks;
@@ -146,11 +135,11 @@ public class LogProperties {
 
         private String robotId;
 
-        private String title = "服务系统异常告警";
-
         private boolean printStackTrace = false;
 
         private boolean simpleWarnInfo = false;
+
+        private boolean warnExceptionExtend = false;
 
         private List<Class<? extends Throwable>> doWarnException;
     }
@@ -180,41 +169,13 @@ public class LogProperties {
         private String timeZone = "Asia/Shanghai";
     }
 
-    @Getter
-    @Setter
-    public static class PlumeLogProperties {
-        private boolean enabled;
-
-        private LogTypeEnum type;
-
-        private PlumeLogRedis redis;
-
-        private PlumeLogKafka kafka;
-
-        private String runModel;
-        private String expand;
-        private int maxCount = 100;
-        private int logQueueSize = 10000;
-        private int threadPoolSize = 1;
-        private boolean compressor = false;
-    }
+    @NestedConfigurationProperty
+    private ScheduleJobLog schedulejob = new ScheduleJobLog();
 
     @Getter
     @Setter
-    public static class PlumeLogRedis {
-        private String redisHost;
-        private String redisPort;
-        private String redisAuth;
-        private String model = "standalone";
-        private String masterName;
-        private int redisDb = 0;
-
-    }
-
-    @Getter
-    @Setter
-    public static class PlumeLogKafka {
-        private String kafkaHosts;
+    public static class ScheduleJobLog {
+        private String consumerClass;
     }
 
 }

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<included>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- 日志格式 -->
+    <springProperty scope="context" name="COMMON_PATTERN_COLOR" source="logging.console-pattern"
+                    defaultValue="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} [%X{tid}] %clr([tenantId: %X{tenantId:-N/A}]){yellow} %highlight([${LOG_LEVEL_PATTERN:-%5p}]) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t:%r]){faint} %clr(%-40.40logger{15}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+    <springProperty scope="context" name="FILE_PATTERN" source="logging.file-pattern"
+                    defaultValue="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{tid}] [tenantId: %X{tenantId:-N/A}] [${LOG_LEVEL_PATTERN:-%5p}] ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <!-- 公共属性 -->
+    <springProperty scope="context" name="traceType" source="spring.trace.type" defaultValue="local"/>
+    <springProperty name="springAppName" scope="context" source="spring.application.name" defaultValue="application"/>
+    <springProperty name="logHome" scope="context" source="logging.file.path" defaultValue="${user.home}/logs"/>
+    <springProperty name="enableBizPoint" scope="context" source="logging.enable-biz-point" defaultValue="true"/>
+    <springProperty name="enableJson" scope="context" source="logging.file.enable-json" defaultValue="false"/>
+    <springProperty scope="context" name="log.level.console" source="logging.level.console" defaultValue="INFO"/>
+
+    <!-- Console Appender -->
+    <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${CONSOLE_LOG_THRESHOLD}</level>
+        </filter>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.github.sparkzxl.log.layout.ConditionalTraceLayout">
+                <traceType>${traceType}</traceType>
+                <pattern>${COMMON_PATTERN_COLOR}</pattern>
+            </layout>
+            <charset>${CONSOLE_LOG_CHARSET}</charset>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC_CONSOLE_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>256</queueSize>
+        <appender-ref ref="CONSOLE_APPENDER"/>
+    </appender>
+
+    <!-- 可选 Appender 模块 -->
+    <include resource="logback-appender-alarm.xml"/>
+    <include resource="logback-appender-aliyun.xml"/>
+    <include resource="logback-appender-file.xml"/>
+    <include resource="logback-appender-job.xml"/>
+
+    <!-- Logger 级别配置 -->
+    <include resource="logback-loggers.xml"/>
+</included>

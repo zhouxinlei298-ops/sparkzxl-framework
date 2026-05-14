@@ -1,10 +1,10 @@
 package com.github.sparkzxl.log.appender;
 
+import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxy;
-import ch.qos.logback.core.UnsynchronizedAppenderBase;
 import com.github.sparkzxl.alarm.entity.AlarmRequest;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
@@ -26,16 +26,15 @@ import java.util.Objects;
  *
  * @author zhoux
  */
-@Getter
 @Setter
-public class AlarmLogLogbackAsyncAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
+@Getter
+public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
 
     private boolean enabled;
     private String robotId;
-    private String title = "服务系统异常告警";
 
     @Override
-    protected void append(ILoggingEvent eventObject) {
+    public void doAppend(ILoggingEvent eventObject) {
         if (!enabled) {
             return;
         }
@@ -44,72 +43,65 @@ public class AlarmLogLogbackAsyncAppender extends UnsynchronizedAppenderBase<ILo
         }
         LoggingEvent loggingEvent = (LoggingEvent) eventObject;
         Level level = loggingEvent.getLevel();
-        if (!level.isGreaterOrEqual(Level.WARN)) {
-            return;
-        }
-
         ThrowableProxy throwableProxy = (ThrowableProxy) loggingEvent.getThrowableProxy();
+        if (level.equals(Level.INFO)) {
+            return;
+        }
         if (Objects.nonNull(throwableProxy)) {
-            handleWithThrowable(loggingEvent, throwableProxy);
-        } else if (level.isGreaterOrEqual(Level.ERROR)) {
-            handleWithoutThrowable(loggingEvent);
+            AlarmRequest alarmRequest = new AlarmRequest();
+            alarmRequest.setTitle("服务系统异常告警");
+            String traceId = MDC.get(BaseContextConstants.LOG_TRACE_ID);
+            String applicationName = SpringContextUtils.getApplicationName();
+            String environment = SpringContextUtils.getEnvironment();
+            Throwable throwable = throwableProxy.getThrowable();
+            if (AlarmLogContext.doWarnException(throwable)) {
+                StackTraceElement[] stackTraceElements = throwable.getStackTrace();
+                AlarmLogInfo alarmLogInfo = AlarmLogInfo.builder()
+                        .applicationName(applicationName)
+                        .environment(environment)
+                        .message(loggingEvent.getFormattedMessage())
+                        .throwableName(throwable.getClass().getName())
+                        .threadName(loggingEvent.getThreadName())
+                        .traceId(traceId).build();
+                if (ArrayUtils.isNotEmpty(stackTraceElements)) {
+                    StackTraceElement stackTraceElement = stackTraceElements[0];
+                    alarmLogInfo.setClassName(stackTraceElement.getClassName())
+                            .setFileName(stackTraceElement.getFileName())
+                            .setMethodName(stackTraceElement.getMethodName())
+                            .setLineNumber(stackTraceElement.getLineNumber());
+                }
+                String message = ThrowableUtils.dingTalkMarkdownContent(alarmLogInfo, throwable);
+                sendLogAlarm(alarmRequest, message);
+            }
+        } else if (level.equals(Level.ERROR)) {
+            String exceptionClass = MDC.get("exceptionClass");
+            if (StringUtils.isNotBlank(exceptionClass) && AlarmLogContext.doWarnException(exceptionClass)) {
+                StackTraceElement[] callerData = loggingEvent.getCallerData();
+                if (callerData != null && callerData.length > 0) {
+                    AlarmRequest alarmRequest = new AlarmRequest();
+                    alarmRequest.setTitle("服务系统异常告警");
+                    String traceId = MDC.get(BaseContextConstants.LOG_TRACE_ID);
+                    String applicationName = SpringContextUtils.getApplicationName();
+                    String environment = SpringContextUtils.getEnvironment();
+                    AlarmLogInfo alarmLogInfo = AlarmLogInfo.builder()
+                            .applicationName(applicationName)
+                            .environment(environment)
+                            .message(loggingEvent.getFormattedMessage())
+                            .threadName(loggingEvent.getThreadName())
+                            .traceId(traceId)
+                            .build();
+                    StackTraceElement stackTraceElement = callerData[0];
+                    alarmLogInfo.setClassName(stackTraceElement.getClassName()).setFileName(stackTraceElement.getFileName())
+                            .setMethodName(stackTraceElement.getMethodName()).setLineNumber(stackTraceElement.getLineNumber());
+                    String message = ThrowableUtils.dingTalkMarkdownContent(alarmLogInfo, null);
+                    sendLogAlarm(alarmRequest, message);
+                }
+            }
         }
     }
 
-    private void handleWithThrowable(LoggingEvent loggingEvent, ThrowableProxy throwableProxy) {
-        Throwable throwable = throwableProxy.getThrowable();
-        if (!AlarmLogContext.match(throwable)) {
-            return;
-        }
-        AlarmLogInfo.AlarmLogInfoBuilder builder = buildBaseAlarmLogInfo(loggingEvent);
-        builder.throwableName(throwable.getClass().getName());
-        StackTraceElement[] stackTraceElements = throwable.getStackTrace();
-        if (ArrayUtils.isNotEmpty(stackTraceElements)) {
-            fillLocationInfo(builder, stackTraceElements[0]);
-        }
-        String message = ThrowableUtils.dingTalkMarkdownContent(builder.build(), throwable);
-        sendAlarmLog(message);
-    }
-
-    private void handleWithoutThrowable(LoggingEvent loggingEvent) {
-        String exceptionClass = MDC.get("exceptionClass");
-        if (StringUtils.isBlank(exceptionClass) || !AlarmLogContext.match(exceptionClass)) {
-            return;
-        }
-        StackTraceElement[] callerData = loggingEvent.getCallerData();
-        if (callerData == null || callerData.length == 0) {
-            return;
-        }
-        AlarmLogInfo.AlarmLogInfoBuilder builder = buildBaseAlarmLogInfo(loggingEvent);
-        builder.throwableName(exceptionClass);
-        fillLocationInfo(builder, callerData[0]);
-        String message = ThrowableUtils.dingTalkMarkdownContent(builder.build(), null);
-        sendAlarmLog(message);
-    }
-
-    private AlarmLogInfo.AlarmLogInfoBuilder buildBaseAlarmLogInfo(LoggingEvent loggingEvent) {
-        return AlarmLogInfo.builder()
-                .applicationName(SpringContextUtils.getApplicationName())
-                .environment(SpringContextUtils.getEnvironment())
-                .message(loggingEvent.getFormattedMessage())
-                .threadName(loggingEvent.getThreadName())
-                .traceId(MDC.get(BaseContextConstants.LOG_TRACE_ID));
-    }
-
-    private void fillLocationInfo(AlarmLogInfo.AlarmLogInfoBuilder builder, StackTraceElement element) {
-        builder.className(element.getClassName())
-                .fileName(element.getFileName())
-                .methodName(element.getMethodName())
-                .lineNumber(element.getLineNumber());
-    }
-
-    private void sendAlarmLog(String message) {
-        AlarmRequest alarmRequest = new AlarmRequest();
-        alarmRequest.setTitle(title);
+    private void sendLogAlarm(AlarmRequest alarmRequest, String message) {
         alarmRequest.setContent(message);
-        boolean produced = AlarmTaskQueue.getQueue().produce(new AlarmTaskInfo(robotId, alarmRequest));
-        if (!produced) {
-            addWarn("告警队列已满，丢弃告警消息");
-        }
+        AlarmTaskQueue.getQueue().produce(new AlarmTaskInfo(robotId, alarmRequest));
     }
 }

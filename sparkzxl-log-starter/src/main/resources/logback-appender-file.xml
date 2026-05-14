@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<included>
+    <!-- 文件日志属性 -->
+    <springProperty name="fileEnabled" scope="context" source="logging.file.enabled" defaultValue="false"/>
+    <springProperty name="maxHistory" scope="context" source="logging.file.maxHistory" defaultValue="30"/>
+    <springProperty name="maxFileSize" scope="context" source="logging.file.maxFileSize" defaultValue="100MB"/>
+    <springProperty name="totalSizeCap" scope="context" source="logging.file.totalSizeCap" defaultValue="20GB"/>
+
+    <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${FILE_LOG_THRESHOLD}</level>
+        </filter>
+        <file>${logHome}/${springAppName}.log</file>
+        <immediateFlush>false</immediateFlush>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logHome}/%d{yyyy-MM-dd}/${springAppName}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxHistory>${maxHistory}</maxHistory>
+            <maxFileSize>${maxFileSize}</maxFileSize>
+            <totalSizeCap>${totalSizeCap}</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.github.sparkzxl.log.layout.ConditionalTraceLayout">
+                <traceType>${traceType}</traceType>
+                <pattern>${FILE_PATTERN}</pattern>
+            </layout>
+            <charset>${CONSOLE_LOG_CHARSET}</charset>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC_FILE_APPENDER" class="com.github.sparkzxl.log.appender.ConditionalAsyncAppender">
+        <enabled>${fileEnabled}</enabled>
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>256</queueSize>
+        <appender-ref ref="FILE_APPENDER"/>
+    </appender>
+</included>

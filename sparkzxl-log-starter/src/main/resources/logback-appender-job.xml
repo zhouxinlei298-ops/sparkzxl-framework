@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<included>
+    <!-- 定时任务日志属性 -->
+    <springProperty name="consumerClass" scope="context" source="logging.schedulejob.consumerClass" defaultValue="com.github.sparkzxl.log.consumer.LogEventConsumer"/>
+
+    <appender name="SCHEDULE_JOB_LOG_APPENDER" class="com.github.sparkzxl.log.appender.ScheduleJobLogAsyncAppender">
+        <consumerClass>${consumerClass}</consumerClass>
+        <appender-ref ref="CONSOLE_APPENDER"/>
+    </appender>
+</included>

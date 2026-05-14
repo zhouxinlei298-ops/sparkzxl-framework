@@ -2,9 +2,12 @@ package org.slf4j;
 
 import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import com.alibaba.ttl.TransmittableThreadLocal;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+
 import org.slf4j.spi.MDCAdapter;
 
 /**
@@ -125,7 +128,7 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
      */
     @Override
     public String get(String key) {
-        final Map<String, String> map = getPropertyMap();
+        final Map<String, String> map = copyOnInheritThreadLocal.get();
         if ((map != null) && (key != null)) {
             return map.get(key);
         } else {
@@ -164,5 +167,17 @@ public class TransmittableThreadLocalMdcAdapter implements MDCAdapter {
 
         // the newMap replaces the old one for serialisation's sake
         copyOnInheritThreadLocal.set(newMap);
+    }
+
+    /**
+     * Returns the keys in the MDC as a {@link Set}.
+     */
+    public Set<String> getKeys() {
+        Map<String, String> map = getPropertyMap();
+        if (map != null) {
+            return map.keySet();
+        } else {
+            return null;
+        }
     }
 }

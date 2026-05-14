@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<included>
+    <!-- 阿里云日志服务属性 -->
+    <springProperty name="aliYunLogEnabled" scope="context" source="logging.aliYunLog.enabled" defaultValue="false"/>
+    <springProperty name="endpoint" scope="context" source="logging.aliYunLog.endpoint" defaultValue=""/>
+    <springProperty name="accessKeyId" scope="context" source="logging.aliYunLog.accessKeyId" defaultValue=""/>
+    <springProperty name="accessKeySecret" scope="context" source="logging.aliYunLog.accessKeySecret" defaultValue=""/>
+    <springProperty name="project" scope="context" source="logging.aliYunLog.project" defaultValue="gongbaojin"/>
+    <springProperty name="logStore" scope="context" source="logging.aliYunLog.logStore" defaultValue=""/>
+    <springProperty name="totalSizeInBytes" scope="context" source="aliYunLog.config.totalSizeInBytes" defaultValue="104857600"/>
+    <springProperty name="maxBlockMs" scope="context" source="logging.aliYunLog.maxBlockMs" defaultValue="0"/>
+    <springProperty name="ioThreadCount" scope="context" source="logging.aliYunLog.ioThreadCount" defaultValue="8"/>
+    <springProperty name="batchSizeThresholdInBytes" scope="context" source="logging.aliYunLog.batchSizeThresholdInBytes" defaultValue="524288"/>
+    <springProperty name="batchCountThreshold" scope="context" source="logging.aliYunLog.batchCountThreshold" defaultValue="4096"/>
+    <springProperty name="lingerMs" scope="context" source="logging.aliYunLog.lingerMs" defaultValue="2000"/>
+    <springProperty name="retries" scope="context" source="logging.aliYunLog.retries" defaultValue="10"/>
+    <springProperty name="baseRetryBackoffMs" scope="context" source="logging.aliYunLog.baseRetryBackoffMs" defaultValue="100"/>
+    <springProperty name="maxRetryBackoffMs" scope="context" source="logging.aliYunLog.maxRetryBackoffMs" defaultValue="50000"/>
+    <springProperty name="timeFormat" scope="context" source="logging.aliYunLog.timeFormat" defaultValue="yyyy-MM-dd HH:mm:ss.SSS"/>
+    <springProperty name="timeZone" scope="context" source="logging.aliYunLog.timeZone" defaultValue="Asia/Shanghai"/>
+
+    <appender name="ALIYUN_SLS_LOG_APPENDER" class="com.github.sparkzxl.log.appender.AliYunLogAppender">
+        <enabled>${aliYunLogEnabled}</enabled>
+        <endpoint>${endpoint}</endpoint>
+        <accessKeyId>${accessKeyId}</accessKeyId>
+        <accessKeySecret>${accessKeySecret}</accessKeySecret>
+        <project>${project}</project>
+        <logStore>${logStore}</logStore>
+        <totalSizeInBytes>${totalSizeInBytes}</totalSizeInBytes>
+        <maxBlockMs>${maxBlockMs}</maxBlockMs>
+        <ioThreadCount>${ioThreadCount}</ioThreadCount>
+        <batchSizeThresholdInBytes>${batchSizeThresholdInBytes}</batchSizeThresholdInBytes>
+        <batchCountThreshold>${batchCountThreshold}</batchCountThreshold>
+        <lingerMs>${lingerMs}</lingerMs>
+        <retries>${retries}</retries>
+        <baseRetryBackoffMs>${baseRetryBackoffMs}</baseRetryBackoffMs>
+        <maxRetryBackoffMs>${maxRetryBackoffMs}</maxRetryBackoffMs>
+        <encoder>
+            <pattern>%d %-5level [%thread] %logger{0}: %msg</pattern>
+        </encoder>
+        <timeFormat>${timeFormat}</timeFormat>
+        <timeZone>${timeZone}</timeZone>
+        <mdcFields>tenantId,tid</mdcFields>
+    </appender>
+
+    <appender name="ASYNC_ALIYUN_SLS_LOG_APPENDER" class="com.github.sparkzxl.log.appender.ConditionalAsyncAppender">
+        <enabled>${aliYunLogEnabled}</enabled>
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>256</queueSize>
+        <appender-ref ref="ALIYUN_SLS_LOG_APPENDER"/>
+    </appender>
+</included>
