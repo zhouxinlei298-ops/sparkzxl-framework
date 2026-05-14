@@ -26,11 +26,15 @@ public abstract class AbstractOssExecutor<T> implements OssExecutor {
         this.client = client;
     }
 
-    public void uploadFileLimit(String fileName) {
+    /**
+     * oss对象名称校验
+     * @param objectName oss对象名称
+     */
+    public void objectNameValidate(String objectName) {
         // 验证 objectName 防止路径遍历攻击
-        validateObjectName(fileName);
+        validateObjectName(objectName);
 
-        String extension = FileNameUtils.getExtension(fileName);
+        String extension = FileNameUtils.getExtension(objectName);
 
         // 修复：无扩展名文件也视为不符合格式限制（除非配置允许所有格式）
         Configuration configuration = obtainConfigInfo();
@@ -42,7 +46,7 @@ public abstract class AbstractOssExecutor<T> implements OssExecutor {
         // 如果文件没有扩展名，拒绝上传
         if (StringUtils.isEmpty(extension)) {
             throw new IllegalArgumentException(
-                    String.format("上传文件格式限制：文件 [%s] 没有扩展名，不允许上传", fileName));
+                    String.format("上传文件格式限制：文件 [%s] 没有扩展名，不允许上传", objectName));
         }
 
         List<String> fileFormatList = ListUtils.stringToList(fileFormat);
@@ -125,7 +129,7 @@ public abstract class AbstractOssExecutor<T> implements OssExecutor {
      * 防止恶意用户通过 ../ 或 ..\ 等路径遍历字符访问系统中的任意文件
      * </p>
      *
-     * @param objectName 对象名称
+     * @param objectName oss对象名称
      * @throws IllegalArgumentException 如果 objectName 包含路径遍历字符
      */
     protected void validateObjectName(String objectName) {
@@ -160,5 +164,17 @@ public abstract class AbstractOssExecutor<T> implements OssExecutor {
             throw new IllegalArgumentException(
                     String.format("Invalid object name '%s'. Object name length cannot exceed 1024 characters", objectName));
         }
+    }
+
+    /**
+     * 从objectName中提取文件名
+     * objectName格式如 dev/220200/2026/05/13/abc.pdf
+     *
+     * @param objectName OSS对象名称
+     * @return 文件名
+     */
+    protected String extractFileName(String objectName) {
+        int lastIndex = objectName.lastIndexOf('/');
+        return lastIndex >= 0 ? objectName.substring(lastIndex + 1) : objectName;
     }
 }

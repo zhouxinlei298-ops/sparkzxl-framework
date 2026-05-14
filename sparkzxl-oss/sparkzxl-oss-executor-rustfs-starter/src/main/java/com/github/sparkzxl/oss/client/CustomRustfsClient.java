@@ -93,10 +93,10 @@ public class CustomRustfsClient {
     /**
      * 合并分片
      *
-     * @param bucketName String   桶名称
-     * @param objectName String   文件名称
-     * @param uploadId   String   上传的 uploadId
-     * @param parts      CompletedPart[]   分片集合
+     * @param bucketName 桶名称
+     * @param objectName oss对象名称
+     * @param uploadId   上传的 uploadId
+     * @param parts      分片集合
      * @return ObjectWriteResponse
      */
     public CompleteMultipartUploadResponse mergeMultipartUpload(String bucketName, String objectName, String uploadId, CompletedPart[] parts) {

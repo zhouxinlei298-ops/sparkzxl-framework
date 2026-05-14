@@ -180,7 +180,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         try (CustomMinioClient minioClient = obtainClient()) {
             long size = multipartFile.getSize();
             String contentType = multipartFile.getContentType();
@@ -198,6 +198,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(contentType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
@@ -211,7 +212,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         File tempFile = new File(filePath);
         BufferedInputStream tempInputStream = null;
         try (CustomMinioClient minioClient = obtainClient()) {
@@ -232,6 +233,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(finalMimeType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
@@ -266,7 +268,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         Stopwatch stopwatch = Stopwatch.createStarted();
         String fileUrl = url.toString();
         File tempFile = FileUtil.createTempFile();
@@ -279,8 +281,6 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, size);
             String mimeType = FileUtil.getMimeType(fileUrl);
             String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
-            tempInputStream = FileUtil.getInputStream(tempFile);
-            // 4. 上传到MinIO
             tempInputStream = FileUtil.getInputStream(tempFile);
             PutObjectArgs putObjectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
@@ -297,6 +297,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(finalMimeType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", objectWriteResponse.etag());
@@ -332,7 +333,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         try (CustomMinioClient minioClient = obtainClient()) {
             List<SnowballObject> snowballObjects = new ArrayList<>();
             InputStream inputStream = multipartFile.getInputStream();

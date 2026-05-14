@@ -122,7 +122,7 @@ public class OssTemplate implements InitializingBean {
      * 上传文件
      *
      * @param bucketName    bucket名称
-     * @param objectName    文件名称
+     * @param objectName    oss对象名称
      * @param multipartFile 文件
      */
     public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
@@ -158,7 +158,7 @@ public class OssTemplate implements InitializingBean {
      * 分片上传
      *
      * @param bucketName    bucket名称
-     * @param objectName    文件名称
+     * @param objectName    oss对象名称
      * @param multipartFile 上传文件
      */
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
@@ -171,7 +171,7 @@ public class OssTemplate implements InitializingBean {
      *
      * @param fileUploadInfo 文件上传信息
      * @param bucketName     bucket名称
-     * @param objectName     文件名称
+     * @param objectName     oss对象名称
      * @return UploadUrlsInfo
      */
     public UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName) {
@@ -230,7 +230,7 @@ public class OssTemplate implements InitializingBean {
      * 获取文件上传地址
      *
      * @param bucketName  bucket名称
-     * @param objectName  文件名称
+     * @param objectName  oss对象名称
      * @param contentType contentType
      * @return UploadUrlsInfo
      */

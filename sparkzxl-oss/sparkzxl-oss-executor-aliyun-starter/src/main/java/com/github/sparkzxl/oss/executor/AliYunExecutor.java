@@ -154,7 +154,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         try {
             OSSClient ossClient = obtainClient();
             long size = multipartFile.getSize();
@@ -170,6 +170,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(contentType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
@@ -185,7 +186,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         File tempFile = new File(filePath);
         BufferedInputStream tempInputStream = null;
         try {
@@ -205,6 +206,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(finalMimeType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
@@ -241,7 +243,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         Stopwatch stopwatch = Stopwatch.createStarted();
         String fileUrl = url.toString();
         File tempFile = FileUtil.createTempFile();
@@ -269,6 +271,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(finalMimeType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
@@ -306,11 +309,10 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
 
     @Override
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         try {
             OSSClient ossClient = obtainClient();
             long fileLength = multipartFile.getSize();
-            InputStream inputStream = multipartFile.getInputStream();
             // 创建InitiateMultipartUploadRequest对象。
             InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucketName, objectName);
 

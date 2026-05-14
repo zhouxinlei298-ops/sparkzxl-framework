@@ -29,7 +29,7 @@ import java.util.List;
  *
  * @author zhouxinlei
  */
-@ConditionalOnProperty(name = "oss.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "oss.enabled", havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(OssProperties.class)
 @Import(OssExceptionHandler.class)

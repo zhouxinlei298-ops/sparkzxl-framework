@@ -199,7 +199,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         CustomRustfsClient rustfsClient = obtainClient();
         try {
             long size = multipartFile.getSize();
@@ -216,6 +216,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(contentType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", putObjectResponse.eTag());
@@ -229,7 +230,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         File tempFile = new File(filePath);
         CustomRustfsClient rustfsClient = obtainClient();
         BufferedInputStream tempInputStream = null;
@@ -253,6 +254,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(finalMimeType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", putObjectResponse.eTag());
@@ -287,7 +289,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         Stopwatch stopwatch = Stopwatch.createStarted();
         String fileUrl = url.toString();
         File tempFile = FileUtil.createTempFile();
@@ -301,8 +303,6 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             log.info("HTTP下载文件[{}]:结束,文件大小：{}======", fileUrl, size);
             String mimeType = FileUtil.getMimeType(fileUrl);
             String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
-            tempInputStream = FileUtil.getInputStream(tempFile);
-            // 4. 上传到Rustfs
             tempInputStream = FileUtil.getInputStream(tempFile);
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -321,6 +321,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             pushObjectResponse.setSize(size);
             pushObjectResponse.setContentType(finalMimeType);
             pushObjectResponse.setUploadTime(LocalDateTime.now());
+            pushObjectResponse.setFileName(extractFileName(objectName));
             String uploadFileUrl = getObjectUrl(bucketName, objectName);
             pushObjectResponse.setUrl(uploadFileUrl);
             log.info("文件上传成功，ETag: {}", putObjectResponse.eTag());
@@ -356,7 +357,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         CustomRustfsClient rustfsClient = obtainClient();
 
         S3Client s3Client = rustfsClient.getClient();
