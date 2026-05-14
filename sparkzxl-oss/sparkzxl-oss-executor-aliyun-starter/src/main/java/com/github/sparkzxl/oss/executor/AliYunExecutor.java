@@ -25,17 +25,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -165,17 +165,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             objectMetadata.setContentType(contentType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, multipartFile.getInputStream(), objectMetadata);
             PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
-            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
-            pushObjectResponse.setBucketName(bucketName);
-            pushObjectResponse.setObjectName(objectName);
-            pushObjectResponse.setSize(size);
-            pushObjectResponse.setContentType(contentType);
-            pushObjectResponse.setUploadTime(LocalDateTime.now());
-            pushObjectResponse.setFileName(extractFileName(objectName));
-            String uploadFileUrl = getObjectUrl(bucketName, objectName);
-            pushObjectResponse.setUrl(uploadFileUrl);
-            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
-            return pushObjectResponse;
+            return buildPushObjectResponse(bucketName, objectName, size, contentType, putObjectResult.getETag());
         } catch (OSSException e) {
             log.error("AliyunOSS unexpected error during multipartFile upload for {}/{}: {}",
                     bucketName, objectName, e.getErrorMessage());
@@ -209,17 +199,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             objectMetadata.setContentType(finalMimeType);
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, tempInputStream, objectMetadata);
             PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
-            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
-            pushObjectResponse.setBucketName(bucketName);
-            pushObjectResponse.setObjectName(objectName);
-            pushObjectResponse.setSize(size);
-            pushObjectResponse.setContentType(finalMimeType);
-            pushObjectResponse.setUploadTime(LocalDateTime.now());
-            pushObjectResponse.setFileName(extractFileName(objectName));
-            String uploadFileUrl = getObjectUrl(bucketName, objectName);
-            pushObjectResponse.setUrl(uploadFileUrl);
-            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
-            return pushObjectResponse;
+            return buildPushObjectResponse(bucketName, objectName, size, finalMimeType, putObjectResult.getETag());
         } catch (OSSException e) {
             log.error("AliyunOSS unexpected error during local file upload for {}/{}: {}",
                     bucketName, objectName, e.getErrorMessage());
@@ -228,18 +208,8 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         } finally {
             IoUtil.close(tempInputStream);
-            // 删除临时文件
-            if (delete && file != null && file.exists()) {
-                try {
-                    boolean deleted = FileUtil.del(file);
-                    if (!deleted) {
-                        log.warn("临时文件删除失败，文件路径：{}", file.getAbsolutePath());
-                        file.deleteOnExit();
-                    }
-                } catch (Exception e) {
-                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", file.getAbsolutePath(), e.getMessage());
-                    file.deleteOnExit();
-                }
+            if (delete) {
+                safeDeleteTempFile(file, "本地文件");
             }
         }
     }
@@ -267,18 +237,8 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, tempInputStream, objectMetadata);
             PutObjectResult putObjectResult = ossClient.putObject(putObjectRequest);
             long totalTime = stopwatch.elapsed(TimeUnit.SECONDS);
-            log.info("文件下载并上传完成，总耗时：[{}]", totalTime);
-            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
-            pushObjectResponse.setBucketName(bucketName);
-            pushObjectResponse.setObjectName(objectName);
-            pushObjectResponse.setSize(size);
-            pushObjectResponse.setContentType(finalMimeType);
-            pushObjectResponse.setUploadTime(LocalDateTime.now());
-            pushObjectResponse.setFileName(extractFileName(objectName));
-            String uploadFileUrl = getObjectUrl(bucketName, objectName);
-            pushObjectResponse.setUrl(uploadFileUrl);
-            log.info("文件上传成功，ETag: {}", putObjectResult.getETag());
-            return pushObjectResponse;
+            log.info("文件下载并上传完成，总耗时：[{}]秒", totalTime);
+            return buildPushObjectResponse(bucketName, objectName, size, finalMimeType, putObjectResult.getETag());
         } catch (OSSException e) {
             log.error("AliyunOSS unexpected error during remote file upload for {}/{}: {}",
                     bucketName, objectName, e.getErrorMessage());
@@ -287,20 +247,7 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
             throw new OssException(OssErrorCode.OSS_ERROR.getErrorCode(), e.getMessage());
         } finally {
             IoUtil.close(tempInputStream);
-            // 删除临时文件（使用 Hutool 的 FileUtil.del 提供更可靠的删除机制）
-            if (tempFile != null && tempFile.exists()) {
-                try {
-                    boolean deleted = FileUtil.del(tempFile);
-                    if (!deleted) {
-                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
-                        // 尝试使用 JVM 退出时删除作为最后的保障
-                        tempFile.deleteOnExit();
-                    }
-                } catch (Exception e) {
-                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
-                    tempFile.deleteOnExit();
-                }
-            }
+            safeDeleteTempFile(tempFile, "远程下载临时文件");
         }
     }
 
@@ -582,143 +529,24 @@ public class AliYunExecutor extends AbstractOssExecutor<OSSClient> {
     }
 
     @Override
-    public void downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) {
-        InputStream stream = null;
-        BufferedOutputStream os = null;
-        OSSObject ossObject = null;
-        try {
-            OSSClient ossClient = obtainClient();
-            // 1. 获取文件元数据
-            ObjectMetadata objectMetadata = ossClient.getObjectMetadata(bucketName, objectName);
-            long fileSize = objectMetadata.getContentLength();
+    protected DownloadMetadata fetchDownloadMetadata(String bucketName, String objectName) {
+        OSSClient ossClient = obtainClient();
+        ObjectMetadata objectMetadata = ossClient.getObjectMetadata(bucketName, objectName);
+        return new DownloadMetadata(
+                objectMetadata.getContentLength(),
+                objectMetadata.getContentType(),
+                objectMetadata.getLastModified().toString(),
+                objectMetadata.getETag()
+        );
+    }
 
-            // 文件大小为0的异常处理
-            if (fileSize <= 0) {
-                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
-                return;
-            }
-
-            long startByte = 0;
-            long endByte = fileSize - 1;
-
-            String range = request.getHeader("Range");
-            log.info("下载请求 bucket={}, object={}, range={}", bucketName, objectName, range);
-
-            // 2. 解析 Range 头 (处理 bytes=0-500, bytes=-500, bytes=500- 等情况)
-            if (range != null && range.contains("bytes=") && range.contains("-")) {
-                range = range.substring(range.lastIndexOf("=") + 1).trim();
-                String[] ranges = range.split("-", -1);  // 保留空字符串
-
-                try {
-                    if (ranges.length == 2) {
-                        String startPart = ranges[0].trim();
-                        String endPart = ranges[1].trim();
-
-                        if (startPart.isEmpty() && !endPart.isEmpty()) {
-                            // 情况 A: bytes=-500 (最后500字节)
-                            long lastBytes = Long.parseLong(endPart);
-                            if (lastBytes > 0) {
-                                startByte = Math.max(0, fileSize - lastBytes);
-                            }
-                        } else if (!startPart.isEmpty() && endPart.isEmpty()) {
-                            // 情况 B: bytes=500- (从500字节到结束)
-                            startByte = Long.parseLong(startPart);
-                        } else if (!startPart.isEmpty() && !endPart.isEmpty()) {
-                            // 情况 C: bytes=500-1000
-                            startByte = Long.parseLong(startPart);
-                            endByte = Long.parseLong(endPart);
-                        }
-                        // 如果两个都为空（bytes=-），忽略使用默认值
-                    }
-                } catch (NumberFormatException e) {
-                    log.warn("Invalid Range header format: {}, using full file range", range);
-                    startByte = 0;
-                    endByte = fileSize - 1;
-                }
-            }
-
-            // 3. 计算实际要下载的长度 & 严格的Range边界校验（关键！）
-            if (startByte > endByte || startByte >= fileSize || endByte < 0) {
-                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
-                response.setHeader("Content-Range", "bytes */" + fileSize);
-                return;
-            }
-
-            long contentLength = endByte - startByte + 1;
-
-            // 4. 设置响应头
-            String contentType = request.getServletContext().getMimeType(fileName);
-            if (contentType == null) {
-                contentType = objectMetadata.getContentType();
-            }
-            if (contentType == null) {
-                contentType = "application/octet-stream";
-            }
-
-            // 文件名编码
-            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
-
-            response.setContentType(contentType);
-            response.setHeader("Accept-Ranges", "bytes");
-
-            // 根据是否有 Range 决定返回 206 还是 200
-            if (request.getHeader("Range") != null) {
-                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-                response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + fileSize);
-            } else {
-                response.setStatus(HttpServletResponse.SC_OK);
-            }
-
-            response.setHeader("Last-Modified", objectMetadata.getLastModified().toString());
-            response.setHeader("Content-Length", String.valueOf(contentLength));
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
-            // ETag 是 HTTP 标准缓存头，OSS通常会提供
-            if (objectMetadata.getETag() != null) {
-                response.setHeader("ETag", "\"" + objectMetadata.getETag() + "\"");
-            }
-
-            // 5. 获取 OSS 数据流
-            GetObjectRequest getObjectRequest = new GetObjectRequest(bucketName, objectName);
-            // 关键修复：阿里云 setRange 参数含义是 (start, end)，是闭区间，不是 (start, length)！
-            getObjectRequest.setRange(startByte, endByte);
-
-            ossObject = ossClient.getObject(getObjectRequest);
-            stream = ossObject.getObjectContent();
-
-            // 6. 写出数据
-            os = new BufferedOutputStream(response.getOutputStream());
-
-            // 使用 Spring 工具类直接拷贝流，无需手动循环
-            StreamUtils.copy(stream, os);
-
-            os.flush();
-            response.flushBuffer();
-
-        } catch (Exception e) {
-            log.error("AliyunOSS Unexpected error during download multipart file for {}/{}: {}",
-                    bucketName, objectName, e.getMessage());
-            // 如果还没有写入响应，可以抛出异常给全局异常处理器
-            if (!response.isCommitted()) {
-                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
-            }
-        } finally {
-            // 7. 资源关闭
-            if (stream != null) {
-                try {
-                    stream.close();
-                } catch (IOException e) { /* ignore */ }
-            }
-            if (ossObject != null) {
-                try {
-                    ossObject.close();
-                } catch (IOException e) { /* ignore */ }
-            }
-            if (os != null) {
-                try {
-                    os.close();
-                } catch (IOException e) { /* ignore */ }
-            }
-        }
+    @Override
+    protected InputStream openDownloadStream(String bucketName, String objectName, long startByte, long endByte) throws Exception {
+        OSSClient ossClient = obtainClient();
+        GetObjectRequest getObjectRequest = new GetObjectRequest(bucketName, objectName);
+        getObjectRequest.setRange(startByte, endByte);
+        OSSObject ossObject = ossClient.getObject(getObjectRequest);
+        return ossObject.getObjectContent();
     }
 
     @Override

@@ -1,12 +1,26 @@
 package com.github.sparkzxl.oss.executor;
 
+import cn.hutool.core.io.FileUtil;
 import com.github.sparkzxl.core.util.ArgumentAssert;
 import com.github.sparkzxl.core.util.ListUtils;
 import com.github.sparkzxl.oss.client.OssClient;
+import com.github.sparkzxl.oss.entity.DownloadMetadata;
+import com.github.sparkzxl.oss.entity.OssPushObjectResponse;
 import com.github.sparkzxl.oss.properties.Configuration;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.StreamUtils;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -15,6 +29,7 @@ import java.util.List;
  * @author zhouxinlei
  * @since 2022-05-07 15:27:13
  */
+@Slf4j
 public abstract class AbstractOssExecutor<T> implements OssExecutor {
 
     // 64KB
@@ -176,5 +191,188 @@ public abstract class AbstractOssExecutor<T> implements OssExecutor {
     protected String extractFileName(String objectName) {
         int lastIndex = objectName.lastIndexOf('/');
         return lastIndex >= 0 ? objectName.substring(lastIndex + 1) : objectName;
+    }
+
+    /**
+     * 构建文件上传响应对象
+     *
+     * @param bucketName  桶名称
+     * @param objectName  对象名称
+     * @param size        文件大小
+     * @param contentType 内容类型
+     * @param eTag        文件ETag
+     * @return OssPushObjectResponse
+     */
+    protected OssPushObjectResponse buildPushObjectResponse(String bucketName, String objectName,
+                                                            long size, String contentType, String eTag) {
+        OssPushObjectResponse response = new OssPushObjectResponse();
+        response.setBucketName(bucketName);
+        response.setObjectName(objectName);
+        response.setSize(size);
+        response.setContentType(contentType);
+        response.setUploadTime(LocalDateTime.now());
+        response.setFileName(extractFileName(objectName));
+        response.setUrl(getObjectUrl(bucketName, objectName));
+        log.info("文件上传成功，ETag: {}", eTag);
+        return response;
+    }
+
+    /**
+     * 安全删除临时文件，失败时注册JVM退出时删除
+     *
+     * @param file        临时文件
+     * @param description 文件描述（用于日志）
+     */
+    protected void safeDeleteTempFile(File file, String description) {
+        if (file != null && file.exists()) {
+            try {
+                if (!FileUtil.del(file)) {
+                    log.warn("临时文件删除失败，{}：{}", description, file.getAbsolutePath());
+                    file.deleteOnExit();
+                }
+            } catch (Exception e) {
+                log.error("删除临时文件异常，{}：{}，错误：{}", description, file.getAbsolutePath(), e.getMessage());
+                file.deleteOnExit();
+            }
+        }
+    }
+
+    /**
+     * 获取文件下载元信息（子类实现）
+     *
+     * @param bucketName 桶名称
+     * @param objectName 对象名称
+     * @return DownloadMetadata
+     */
+    protected abstract DownloadMetadata fetchDownloadMetadata(String bucketName, String objectName);
+
+    /**
+     * 打开指定范围的下载流（子类实现）
+     *
+     * @param bucketName 桶名称
+     * @param objectName 对象名称
+     * @param startByte  起始字节
+     * @param endByte    结束字节
+     * @return InputStream
+     * @throws Exception IO异常
+     */
+    protected abstract InputStream openDownloadStream(String bucketName, String objectName,
+                                                      long startByte, long endByte) throws Exception;
+
+    /**
+     * 分片下载文件模板方法，统一处理Range解析、响应头构建和流拷贝
+     */
+    @Override
+    public void downloadMultipartFile(String bucketName, String objectName, String fileName,
+                                      HttpServletRequest request, HttpServletResponse response) throws IOException {
+        InputStream stream = null;
+        BufferedOutputStream os = null;
+
+        try {
+            // 1. 获取文件元数据
+            DownloadMetadata metadata = fetchDownloadMetadata(bucketName, objectName);
+            long fileSize = metadata.getSize();
+
+            if (fileSize <= 0) {
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                return;
+            }
+
+            long startByte = 0;
+            long endByte = fileSize - 1;
+            String range = request.getHeader("Range");
+            log.info("下载请求 bucket={}, object={}, range={}", bucketName, objectName, range);
+
+            // 2. 解析 Range 头
+            if (range != null && range.contains("bytes=") && range.contains("-")) {
+                range = range.substring(range.lastIndexOf("=") + 1).trim();
+                String[] ranges = range.split("-", -1);
+
+                try {
+                    if (ranges.length == 2) {
+                        String startPart = ranges[0].trim();
+                        String endPart = ranges[1].trim();
+
+                        if (startPart.isEmpty() && !endPart.isEmpty()) {
+                            long lastBytes = Long.parseLong(endPart);
+                            if (lastBytes > 0) {
+                                startByte = Math.max(0, fileSize - lastBytes);
+                            }
+                        } else if (!startPart.isEmpty() && endPart.isEmpty()) {
+                            startByte = Long.parseLong(startPart);
+                        } else if (!startPart.isEmpty() && !endPart.isEmpty()) {
+                            startByte = Long.parseLong(startPart);
+                            endByte = Long.parseLong(endPart);
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid Range header format: {}, using full file range", range);
+                    startByte = 0;
+                    endByte = fileSize - 1;
+                }
+            }
+
+            // 3. Range 边界校验
+            if (startByte > endByte || startByte >= fileSize || endByte < 0) {
+                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                response.setHeader("Content-Range", "bytes */" + fileSize);
+                return;
+            }
+
+            long contentLength = endByte - startByte + 1;
+
+            // 4. 设置响应头
+            String contentType = request.getServletContext().getMimeType(fileName);
+            if (contentType == null) {
+                contentType = metadata.getContentType();
+            }
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
+
+            response.setContentType(contentType);
+            response.setHeader("Accept-Ranges", "bytes");
+
+            if (request.getHeader("Range") != null) {
+                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+                response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + fileSize);
+            } else {
+                response.setStatus(HttpServletResponse.SC_OK);
+            }
+
+            if (metadata.getLastModified() != null) {
+                response.setHeader("Last-Modified", metadata.getLastModified());
+            }
+            response.setHeader("Content-Length", String.valueOf(contentLength));
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+            if (metadata.getETag() != null) {
+                response.setHeader("ETag", "\"" + metadata.getETag() + "\"");
+            }
+
+            // 5. 获取数据流（子类实现）
+            stream = openDownloadStream(bucketName, objectName, startByte, endByte);
+
+            // 6. 写出数据
+            os = new BufferedOutputStream(response.getOutputStream());
+            StreamUtils.copy(stream, os);
+            os.flush();
+            response.flushBuffer();
+
+        } catch (Exception e) {
+            log.error("Unexpected error during download multipart file for {}/{}: {}",
+                    bucketName, objectName, e.getMessage());
+            if (!response.isCommitted()) {
+                throw new IOException("Download failed for " + bucketName + "/" + objectName, e);
+            }
+        } finally {
+            if (stream != null) {
+                try { stream.close(); } catch (IOException e) { /* ignore */ }
+            }
+            if (os != null) {
+                try { os.close(); } catch (IOException e) { /* ignore */ }
+            }
+        }
     }
 }

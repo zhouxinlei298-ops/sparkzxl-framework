@@ -1,9 +1,7 @@
 package com.github.sparkzxl.oss.context;
 
-import cn.hutool.http.ContentType;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.util.ArgumentAssert;
-import com.github.sparkzxl.core.util.StrPool;
 import com.github.sparkzxl.oss.OssTemplate;
 import com.github.sparkzxl.oss.entity.FileUploadInfo;
 import com.github.sparkzxl.oss.entity.OssPushObjectResponse;
@@ -15,24 +13,17 @@ import com.github.sparkzxl.oss.properties.Configuration;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -44,8 +35,6 @@ import java.util.List;
 @Slf4j
 @Component
 public class FileUploadContext {
-
-    private static final String AGENT_FIREFOX = "firefox";
 
     @Value("${spring.profiles.active}")
     private String environment;
@@ -277,72 +266,7 @@ public class FileUploadContext {
      * @throws Exception 异常
      */
     public void download(HttpServletRequest request, HttpServletResponse response, String bucketName,String objectName,String fileName) throws Exception {
-        HttpURLConnection connection;
-        OssExecutor ossExecutor = obtainExecutor();
-        try {
-            // 默认3600秒、即一小时有效
-            String objectUrl = ossExecutor.getObjectUrl(bucketName, objectName, 3600);
-            connection = getConnection(objectUrl);
-            response.setContentType(ContentType.OCTET_STREAM.getValue());
-            // 设置response的Header
-            response.setCharacterEncoding(StandardCharsets.UTF_8.displayName());
-            String downloadFileName;
-            String agent = request.getHeader("USER-AGENT");
-            if (agent != null && agent.toLowerCase().indexOf(AGENT_FIREFOX) > 0) {
-                downloadFileName = "=?UTF-8?B?" + (new String(Base64.encodeBase64((fileName).getBytes(StandardCharsets.UTF_8)))) + "?=";
-            } else {
-                //~ \ / |:"<>?   这些字符不能被替换，因为系统允许文件名有这些字符！！
-                downloadFileName = URLEncoder.encode(fileName, "UTF-8")
-                        .replaceAll("\\+", "%20").replaceAll("%28", "\\(")
-                        .replaceAll("%29", "\\)")
-                        .replaceAll("%3B", StrPool.SEMICOLON)
-                        .replaceAll("%40", StrPool.AT).replaceAll("%23", "\\#")
-                        .replaceAll("%26", "\\&").replaceAll("%2C", "\\,")
-                        .replaceAll("%2B", StrPool.PLUS).replaceAll("%25", StrPool.PERCENT)
-                        .replaceAll("%21", StrPool.EXCLAMATION_MARK).replaceAll("%5E", StrPool.HAT)
-                        .replaceAll("%24", "\\$").replaceAll("%7E", StrPool.TILDA)
-                        .replaceAll("%60", StrPool.BACKTICK).replaceAll("%5B", StrPool.LEFT_SQ_BRACKET)
-                        .replaceAll("%3D", StrPool.EQUALS)
-                        .replaceAll("%5D", StrPool.RIGHT_SQ_BRACKET).replaceAll("%5C", "\\\\")
-                        .replaceAll("%27", StrPool.SINGLE_QUOTE).replaceAll("%2F", StrPool.SLASH)
-                        .replaceAll("%7B", StrPool.LEFT_BRACE).replaceAll("%7D", StrPool.RIGHT_BRACE)
-                        .replaceAll("%7C", "\\|").replaceAll("%3A", "\\:")
-                        .replaceAll("%22", "\\\"").replaceAll("%3C", "\\<")
-                        .replaceAll("%3E", "\\>").replaceAll("%3F", "\\?");
-            }
-            response.addHeader("content-disposition",
-                    "attachment;filename=" + downloadFileName);
-            ServletOutputStream out = response.getOutputStream();
-            downloadFile(connection.getInputStream(), out);
-        } catch (Exception e) {
-            log.error("download file exception：{}", e.getMessage());
-        }
-
-    }
-
-    private static void downloadFile(InputStream is, OutputStream out) throws Exception {
-        try {
-            byte[] b = new byte[2048];
-            int length;
-            while ((length = is.read(b)) > 0) {
-                out.write(b, 0, length);
-            }
-        } finally {
-            if (out != null) {
-                out.close();
-            }
-            if (is != null) {
-                is.close();
-            }
-        }
-    }
-
-    private static HttpURLConnection getConnection(String url) throws Exception {
-        log.info("url={}", url);
-        URL conUrl = new URL(url);
-        HttpURLConnection connection = (HttpURLConnection) conUrl.openConnection();
-        connection.connect();
-        return connection;
+        obtainExecutor().downloadMultipartFile(bucketName, objectName, fileName, request, response);
     }
 
     @Getter

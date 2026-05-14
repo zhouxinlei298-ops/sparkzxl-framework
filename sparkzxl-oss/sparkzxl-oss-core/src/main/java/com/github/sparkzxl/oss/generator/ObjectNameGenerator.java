@@ -21,6 +21,7 @@ import java.util.StringJoiner;
 public interface ObjectNameGenerator {
 
     String SPLIT_STR = "/";
+    DateTimeFormatter DATE_PATH_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
     ObjectNameGenerator DEFAULT_OBJECT_NAME_GENERATOR =  new ObjectNameGenerator(){
         @Override
@@ -28,7 +29,7 @@ public interface ObjectNameGenerator {
             return environment.concat(SPLIT_STR)
                     .concat(tenantId)
                     .concat(SPLIT_STR)
-                    .concat(DateUtils.now(DateTimeFormatter.ofPattern("yyyy/MM/dd")))
+                    .concat(DateUtils.now(DATE_PATH_FORMATTER))
                     .concat(StrPool.SLASH)
                     .concat(fileNameGenerator().generator(originalFilename));
         }
