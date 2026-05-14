@@ -111,8 +111,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
 
     @Override
     public OssObject getObjectInfo(String bucketName, String objectName) {
-        CustomMinioClient minioClient = obtainClient();
-        try {
+        try (CustomMinioClient minioClient = obtainClient()) {
             CompletableFuture<GetObjectResponse> getObjectResponseCompletableFuture = minioClient.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
             GetObjectResponse minioClientObject = getObjectResponseCompletableFuture.get();
             if (minioClientObject == null) {

@@ -15,7 +15,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
@@ -33,7 +32,6 @@ import java.util.List;
  * @since 2024-11-15 15:34:39
  */
 @Slf4j
-@Component
 public class FileUploadContext {
 
     @Value("${spring.profiles.active}")
@@ -207,6 +205,16 @@ public class FileUploadContext {
         return new ObjectResult(bucketName, objectName, fileName, fileUrl);
     }
 
+    /**
+     * 获取OSS文件地址
+     * @param bucketName 桶名称
+     * @param objectName 对象名称
+     * @return String
+     */
+    public String getObjectUrl(String bucketName, String objectName) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.getObjectUrl(bucketName, objectName);
+    }
 
     /**
      * 获取预签名上传地址
