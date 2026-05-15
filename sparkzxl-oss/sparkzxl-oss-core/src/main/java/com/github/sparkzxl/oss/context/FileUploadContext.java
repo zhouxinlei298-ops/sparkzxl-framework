@@ -10,17 +10,16 @@ import com.github.sparkzxl.oss.entity.UploadUrlsInfo;
 import com.github.sparkzxl.oss.executor.OssExecutor;
 import com.github.sparkzxl.oss.generator.ObjectNameGenerator;
 import com.github.sparkzxl.oss.properties.Configuration;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.io.Serial;
 import java.io.Serializable;
 import java.net.URL;
 import java.util.List;
@@ -36,7 +35,7 @@ public class FileUploadContext {
 
     @Value("${spring.profiles.active}")
     private String environment;
-    @Resource
+    @Autowired
     private OssTemplate ossTemplate;
 
     /**
@@ -273,29 +272,17 @@ public class FileUploadContext {
      * @param fileName 文件名称
      * @throws Exception 异常
      */
-    public void download(HttpServletRequest request, HttpServletResponse response, String bucketName,String objectName,String fileName) throws Exception {
+    public void download(HttpServletRequest request, HttpServletResponse response, String bucketName, String objectName, String fileName) throws Exception {
         obtainExecutor().downloadMultipartFile(bucketName, objectName, fileName, request, response);
     }
 
-    @Getter
-    @Setter
-    public static class ObjectResult implements Serializable {
+        public record ObjectResult(String bucketName,
+                                   String objectName,
+                                   String fileName,
+                                   String fileUrl) implements Serializable {
 
-        private static final long serialVersionUID = -4643773241040725253L;
-        private final String bucketName;
-        private final String objectName;
-        private final String fileName;
-        private final String fileUrl;
-
-        public ObjectResult(String bucketName,
-                            String objectName,
-                            String fileName,
-                            String fileUrl) {
-            this.bucketName = bucketName;
-            this.objectName = objectName;
-            this.fileName = fileName;
-            this.fileUrl = fileUrl;
-        }
+            @Serial
+            private static final long serialVersionUID = -4643773241040725253L;
     }
 
 }

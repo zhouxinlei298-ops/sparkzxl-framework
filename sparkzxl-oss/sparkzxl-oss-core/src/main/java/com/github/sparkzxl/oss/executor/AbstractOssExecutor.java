@@ -7,13 +7,13 @@ import com.github.sparkzxl.oss.client.OssClient;
 import com.github.sparkzxl.oss.entity.DownloadMetadata;
 import com.github.sparkzxl.oss.entity.OssPushObjectResponse;
 import com.github.sparkzxl.oss.properties.Configuration;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.StreamUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
