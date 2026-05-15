@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <included>
     <!-- nacos 心跳 INFO 屏蔽 -->
-    <logger name="com.alibaba.nacos" level="OFF">
-        <appender-ref ref="CONSOLE_APPENDER"/>
-    </logger>
+    <logger name="com.alibaba.nacos" level="ERROR"/>
+    <logger name="springfox.documentation" level="ERROR"/>
+    <logger name="com.xxl.job.core.executor.XxlJobExecutor" level="ERROR"/>
 </included>
