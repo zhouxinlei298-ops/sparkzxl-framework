@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <included>
-    <!-- 告警日志属性 -->
+    <!-- 定时任务日志属性 -->
     <springProperty name="consumerClass" scope="context" source="logging.schedulejob.consumerClass" defaultValue="com.github.sparkzxl.job.log.XxlJobLogEventConsumer"/>
 
     <appender name="SCHEDULE_JOB_LOG_APPENDER" class="com.github.sparkzxl.log.appender.ScheduleJobLogAsyncAppender">

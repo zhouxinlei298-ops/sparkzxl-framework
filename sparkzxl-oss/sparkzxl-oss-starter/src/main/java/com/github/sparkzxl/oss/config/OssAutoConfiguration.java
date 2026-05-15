@@ -1,6 +1,7 @@
 package com.github.sparkzxl.oss.config;
 
 import com.github.sparkzxl.oss.OssTemplate;
+import com.github.sparkzxl.oss.context.FileUploadContext;
 import com.github.sparkzxl.oss.creator.OssClientCreator;
 import com.github.sparkzxl.oss.creator.OssClientFactory;
 import com.github.sparkzxl.oss.enums.RegisterMode;
@@ -29,7 +30,7 @@ import java.util.List;
  *
  * @author zhouxinlei
  */
-@ConditionalOnProperty(name = "oss.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "oss.enabled", havingValue = "true", matchIfMissing = true)
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(OssProperties.class)
 @Import(OssExceptionHandler.class)
@@ -90,6 +91,11 @@ public class OssAutoConfiguration {
         ossTemplate.setOssProperties(ossProperties);
         ossTemplate.setOssExecutorFactoryContext(ossExecutorFactoryContext);
         return ossTemplate;
+    }
+
+    @Bean
+    public FileUploadContext fileUploadContext() {
+        return new FileUploadContext();
     }
 
 }

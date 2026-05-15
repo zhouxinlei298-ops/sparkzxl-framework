@@ -40,11 +40,11 @@ public class CustomMinioClient extends MinioAsyncClient {
     /**
      * 合并分片
      *
-     * @param bucketName       String   桶名称
-     * @param region           String
-     * @param objectName       String   文件名称
-     * @param uploadId         String   上传的 uploadId
-     * @param parts            Part[]   分片集合
+     * @param bucketName       桶名称
+     * @param region           区域
+     * @param objectName       oss对象名称
+     * @param uploadId         上传的 uploadId
+     * @param parts            分片集合
      * @param extraHeaders     Multimap<String, String>
      * @param extraQueryParams Multimap<String, String>
      * @return ObjectWriteResponse
@@ -56,12 +56,12 @@ public class CustomMinioClient extends MinioAsyncClient {
     /**
      * 查询当前上传后的分片信息
      *
-     * @param bucketName       String   桶名称
-     * @param region           String
-     * @param objectName       String   文件名称
-     * @param maxParts         Integer  分片数量
-     * @param partNumberMarker Integer  分片起始值
-     * @param uploadId         String   上传的 uploadId
+     * @param bucketName       桶名称
+     * @param region           区域
+     * @param objectName       oss对象名称
+     * @param maxParts         分片数量
+     * @param partNumberMarker 分片起始值
+     * @param uploadId         上传的 uploadId
      * @param extraHeaders     Multimap<String, String>
      * @param extraQueryParams Multimap<String, String>
      * @return ListPartsResponse

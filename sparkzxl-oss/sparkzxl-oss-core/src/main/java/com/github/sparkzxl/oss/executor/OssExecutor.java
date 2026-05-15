@@ -1,6 +1,6 @@
 package com.github.sparkzxl.oss.executor;
 
-import com.github.sparkzxl.core.util.StrPool;
+import com.github.sparkzxl.core.support.ArgumentException;
 import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.enums.BucketPolicyEnum;
 import com.github.sparkzxl.oss.properties.Configuration;
@@ -9,11 +9,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
-import java.util.StringJoiner;
 import java.util.function.Consumer;
 
 /**
@@ -67,7 +67,7 @@ public interface OssExecutor {
     default String getObjectUrl(String bucketName, String objectName) {
         Configuration configInfo = obtainConfigInfo();
         if (configInfo == null) {
-            throw new IllegalStateException(
+            throw new ArgumentException(
                     String.format("Cannot get object URL: OSS configuration not found for bucket [%s], object [%s]", bucketName, objectName));
         }
         String domainName = configInfo.getDomain();
@@ -75,7 +75,7 @@ public interface OssExecutor {
             domainName = configInfo.getEndpoint();
         }
         if (StringUtils.isEmpty(domainName)) {
-            throw new IllegalStateException(
+            throw new ArgumentException(
                     String.format("Cannot get object URL: Both domain and endpoint are empty in configuration for bucket [%s]", bucketName));
         }
         // 优化：使用字符串连接代替 StringJoiner，避免重复创建对象
@@ -136,6 +136,17 @@ public interface OssExecutor {
     OssPushObjectResponse putObject(String bucketName, String objectName, String filePath);
 
     /**
+     * 上传本地文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param file   本地文件
+     * @param delete   上传成功是否删除文件
+     * @return OssPushObjectResponse
+     */
+    OssPushObjectResponse putObject(String bucketName, String objectName, File file, boolean delete);
+
+    /**
      * 上传文件
      *
      * @param bucketName bucket名称
@@ -149,7 +160,7 @@ public interface OssExecutor {
      * 分段上传
      *
      * @param bucketName    bucket名称
-     * @param objectName    文件名称
+     * @param objectName    oss对象名称
      * @param multipartFile 上传文件
      */
     void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile);
@@ -159,7 +170,7 @@ public interface OssExecutor {
      *
      * @param fileUploadInfo 文件上传信息
      * @param bucketName     bucket名称
-     * @param objectName     文件名称
+     * @param objectName     oss对象名称
      * @return UploadUrlsInfo
      */
     UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName);
@@ -204,7 +215,7 @@ public interface OssExecutor {
      * 获取文件上传地址
      *
      * @param bucketName  bucket名称
-     * @param objectName  文件名称
+     * @param objectName  oss对象名称
      * @param contentType contentType
      * @return UploadUrlsInfo
      */

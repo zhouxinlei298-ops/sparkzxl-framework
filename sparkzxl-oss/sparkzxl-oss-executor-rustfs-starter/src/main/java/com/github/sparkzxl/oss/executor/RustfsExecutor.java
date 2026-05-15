@@ -1,6 +1,7 @@
 package com.github.sparkzxl.oss.executor;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpUtil;
 import com.github.sparkzxl.oss.client.CustomRustfsClient;
@@ -15,7 +16,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseInputStream;
@@ -27,9 +27,10 @@ import software.amazon.awssdk.services.s3.model.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -141,19 +142,19 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public OssMetadata getOssMetadata(String bucketName, String objectName) {
-        S3Client rustfsClient = obtainClient().getClient();
+        S3Client s3Client = obtainClient().getClient();
         try {
-            GetObjectAttributesResponse getObjectAttributesResponse = rustfsClient.getObjectAttributes(GetObjectAttributesRequest.builder()
+            HeadObjectResponse headResponse = s3Client.headObject(HeadObjectRequest.builder()
                     .bucket(bucketName)
                     .key(objectName)
                     .build());
             OssMetadata ossMetadata = new OssMetadata();
             ossMetadata.setBucketName(bucketName);
             ossMetadata.setObjectName(objectName);
-            ossMetadata.setSize(getObjectAttributesResponse.objectSize());
-            ossMetadata.setContentType("");
-            ossMetadata.setLastModified(LocalDateTime.ofInstant(getObjectAttributesResponse.lastModified(), ZoneId.systemDefault()));
-            ossMetadata.setEtag(getObjectAttributesResponse.eTag());
+            ossMetadata.setSize(headResponse.contentLength());
+            ossMetadata.setContentType(headResponse.contentType());
+            ossMetadata.setLastModified(LocalDateTime.ofInstant(headResponse.lastModified(), ZoneId.systemDefault()));
+            ossMetadata.setEtag(headResponse.eTag());
             return ossMetadata;
         } catch (Exception e) {
             log.error("Rustfs unexpected error during get object metadata for {}/{}: {}",
@@ -199,7 +200,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         CustomRustfsClient rustfsClient = obtainClient();
         try {
             long size = multipartFile.getSize();
@@ -210,16 +211,7 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
                     .contentType(contentType).build();
             PutObjectResponse putObjectResponse = rustfsClient.getClient().putObject(putObjectRequest,
                     RequestBody.fromInputStream(multipartFile.getInputStream(), multipartFile.getSize()));
-            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
-            pushObjectResponse.setBucketName(bucketName);
-            pushObjectResponse.setObjectName(objectName);
-            pushObjectResponse.setSize(size);
-            pushObjectResponse.setContentType(contentType);
-            pushObjectResponse.setUploadTime(LocalDateTime.now());
-            String uploadFileUrl = getObjectUrl(bucketName, objectName);
-            pushObjectResponse.setUrl(uploadFileUrl);
-            log.info("文件上传成功，ETag: {}", putObjectResponse.eTag());
-            return pushObjectResponse;
+            return buildPushObjectResponse(bucketName, objectName, size, contentType, putObjectResponse.eTag());
         } catch (Exception e) {
             log.error("Rustfs unexpected error during multipartFile upload for {}/{}: {}",
                     bucketName, objectName, e.getMessage());
@@ -229,14 +221,21 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         File tempFile = new File(filePath);
+        tempFile.deleteOnExit();
+        return putObject(bucketName, objectName, tempFile, true);
+    }
+
+    @Override
+    public OssPushObjectResponse putObject(String bucketName, String objectName, File file, boolean delete) {
+        objectNameValidate(objectName);
         CustomRustfsClient rustfsClient = obtainClient();
         BufferedInputStream tempInputStream = null;
         try {
-            long size = FileUtil.size(tempFile);
-            tempInputStream = FileUtil.getInputStream(tempFile);
-            String mimeType = FileUtil.getType(tempFile);
+            long size = FileUtil.size(file);
+            tempInputStream = FileUtil.getInputStream(file);
+            String mimeType = FileUtil.getType(file);
             String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -246,48 +245,22 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
             PutObjectResponse putObjectResponse = rustfsClient.getClient().putObject(putObjectRequest,
                     RequestBody.fromInputStream(tempInputStream, size));
-
-            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
-            pushObjectResponse.setBucketName(bucketName);
-            pushObjectResponse.setObjectName(objectName);
-            pushObjectResponse.setSize(size);
-            pushObjectResponse.setContentType(finalMimeType);
-            pushObjectResponse.setUploadTime(LocalDateTime.now());
-            String uploadFileUrl = getObjectUrl(bucketName, objectName);
-            pushObjectResponse.setUrl(uploadFileUrl);
-            log.info("文件上传成功，ETag: {}", putObjectResponse.eTag());
-            return pushObjectResponse;
+            return buildPushObjectResponse(bucketName, objectName, size, finalMimeType, putObjectResponse.eTag());
         } catch (Exception e) {
             log.error("Rustfs unexpected error during local file upload for {}/{}: {}",
                     bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            if (tempInputStream != null) {
-                try {
-                    tempInputStream.close();
-                } catch (IOException e) {
-                    log.error("关闭文件流失败：{}", e.getMessage());
-                }
-            }
-            // 删除临时文件
-            if (tempFile != null && tempFile.exists()) {
-                try {
-                    boolean deleted = FileUtil.del(tempFile);
-                    if (!deleted) {
-                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
-                        tempFile.deleteOnExit();
-                    }
-                } catch (Exception e) {
-                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
-                    tempFile.deleteOnExit();
-                }
+            IoUtil.close(tempInputStream);
+            if (delete) {
+                safeDeleteTempFile(file, "本地文件");
             }
         }
     }
 
     @Override
     public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         Stopwatch stopwatch = Stopwatch.createStarted();
         String fileUrl = url.toString();
         File tempFile = FileUtil.createTempFile();
@@ -302,8 +275,6 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
             String mimeType = FileUtil.getMimeType(fileUrl);
             String finalMimeType = mimeType == null ? "application/octet-stream" : mimeType;
             tempInputStream = FileUtil.getInputStream(tempFile);
-            // 4. 上传到Rustfs
-            tempInputStream = FileUtil.getInputStream(tempFile);
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -315,48 +286,20 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
 
             long totalTime = stopwatch.elapsed(TimeUnit.SECONDS);
             log.info("文件下载并上传完成，总耗时：[{}]秒", totalTime);
-            OssPushObjectResponse pushObjectResponse = new OssPushObjectResponse();
-            pushObjectResponse.setBucketName(bucketName);
-            pushObjectResponse.setObjectName(objectName);
-            pushObjectResponse.setSize(size);
-            pushObjectResponse.setContentType(finalMimeType);
-            pushObjectResponse.setUploadTime(LocalDateTime.now());
-            String uploadFileUrl = getObjectUrl(bucketName, objectName);
-            pushObjectResponse.setUrl(uploadFileUrl);
-            log.info("文件上传成功，ETag: {}", putObjectResponse.eTag());
-            return pushObjectResponse;
+            return buildPushObjectResponse(bucketName, objectName, size, finalMimeType, putObjectResponse.eTag());
         } catch (Exception e) {
             log.error("Rustfs unexpected error during remote file upload for {}/{}: {}",
                     bucketName, objectName, e.getMessage());
             throw new OssException(OssErrorCode.PUT_OBJECT_ERROR.getErrorCode(), e.getMessage());
         } finally {
-            if (tempInputStream != null) {
-                try {
-                    tempInputStream.close();
-                } catch (IOException e) {
-                    log.error("关闭文件流失败：{}", e.getMessage());
-                }
-            }
-            // 删除临时文件（使用 Hutool 的 FileUtil.del 提供更可靠的删除机制）
-            if (tempFile != null && tempFile.exists()) {
-                try {
-                    boolean deleted = FileUtil.del(tempFile);
-                    if (!deleted) {
-                        log.warn("临时文件删除失败，文件路径：{}", tempFile.getAbsolutePath());
-                        // 尝试使用 JVM 退出时删除作为最后的保障
-                        tempFile.deleteOnExit();
-                    }
-                } catch (Exception e) {
-                    log.error("删除临时文件时发生异常，文件路径：{}，错误信息：{}", tempFile.getAbsolutePath(), e.getMessage());
-                    tempFile.deleteOnExit();
-                }
-            }
+            IoUtil.close(tempInputStream);
+            safeDeleteTempFile(tempFile, "远程下载临时文件");
         }
     }
 
     @Override
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
-        uploadFileLimit(objectName);
+        objectNameValidate(objectName);
         CustomRustfsClient rustfsClient = obtainClient();
 
         S3Client s3Client = rustfsClient.getClient();
@@ -622,142 +565,29 @@ public class RustfsExecutor extends AbstractOssExecutor<CustomRustfsClient> {
     }
 
     @Override
-    public void downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) {
-        CustomRustfsClient rustfsClient = obtainClient();
-        InputStream stream = null;
-        BufferedOutputStream os = null;
-        S3Client s3Client = rustfsClient.getClient();
-
-        HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+    protected DownloadMetadata fetchDownloadMetadata(String bucketName, String objectName) {
+        S3Client s3Client = obtainClient().getClient();
+        HeadObjectResponse headResponse = s3Client.headObject(HeadObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectName)
+                .build());
+        return new DownloadMetadata(
+                headResponse.contentLength(),
+                headResponse.contentType(),
+                headResponse.lastModified().toString(),
+                headResponse.eTag()
+        );
+    }
+
+    @Override
+    protected InputStream openDownloadStream(String bucketName, String objectName, long startByte, long endByte) throws Exception {
+        S3Client s3Client = obtainClient().getClient();
+        GetObjectRequest objectRequest = GetObjectRequest.builder()
+                .key(objectName)
+                .bucket(bucketName)
+                .range("bytes=" + startByte + "-" + endByte)
                 .build();
-        try {
-            // 1. 获取文件元数据
-            HeadObjectResponse headObjectResponse = s3Client.headObject(headObjectRequest);
-            long fileSize = headObjectResponse.contentLength();
-
-            // 文件大小为0的异常处理
-            if (fileSize <= 0) {
-                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
-                return;
-            }
-
-            long startByte = 0;
-            long endByte = fileSize - 1;
-            String range = request.getHeader("Range");
-            log.info("下载请求 bucket={}, object={}, range={}", bucketName, objectName, range);
-
-
-            // 2. 解析 Range 头 (断点续传/视频拖动)
-            if (range != null && range.contains("bytes=") && range.contains("-")) {
-                range = range.substring(range.lastIndexOf("=") + 1).trim();
-                String[] ranges = range.split("-", -1);  // 保留空字符串
-
-                try {
-                    if (ranges.length == 2) {
-                        String startPart = ranges[0].trim();
-                        String endPart = ranges[1].trim();
-
-                        if (startPart.isEmpty() && !endPart.isEmpty()) {
-                            // 情况 A: bytes=-500 (最后500字节)
-                            long lastBytes = Long.parseLong(endPart);
-                            if (lastBytes > 0) {
-                                startByte = Math.max(0, fileSize - lastBytes);
-                            }
-                        } else if (!startPart.isEmpty() && endPart.isEmpty()) {
-                            // 情况 B: bytes=500- (从500字节到结束)
-                            startByte = Long.parseLong(startPart);
-                        } else if (!startPart.isEmpty() && !endPart.isEmpty()) {
-                            // 情况 C: bytes=500-1000
-                            startByte = Long.parseLong(startPart);
-                            endByte = Long.parseLong(endPart);
-                        }
-                        // 如果两个都为空（bytes=-），忽略使用默认值
-                    }
-                } catch (NumberFormatException e) {
-                    log.warn("Invalid Range header format: {}, using full file range", range);
-                    startByte = 0;
-                    endByte = fileSize - 1;
-                }
-            }
-
-            // 3. 计算实际要下载的长度 & 严格的Range边界校验（关键！）
-            if (startByte > endByte || startByte >= fileSize || endByte < 0) {
-                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
-                response.setHeader("Content-Range", "bytes */" + fileSize);
-                return;
-            }
-
-            long contentLength = endByte - startByte + 1;
-
-            // 4. 设置响应头
-            String contentType = request.getServletContext().getMimeType(fileName);
-            if (contentType == null) {
-                contentType = headObjectResponse.contentType();
-            }
-            if (contentType == null) {
-                contentType = "application/octet-stream";
-            }
-
-            // 文件名编码
-            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()).replaceAll("\\+", "%20");
-
-            response.setContentType(contentType);
-            response.setHeader("Accept-Ranges", "bytes");
-
-            // 根据是否有 Range 决定返回 206 还是 200
-            if (request.getHeader("Range") != null) {
-                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-                response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + fileSize);
-            } else {
-                response.setStatus(HttpServletResponse.SC_OK);
-            }
-
-            response.setHeader("Last-Modified", headObjectResponse.lastModified().toString());
-            response.setHeader("Content-Length", String.valueOf(contentLength));
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
-            response.setHeader("ETag", "\"" + headObjectResponse.eTag() + "\"");
-
-            // 5. 获取 Rustfs 流
-            // Rustfs 的 getObject 已经支持 offset 和 length，返回的流就是精确的片段
-
-            GetObjectRequest objectRequest = GetObjectRequest.builder()
-                    .key(objectName)
-                    .bucket(bucketName)
-                    .build();
-
-            stream = s3Client.getObject(objectRequest, ResponseTransformer.toInputStream());
-
-            // 6. 写出数据
-            os = new BufferedOutputStream(response.getOutputStream());
-
-            // 使用 Spring 工具类直接拷贝流，无需手动循环
-            StreamUtils.copy(stream, os);
-
-            os.flush();
-            response.flushBuffer();
-
-        } catch (Exception e) {
-            log.error("Rustfs Unexpected error during download multipart file for {}/{}: {}",
-                    bucketName, objectName, e.getMessage());
-            // 如果还没有写入响应，可以抛出异常给全局异常处理器
-            if (!response.isCommitted()) {
-                throw new OssException(OssErrorCode.DOWNLOAD_OBJECT_ERROR, e);
-            }
-        } finally {
-            // 安全关闭资源
-            if (stream != null) {
-                try {
-                    stream.close();
-                } catch (IOException e) { /* ignore */ }
-            }
-            if (os != null) {
-                try {
-                    os.close();
-                } catch (IOException e) { /* ignore */ }
-            }
-        }
+        return s3Client.getObject(objectRequest, ResponseTransformer.toInputStream());
     }
 
     @Override

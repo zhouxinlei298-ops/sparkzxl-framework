@@ -93,7 +93,6 @@ public class ThrowableUtils {
         return lineNumber == -2;
     }
 
-
     public static boolean doWarnExceptionName(Throwable warnExceptionClass, List<Class<? extends Throwable>> doWarnExceptionList) {
         return doWarnExceptionList.contains(warnExceptionClass.getClass());
     }

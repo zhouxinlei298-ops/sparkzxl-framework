@@ -2,6 +2,7 @@ package com.github.sparkzxl.log.queue;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * description: 告警任务消息队列
@@ -11,7 +12,19 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class AlarmTaskQueue {
 
+    private static final int DEFAULT_MAX_CAPACITY = 1000;
     private static final Queue<AlarmTaskInfo> QUEUE = new ConcurrentLinkedQueue<>();
+    private static final AtomicInteger SIZE = new AtomicInteger(0);
+
+    private final int maxCapacity;
+
+    private AlarmTaskQueue() {
+        this(DEFAULT_MAX_CAPACITY);
+    }
+
+    private AlarmTaskQueue(int maxCapacity) {
+        this.maxCapacity = maxCapacity;
+    }
 
     /**
      * 单例队列
@@ -22,18 +35,30 @@ public class AlarmTaskQueue {
         return SingletonHolder.SINGLETON;
     }
 
-    public void produce(AlarmTaskInfo message) {
+    public boolean produce(AlarmTaskInfo message) {
+        if (SIZE.get() >= maxCapacity) {
+            return false;
+        }
         QUEUE.add(message);
-
+        SIZE.incrementAndGet();
+        return true;
     }
 
     /**
-     * 延迟消费队列，取不到的话会阻塞一直到队列有消息再被唤醒。之后再取消息
+     * 消费队列
      *
      * @return AlarmTaskInfo
      */
     public AlarmTaskInfo consume() {
-        return QUEUE.poll();
+        AlarmTaskInfo task = QUEUE.poll();
+        if (task != null) {
+            SIZE.decrementAndGet();
+        }
+        return task;
+    }
+
+    public int size() {
+        return SIZE.get();
     }
 
     private static class SingletonHolder {

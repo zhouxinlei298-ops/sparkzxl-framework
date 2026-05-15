@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -122,7 +123,7 @@ public class OssTemplate implements InitializingBean {
      * 上传文件
      *
      * @param bucketName    bucket名称
-     * @param objectName    文件名称
+     * @param objectName    oss对象名称
      * @param multipartFile 文件
      */
     public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
@@ -147,6 +148,20 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
+     * @param file       本地文件
+     * @param delete     上传成功是否删除文件
+     * @return OssPushObjectResponse
+     */
+    public OssPushObjectResponse putObject(String bucketName, String objectName, File file, boolean delete) {
+        OssExecutor ossExecutor = obtainExecutor();
+        return ossExecutor.putObject(bucketName, objectName, file, delete);
+    }
+
+    /**
+     * 上传文件
+     *
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
      * @param url        文件地址
      */
     public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
@@ -158,7 +173,7 @@ public class OssTemplate implements InitializingBean {
      * 分片上传
      *
      * @param bucketName    bucket名称
-     * @param objectName    文件名称
+     * @param objectName    oss对象名称
      * @param multipartFile 上传文件
      */
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
@@ -171,7 +186,7 @@ public class OssTemplate implements InitializingBean {
      *
      * @param fileUploadInfo 文件上传信息
      * @param bucketName     bucket名称
-     * @param objectName     文件名称
+     * @param objectName     oss对象名称
      * @return UploadUrlsInfo
      */
     public UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName) {
@@ -230,7 +245,7 @@ public class OssTemplate implements InitializingBean {
      * 获取文件上传地址
      *
      * @param bucketName  bucket名称
-     * @param objectName  文件名称
+     * @param objectName  oss对象名称
      * @param contentType contentType
      * @return UploadUrlsInfo
      */

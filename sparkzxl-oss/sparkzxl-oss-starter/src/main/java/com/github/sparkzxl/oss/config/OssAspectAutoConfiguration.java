@@ -14,7 +14,7 @@ import org.springframework.core.Ordered;
  *
  * @author zhouxinlei
  */
-@ConditionalOnProperty(name = "oss.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "oss.enabled", havingValue = "true", matchIfMissing = true)
 public class OssAspectAutoConfiguration {
 
     @Bean
