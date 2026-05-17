@@ -3,7 +3,6 @@ package com.github.sparkzxl.core.spring;
 import cn.hutool.core.util.ArrayUtil;
 import java.util.Map;
 
-import com.github.sparkzxl.core.util.TraceContextUtils;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
@@ -134,16 +133,6 @@ public class SpringContextUtils implements ApplicationContextAware {
 
     public static void publishEvent(Object event) {
         applicationContext.publishEvent(event);
-    }
-
-    /**
-     * 获取当前的环境配置，当有多个环境配置时，只获取第一个
-     *
-     * @return 当前的环境配置
-     * @since 5.3.3
-     */
-    public static String getTraceId() {
-        return TraceContextUtils.getTraceId("");
     }
 
 }
