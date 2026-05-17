@@ -1,14 +1,9 @@
-package com.github.sparkzxl.core.context;
+package com.github.sparkzxl.trace.provider;
 
 import cn.hutool.core.util.IdUtil;
-import com.github.sparkzxl.core.constant.enums.TraceTypeEnum;
+import com.github.sparkzxl.core.trace.TraceIdContext;
+import com.github.sparkzxl.core.trace.TraceTypeEnum;
 
-/**
- * description: 本地 traceId 获取
- *
- * @author zhouxinlei
- * @since 2025-08-30 11:09:43
- */
 public class LocalTraceIdContext implements TraceIdContext {
 
     @Override

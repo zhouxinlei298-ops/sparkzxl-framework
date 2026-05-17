@@ -10,7 +10,7 @@
                     defaultValue="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{tid}] [tenantId: %X{tenantId:-N/A}] [${LOG_LEVEL_PATTERN:-%5p}] ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <!-- 公共属性 -->
-    <springProperty scope="context" name="traceType" source="spring.trace.type" defaultValue="local"/>
+    <springProperty scope="context" name="traceType" source="sparkzxl.trace.type" defaultValue="local"/>
     <springProperty name="springAppName" scope="context" source="spring.application.name" defaultValue="application"/>
     <springProperty name="logHome" scope="context" source="logging.file.path" defaultValue="${user.home}/logs"/>
     <springProperty name="enableBizPoint" scope="context" source="logging.enable-biz-point" defaultValue="true"/>

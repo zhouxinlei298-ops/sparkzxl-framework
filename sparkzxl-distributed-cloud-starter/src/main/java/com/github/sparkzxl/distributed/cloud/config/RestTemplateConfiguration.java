@@ -3,10 +3,11 @@ package com.github.sparkzxl.distributed.cloud.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.sparkzxl.distributed.cloud.http.RestTemplateHeaderInterceptor;
+import com.github.sparkzxl.trace.interceptor.TraceRestTemplateHeaderInterceptor;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -18,6 +19,7 @@ import org.springframework.cloud.commons.httpclient.OkHttpClientConnectionPoolFa
 import org.springframework.cloud.commons.httpclient.OkHttpClientFactory;
 import org.springframework.cloud.openfeign.support.FeignHttpClientProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
@@ -38,11 +40,6 @@ public class RestTemplateConfiguration {
 
     /**
      * 配置OkHttpClient
-     *
-     * @param httpClientFactory    httpClient 工厂
-     * @param connectionPool       链接池配置
-     * @param httpClientProperties httpClient配置
-     * @return OkHttpClient
      */
     @Bean
     @ConditionalOnMissingBean(okhttp3.OkHttpClient.class)
@@ -61,10 +58,6 @@ public class RestTemplateConfiguration {
 
     /**
      * okhttp3 链接池配置
-     *
-     * @param connectionPoolFactory 链接池配置
-     * @param hcp                   httpClient配置
-     * @return okhttp3.ConnectionPool
      */
     @Bean
     @ConditionalOnMissingBean(okhttp3.ConnectionPool.class)
@@ -73,9 +66,8 @@ public class RestTemplateConfiguration {
         return connectionPoolFactory.create(hcp.getMaxConnections(), hcp.getTimeToLive(), hcp.getTimeToLiveUnit());
     }
 
-
     /**
-     * 解决 RestTemplate 传递Request header
+     * 上下文 header 传播拦截器（非 traceId）
      */
     @Bean
     public RestTemplateHeaderInterceptor requestHeaderInterceptor() {
@@ -84,26 +76,21 @@ public class RestTemplateConfiguration {
 
     /**
      * 支持负载均衡的 LbRestTemplate, 传递请求头，一般用于内部 http 调用
-     *
-     * @param httpClient  OkHttpClient
-     * @param interceptor RestTemplateHeaderInterceptor
-     * @return LbRestTemplate
+     * 自动收集所有 ClientHttpRequestInterceptor（traceId 拦截器 + 上下文 header 拦截器）
      */
     @Bean("lbRestTemplate")
     @LoadBalanced
     @ConditionalOnMissingBean(RestTemplate.class)
-    public RestTemplate lbRestTemplate(okhttp3.OkHttpClient httpClient, RestTemplateHeaderInterceptor interceptor) {
+    public RestTemplate lbRestTemplate(okhttp3.OkHttpClient httpClient,
+                                       List<ClientHttpRequestInterceptor> interceptors) {
         RestTemplate lbRestTemplate = new RestTemplate(new OkHttp3ClientHttpRequestFactory(httpClient));
-        lbRestTemplate.setInterceptors(Collections.singletonList(interceptor));
+        lbRestTemplate.setInterceptors(interceptors);
         this.configMessageConverters(lbRestTemplate.getMessageConverters());
         return lbRestTemplate;
     }
 
     /**
      * 普通的 RestTemplate，不透传请求头，一般只做外部 http 调用
-     *
-     * @param httpClient OkHttpClient
-     * @return RestTemplate
      */
     @Bean
     public RestTemplate restTemplate(okhttp3.OkHttpClient httpClient) {

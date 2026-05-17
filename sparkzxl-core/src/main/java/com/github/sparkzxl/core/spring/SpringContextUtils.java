@@ -3,7 +3,7 @@ package com.github.sparkzxl.core.spring;
 import cn.hutool.core.util.ArrayUtil;
 import java.util.Map;
 
-import com.github.sparkzxl.core.context.TraceIdContext;
+import com.github.sparkzxl.core.trace.TraceIdContext;
 import lombok.Getter;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;

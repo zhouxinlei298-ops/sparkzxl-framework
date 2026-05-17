@@ -1,4 +1,2 @@
 com.github.sparkzxl.boot.config.UndertowAutoConfiguration
 com.github.sparkzxl.boot.config.ThreadPoolAutoConfig
-com.github.sparkzxl.boot.config.TraceAutoConfig
-com.github.sparkzxl.boot.config.MdcAutoConfiguration

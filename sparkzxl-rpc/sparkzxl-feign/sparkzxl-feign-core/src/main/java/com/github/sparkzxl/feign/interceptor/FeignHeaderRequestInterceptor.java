@@ -1,6 +1,5 @@
 package com.github.sparkzxl.feign.interceptor;
 
-import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
@@ -22,11 +21,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * description: feign client 拦截器， 实现将 feign 调用方的 请求头封装到 被调用方的请求头
- *
- * @author zhouxinlei
- */
 @Slf4j
 public class FeignHeaderRequestInterceptor implements RequestInterceptor {
 
@@ -36,7 +30,6 @@ public class FeignHeaderRequestInterceptor implements RequestInterceptor {
             BaseContextConstants.JWT_KEY_ACCOUNT,
             BaseContextConstants.JWT_KEY_NAME,
             BaseContextConstants.VERSION,
-            BaseContextConstants.TRACE_ID_HEADER,
             BaseContextConstants.JWT_TOKEN_HEADER,
             "zone",
             "X-Real-IP",
@@ -67,10 +60,10 @@ public class FeignHeaderRequestInterceptor implements RequestInterceptor {
         }
         HttpServletRequest request = RequestContextHelper.getHttpServletRequestOrNull();
         if (request == null) {
-            RequestLocalContextHolder.getLocalMap().forEach((key, value) -> {
-                String strValue = Convert.toStr(value);
-                if (StrUtil.isNotEmpty(strValue)) {
-                    template.header(key, URLUtil.encode(strValue, StandardCharsets.UTF_8));
+            propagateHeaders.forEach(headerName -> {
+                String value = RequestLocalContextHolder.get(headerName);
+                if (StrUtil.isNotEmpty(value)) {
+                    template.header(headerName, URLUtil.encode(value, StandardCharsets.UTF_8));
                 }
             });
             return;

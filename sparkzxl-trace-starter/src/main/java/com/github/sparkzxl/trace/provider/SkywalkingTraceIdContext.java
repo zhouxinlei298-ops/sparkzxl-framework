@@ -1,14 +1,9 @@
-package com.github.sparkzxl.core.context;
+package com.github.sparkzxl.trace.provider;
 
-import com.github.sparkzxl.core.constant.enums.TraceTypeEnum;
+import com.github.sparkzxl.core.trace.TraceIdContext;
+import com.github.sparkzxl.core.trace.TraceTypeEnum;
 import org.apache.skywalking.apm.toolkit.trace.TraceContext;
 
-/**
- * description: skywalking traceId 获取
- *
- * @author zhouxinlei
- * @since 2025-08-30 11:09:43
- */
 public class SkywalkingTraceIdContext implements TraceIdContext {
 
     @Override

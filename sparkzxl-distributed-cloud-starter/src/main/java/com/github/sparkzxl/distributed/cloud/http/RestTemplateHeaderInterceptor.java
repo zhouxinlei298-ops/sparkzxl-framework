@@ -6,7 +6,7 @@ import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.util.HttpRequestUtils;
-import lombok.AllArgsConstructor;
+import com.google.common.net.HttpHeaders;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
@@ -21,12 +21,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * description: 通过 RestTemplate 调用时，传递请求头和线程变量
- *
- * @author zhouxinlei
- */
-@AllArgsConstructor
 @Slf4j
 public class RestTemplateHeaderInterceptor implements ClientHttpRequestInterceptor {
 
@@ -36,11 +30,10 @@ public class RestTemplateHeaderInterceptor implements ClientHttpRequestIntercept
             BaseContextConstants.JWT_KEY_ACCOUNT,
             BaseContextConstants.JWT_KEY_NAME,
             BaseContextConstants.VERSION,
-            BaseContextConstants.TRACE_ID_HEADER,
             BaseContextConstants.JWT_TOKEN_HEADER,
             "zone",
             "X-Real-IP",
-            com.google.common.net.HttpHeaders.X_FORWARDED_FOR
+            HttpHeaders.X_FORWARDED_FOR
     )));
 
     @Override

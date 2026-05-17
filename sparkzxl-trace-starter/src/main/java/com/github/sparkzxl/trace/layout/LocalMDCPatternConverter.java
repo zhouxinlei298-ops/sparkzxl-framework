@@ -1,16 +1,9 @@
-package com.github.sparkzxl.log.layout;
+package com.github.sparkzxl.trace.layout;
 
 import ch.qos.logback.classic.pattern.MDCConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.util.OptionHelper;
 
-/**
- * local 模式下的 MDC Converter，拦截 %X{tid} 解析。
- * tid 存在时返回原始值，不存在时返回 "N/A"。
- *
- * @author zhouxinlei
- * @since 2026-04-24
- */
 public class LocalMDCPatternConverter extends MDCConverter {
 
     private static final String CONVERT_TRACE_ID_KEY = "tid";
