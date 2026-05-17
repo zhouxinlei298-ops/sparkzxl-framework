@@ -94,7 +94,6 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

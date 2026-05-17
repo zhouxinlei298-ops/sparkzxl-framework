@@ -35,23 +35,6 @@
         <appender-ref ref="CONSOLE_APPENDER"/>
     </appender>
 
-    <!-- OpenTelemetry Logback Appender (日志导出到 Collector) -->
-    <appender name="OTEL_APPENDER"
-              class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
-        <captureMdcAttributes>*</captureMdcAttributes>
-    </appender>
-
-    <!-- OTel MDC 注入 Wrapper：自动注入 trace_id/span_id/trace_flags 到 MDC -->
-    <appender name="OTEL_MDC_APPENDER"
-              class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
-        <appender-ref ref="ASYNC_CONSOLE_APPENDER"/>
-        <appender-ref ref="ASYNC_FILE_APPENDER"/>
-        <appender-ref ref="ASYNC_ALARM_APPENDER"/>
-        <appender-ref ref="SCHEDULE_JOB_LOG_APPENDER"/>
-        <appender-ref ref="ASYNC_ALIYUN_SLS_LOG_APPENDER"/>
-        <appender-ref ref="OTEL_APPENDER"/>
-    </appender>
-
     <!-- 可选 Appender 模块 -->
     <include resource="logback-appender-alarm.xml"/>
     <include resource="logback-appender-aliyun.xml"/>

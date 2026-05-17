@@ -1,6 +1,6 @@
 package com.github.sparkzxl.trace.filter;
 
-
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.github.sparkzxl.trace.properties.TraceProperties;
 import org.slf4j.MDC;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -22,7 +22,9 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // 传播上下文参数（traceId 由 OTel MDC Appender 自动注入，不含 traceId）
+        String traceId = TraceContextUtils.getTraceId();
+        MDC.put("trace_id", traceId);
+
         List<String> propagateHeaders = traceProperties.getPropagateHeaders();
         ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate();
         for (String headerName : propagateHeaders) {
@@ -41,6 +43,7 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
 
         return chain.filter(mutatedExchange)
                 .contextWrite(ctx -> {
+                    ctx = ctx.put("trace_id", traceId);
                     for (String headerName : propagateHeaders) {
                         List<String> values = exchange.getRequest().getHeaders().get(headerName);
                         if (values != null && !values.isEmpty()) {
@@ -50,6 +53,8 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
                     return ctx;
                 })
                 .doOnEach(signal -> {
+                    String signalTraceId = signal.getContextView().getOrDefault("trace_id", "N/A");
+                    MDC.put("trace_id", signalTraceId);
                     for (String headerName : propagateHeaders) {
                         String val = signal.getContextView().getOrDefault(headerName, "");
                         if (val != null && !val.isEmpty()) {

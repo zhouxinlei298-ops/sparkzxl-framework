@@ -3,6 +3,7 @@ package com.github.sparkzxl.trace.filter;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.constant.enums.RpcType;
 import com.github.sparkzxl.core.context.RequestLocalContextHolder;
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.github.sparkzxl.trace.properties.TraceProperties;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
@@ -28,6 +29,8 @@ public class ServletMdcFilter extends OncePerRequestFilter implements Ordered {
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             RequestLocalContextHolder.set(BaseContextConstants.RPC_TYPE, RpcType.HTTP.getCode());
+
+            MDC.put("trace_id", TraceContextUtils.getTraceId());
 
             List<String> propagateHeaders = traceProperties.getPropagateHeaders();
             for (String headerName : propagateHeaders) {

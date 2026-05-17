@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="false" scan="false">
+<configuration debug="true" scan="false">
     <include resource="logback-base.xml"/>
 
     <root level="${log.level.console}">
-        <appender-ref ref="OTEL_MDC_APPENDER"/>
+        <appender-ref ref="ASYNC_CONSOLE_APPENDER"/>
+        <appender-ref ref="ASYNC_FILE_APPENDER"/>
+        <appender-ref ref="ASYNC_ALARM_APPENDER"/>
+        <appender-ref ref="SCHEDULE_JOB_LOG_APPENDER"/>
+        <appender-ref ref="ASYNC_ALIYUN_SLS_LOG_APPENDER"/>
     </root>
 </configuration>
