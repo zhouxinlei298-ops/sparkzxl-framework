@@ -8,6 +8,5 @@
         <appender-ref ref="ASYNC_ALARM_APPENDER"/>
         <appender-ref ref="SCHEDULE_JOB_LOG_APPENDER"/>
         <appender-ref ref="ASYNC_ALIYUN_SLS_LOG_APPENDER"/>
-        <appender-ref ref="OpenTelemetry"/>
     </root>
 </configuration>
