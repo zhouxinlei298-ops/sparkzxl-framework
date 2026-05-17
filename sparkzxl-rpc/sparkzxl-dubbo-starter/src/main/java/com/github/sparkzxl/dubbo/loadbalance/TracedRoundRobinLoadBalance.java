@@ -67,17 +67,8 @@ public class TracedRoundRobinLoadBalance extends AbstractLoadBalance {
 
         // 去重
         List<Invoker<T>> distinctInvokers = invokers.stream().distinct().collect(Collectors.toList());
-        String traceId = getTraceId();
-
+        String traceId = TraceContextUtils.getTraceId(IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId());
         return selectByTraceId(traceId, distinctInvokers);
-    }
-
-    private String getTraceId() {
-        String traceId = TraceContextUtils.getTraceId(null);
-        if (traceId != null) {
-            return traceId;
-        }
-        return IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
     }
 
     private <T> Invoker<T> selectByTraceId(String traceId, List<Invoker<T>> invokers) {
