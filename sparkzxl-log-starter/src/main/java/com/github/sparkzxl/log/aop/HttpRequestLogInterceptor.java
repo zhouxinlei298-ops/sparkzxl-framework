@@ -9,6 +9,7 @@ import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.util.AopUtil;
 import com.github.sparkzxl.core.util.NetworkUtil;
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.github.sparkzxl.log.annotation.HttpRequestLog;
 import com.github.sparkzxl.log.entity.RequestInfoLog;
 import com.github.sparkzxl.log.event.HttpRequestLogEvent;
@@ -84,7 +85,7 @@ public class HttpRequestLogInterceptor implements MethodInterceptor {
                 .setClassMethod(String.format("%s.%s", method.getDeclaringClass().getName(), method.getName()))
                 .setStartTime(LocalDateTime.now())
                 .setTenantId(RequestLocalContextHolder.getTenantId())
-                .setTraceId(RequestLocalContextHolder.traceId());
+                .setTraceId(TraceContextUtils.getTraceId());
         if (httpRequestLog.request()) {
             Map<String, Object> parameterMap = AopUtil.getParameterMap(method, invocation.getArguments(), httpRequestLog.excludeClass());
             if (MapUtil.isNotEmpty(parameterMap)) {

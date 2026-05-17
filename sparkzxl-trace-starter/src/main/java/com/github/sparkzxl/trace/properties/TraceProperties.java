@@ -1,11 +1,12 @@
 package com.github.sparkzxl.trace.properties;
 
-import com.github.sparkzxl.core.trace.TraceTypeEnum;
+import com.github.sparkzxl.core.constant.BaseContextConstants;
+import com.google.common.collect.Lists;
 import lombok.Data;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.List;
 
 @Data
@@ -16,10 +17,15 @@ public class TraceProperties implements Serializable {
 
     private boolean enabled = true;
 
-    private TraceTypeEnum type = TraceTypeEnum.LOCAL;
+    private List<String> propagateHeaders = Lists.newArrayList(BaseContextConstants.TENANT_ID);
 
-    /** 可选传递的上下文参数列表（不含 traceId，traceId 始终自动传播） */
-    private List<String> propagateHeaders = Arrays.asList(
-            "tenantId", "userId", "account", "name", "version", "token"
-    );
+    public void setPropagateHeaders(List<String> propagateHeaders) {
+        if (CollectionUtils.isNotEmpty(propagateHeaders)) {
+            for (String header : propagateHeaders) {
+                if (!this.propagateHeaders.contains(header)) {
+                    this.propagateHeaders.add(header);
+                }
+            }
+        }
+    }
 }

@@ -5,7 +5,6 @@ import com.github.sparkzxl.log.entity.RequestInfoLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.skywalking.apm.toolkit.trace.ConsumerWrapper;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 
@@ -36,7 +35,7 @@ public class HttpRequestLogListener {
                     requestInfoLog.getTenantId(), requestInfoLog.getUserName(),
                     requestInfoLog.getRequestUrl(), requestInfoLog.getConsumingTime());
         }
-        ConsumerWrapper.of(consumer).accept(requestInfoLog);
+        consumer.accept(requestInfoLog);
     }
 
 }

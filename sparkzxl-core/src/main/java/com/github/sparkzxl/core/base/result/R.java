@@ -3,8 +3,8 @@ package com.github.sparkzxl.core.base.result;
 import cn.hutool.http.HttpStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.sparkzxl.core.base.HttpCode;
-import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.support.BaseException;
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.github.sparkzxl.core.support.ExceptionCodeResolver;
 import com.github.sparkzxl.core.support.code.IErrorCode;
 import lombok.Getter;
@@ -79,7 +79,7 @@ public class R<T> implements Serializable {
         this.errorCode = errorCode.getErrorCode();
         this.errorMessage = errorCode.getErrorMsg();
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 
@@ -89,7 +89,7 @@ public class R<T> implements Serializable {
         this.success = (code == HttpStatus.HTTP_OK);
         this.result = result;
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 
@@ -101,7 +101,7 @@ public class R<T> implements Serializable {
         this.errorCode = iBaseErrorCode.getErrorCode();
         this.errorMessage = iBaseErrorCode.getErrorMsg();
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 
@@ -111,7 +111,7 @@ public class R<T> implements Serializable {
         this.success = (code == HttpStatus.HTTP_OK);
         this.result = result;
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 
@@ -122,7 +122,7 @@ public class R<T> implements Serializable {
         this.errorCode = iBaseErrorCode.getErrorCode();
         this.errorMessage = iBaseErrorCode.getErrorMsg();
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 
@@ -131,7 +131,7 @@ public class R<T> implements Serializable {
         this.message = httpCode.getMessage();
         this.success = (code == HttpStatus.HTTP_OK);
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 
@@ -141,7 +141,7 @@ public class R<T> implements Serializable {
         this.success = (code == HttpStatus.HTTP_OK);
         this.errorMessage = errorMessage;
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 
@@ -152,7 +152,7 @@ public class R<T> implements Serializable {
         this.errorMessage = errorMessage;
         this.errorCode = errorCode;
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 
@@ -164,7 +164,7 @@ public class R<T> implements Serializable {
         this.errorMessage = errorMessage;
         this.errorCode = errorCode;
         Map<String, Object> extra = new HashMap<>();
-        extra.put("traceId", RequestLocalContextHolder.traceId());
+        extra.put("traceId", TraceContextUtils.getTraceId());
         this.extra = extra;
     }
 

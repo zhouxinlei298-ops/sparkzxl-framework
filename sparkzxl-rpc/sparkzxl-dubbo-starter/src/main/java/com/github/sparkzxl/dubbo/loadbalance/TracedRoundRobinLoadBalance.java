@@ -3,11 +3,10 @@ package com.github.sparkzxl.dubbo.loadbalance;
 import cn.hutool.core.util.IdUtil;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.sparkzxl.core.context.RequestLocalContextHolder;
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
  * 实现同一请求的多次调用尽可能分散到不同机器和网段，提高容灾能力。
  * <p>
  * 算法流程：
- * 1. 从 {@link RequestLocalContextHolder} 提取 traceId（已由 RequestContextFilter 通过 Dubbo attachments 传播）
+ * 1. 通过 {@link TraceContextUtils} 提取 traceId（基于 OTel Span）
  * 2. 随机打乱 invoker 列表，避免固定顺序导致的热点问题
  * 3. 按"未调用过的 IP 优先 → 未调用过的网段优先"两级排序
  * 4. 选择排序后的第一个 invoker，并记录其 IP 和网段到 Caffeine 缓存（3 分钟 TTL）
@@ -74,11 +73,11 @@ public class TracedRoundRobinLoadBalance extends AbstractLoadBalance {
     }
 
     private String getTraceId() {
-        String traceId = RequestLocalContextHolder.traceId();
-        if (StringUtils.isEmpty(traceId) || "N/A".equals(traceId)) {
-            return IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
+        String traceId = TraceContextUtils.getTraceId(null);
+        if (traceId != null) {
+            return traceId;
         }
-        return traceId;
+        return IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
     }
 
     private <T> Invoker<T> selectByTraceId(String traceId, List<Invoker<T>> invokers) {

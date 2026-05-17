@@ -23,13 +23,7 @@ public class TraceFeignRequestInterceptor implements RequestInterceptor {
 
     @Override
     public void apply(RequestTemplate template) {
-        // 始终传播 traceId
-        String traceId = RequestLocalContextHolder.traceId();
-        if (StrUtil.isNotEmpty(traceId) && !"N/A".equals(traceId)) {
-            template.header("traceId", URLUtil.encode(traceId, StandardCharsets.UTF_8));
-        }
-
-        // 传播可配置的上下文参数
+        // 传播业务上下文参数（traceId 由 OTel Agent 自动传播 W3C traceparent）
         HttpServletRequest servletRequest = RequestContextHelper.getHttpServletRequestOrNull();
         for (String headerName : traceProperties.getPropagateHeaders()) {
             String headerValue = resolveValue(servletRequest, headerName);

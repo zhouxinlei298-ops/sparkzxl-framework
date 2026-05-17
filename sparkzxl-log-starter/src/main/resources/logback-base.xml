@@ -5,12 +5,11 @@
 
     <!-- 日志格式 -->
     <springProperty scope="context" name="COMMON_PATTERN_COLOR" source="logging.console-pattern"
-                    defaultValue="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} [%X{tid}] %clr([tenantId: %X{tenantId:-N/A}]){yellow} %highlight([${LOG_LEVEL_PATTERN:-%5p}]) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t:%r]){faint} %clr(%-40.40logger{15}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+                    defaultValue="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} [%X{trace_id}] %clr([tenantId: %X{tenantId:-N/A}]){yellow} %highlight([${LOG_LEVEL_PATTERN:-%5p}]) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t:%r]){faint} %clr(%-40.40logger{15}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
     <springProperty scope="context" name="FILE_PATTERN" source="logging.file-pattern"
-                    defaultValue="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{tid}] [tenantId: %X{tenantId:-N/A}] [${LOG_LEVEL_PATTERN:-%5p}] ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+                    defaultValue="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} [%X{trace_id}] [tenantId: %X{tenantId:-N/A}] [${LOG_LEVEL_PATTERN:-%5p}] ${PID:- } [%-40.40logger{15}] : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
 
     <!-- 公共属性 -->
-    <springProperty scope="context" name="traceType" source="sparkzxl.trace.type" defaultValue="local"/>
     <springProperty name="springAppName" scope="context" source="spring.application.name" defaultValue="application"/>
     <springProperty name="logHome" scope="context" source="logging.file.path" defaultValue="${user.home}/logs"/>
     <springProperty name="enableBizPoint" scope="context" source="logging.enable-biz-point" defaultValue="true"/>
@@ -23,8 +22,7 @@
             <level>${CONSOLE_LOG_THRESHOLD}</level>
         </filter>
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
-            <layout class="com.github.sparkzxl.log.layout.ConditionalTraceLayout">
-                <traceType>${traceType}</traceType>
+            <layout class="ch.qos.logback.classic.PatternLayout">
                 <pattern>${COMMON_PATTERN_COLOR}</pattern>
             </layout>
             <charset>${CONSOLE_LOG_CHARSET}</charset>
@@ -35,6 +33,23 @@
         <discardingThreshold>0</discardingThreshold>
         <queueSize>256</queueSize>
         <appender-ref ref="CONSOLE_APPENDER"/>
+    </appender>
+
+    <!-- OpenTelemetry Logback Appender (日志导出到 Collector) -->
+    <appender name="OTEL_APPENDER"
+              class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <captureMdcAttributes>*</captureMdcAttributes>
+    </appender>
+
+    <!-- OTel MDC 注入 Wrapper：自动注入 trace_id/span_id/trace_flags 到 MDC -->
+    <appender name="OTEL_MDC_APPENDER"
+              class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
+        <appender-ref ref="ASYNC_CONSOLE_APPENDER"/>
+        <appender-ref ref="ASYNC_FILE_APPENDER"/>
+        <appender-ref ref="ASYNC_ALARM_APPENDER"/>
+        <appender-ref ref="SCHEDULE_JOB_LOG_APPENDER"/>
+        <appender-ref ref="ASYNC_ALIYUN_SLS_LOG_APPENDER"/>
+        <appender-ref ref="OTEL_APPENDER"/>
     </appender>
 
     <!-- 可选 Appender 模块 -->

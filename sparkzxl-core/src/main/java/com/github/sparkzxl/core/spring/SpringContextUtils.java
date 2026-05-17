@@ -3,9 +3,8 @@ package com.github.sparkzxl.core.spring;
 import cn.hutool.core.util.ArrayUtil;
 import java.util.Map;
 
-import com.github.sparkzxl.core.trace.TraceIdContext;
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import lombok.Getter;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -144,11 +143,7 @@ public class SpringContextUtils implements ApplicationContextAware {
      * @since 5.3.3
      */
     public static String getTraceId() {
-        TraceIdContext traceIdContext = applicationContext.getBean(TraceIdContext.class);
-        if (ObjectUtils.isNotEmpty(traceIdContext)) {
-            return traceIdContext.getTraceId();
-        }
-        return "";
+        return TraceContextUtils.getTraceId("");
     }
 
 }

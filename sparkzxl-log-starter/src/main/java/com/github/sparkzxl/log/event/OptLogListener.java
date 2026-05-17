@@ -6,7 +6,6 @@ import com.github.sparkzxl.log.entity.OptRecordLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.skywalking.apm.toolkit.trace.ConsumerWrapper;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 
@@ -39,7 +38,7 @@ public class OptLogListener {
                     optRecordLog.getTenantId(), optRecordLog.getRequestUrl(), optRecordLog.getOperator(),
                     optRecordLog.getCategory(), optRecordLog.getDetail());
         }
-        ConsumerWrapper.of(consumer).accept(optRecordLog);
+        consumer.accept(optRecordLog);
     }
 
 }

@@ -1,8 +1,7 @@
 package com.github.sparkzxl.trace.filter;
 
-import com.github.sparkzxl.core.constant.BaseContextConstants;
+
 import com.github.sparkzxl.trace.properties.TraceProperties;
-import com.github.sparkzxl.trace.provider.ReactiveTraceIdProvider;
 import org.slf4j.MDC;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -15,24 +14,17 @@ import java.util.List;
 
 public class GatewayTraceFilter implements GlobalFilter, Ordered {
 
-    private final ReactiveTraceIdProvider reactiveTraceIdProvider;
     private final TraceProperties traceProperties;
 
-    public GatewayTraceFilter(ReactiveTraceIdProvider reactiveTraceIdProvider, TraceProperties traceProperties) {
-        this.reactiveTraceIdProvider = reactiveTraceIdProvider;
+    public GatewayTraceFilter(TraceProperties traceProperties) {
         this.traceProperties = traceProperties;
     }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String traceId = reactiveTraceIdProvider.traceId(exchange);
-        MDC.put(BaseContextConstants.LOG_TRACE_ID, traceId);
-
-        ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate()
-                .header(BaseContextConstants.TRACE_ID_HEADER, traceId);
-
-        // 传播上下文参数
+        // 传播上下文参数（traceId 由 OTel MDC Appender 自动注入，不含 traceId）
         List<String> propagateHeaders = traceProperties.getPropagateHeaders();
+        ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate();
         for (String headerName : propagateHeaders) {
             List<String> values = exchange.getRequest().getHeaders().get(headerName);
             if (values != null && !values.isEmpty()) {
@@ -49,7 +41,6 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
 
         return chain.filter(mutatedExchange)
                 .contextWrite(ctx -> {
-                    ctx = ctx.put(BaseContextConstants.LOG_TRACE_ID, traceId);
                     for (String headerName : propagateHeaders) {
                         List<String> values = exchange.getRequest().getHeaders().get(headerName);
                         if (values != null && !values.isEmpty()) {
@@ -59,8 +50,6 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
                     return ctx;
                 })
                 .doOnEach(signal -> {
-                    String signalTraceId = signal.getContextView().getOrDefault(BaseContextConstants.LOG_TRACE_ID, "N/A");
-                    MDC.put(BaseContextConstants.LOG_TRACE_ID, signalTraceId);
                     for (String headerName : propagateHeaders) {
                         String val = signal.getContextView().getOrDefault(headerName, "");
                         if (val != null && !val.isEmpty()) {

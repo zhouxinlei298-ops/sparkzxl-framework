@@ -6,8 +6,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxy;
 import com.github.sparkzxl.alarm.entity.AlarmRequest;
-import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.github.sparkzxl.log.AlarmLogContext;
 import com.github.sparkzxl.log.entity.AlarmLogInfo;
 import com.github.sparkzxl.log.queue.AlarmTaskInfo;
@@ -50,7 +50,7 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
         if (Objects.nonNull(throwableProxy)) {
             AlarmRequest alarmRequest = new AlarmRequest();
             alarmRequest.setTitle("服务系统异常告警");
-            String traceId = MDC.get(BaseContextConstants.LOG_TRACE_ID);
+            String traceId = TraceContextUtils.getTraceId();
             String applicationName = SpringContextUtils.getApplicationName();
             String environment = SpringContextUtils.getEnvironment();
             Throwable throwable = throwableProxy.getThrowable();
@@ -80,7 +80,7 @@ public class AlarmLogLogbackAsyncAppender extends AsyncAppender {
                 if (callerData != null && callerData.length > 0) {
                     AlarmRequest alarmRequest = new AlarmRequest();
                     alarmRequest.setTitle("服务系统异常告警");
-                    String traceId = MDC.get(BaseContextConstants.LOG_TRACE_ID);
+                    String traceId = TraceContextUtils.getTraceId();
                     String applicationName = SpringContextUtils.getApplicationName();
                     String environment = SpringContextUtils.getEnvironment();
                     AlarmLogInfo alarmLogInfo = AlarmLogInfo.builder()

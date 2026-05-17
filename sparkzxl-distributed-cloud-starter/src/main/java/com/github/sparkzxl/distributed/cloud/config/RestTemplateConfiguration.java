@@ -3,14 +3,6 @@ package com.github.sparkzxl.distributed.cloud.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.sparkzxl.distributed.cloud.http.RestTemplateHeaderInterceptor;
-import com.github.sparkzxl.trace.interceptor.TraceRestTemplateHeaderInterceptor;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -25,6 +17,12 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * description: RestTemplate 相关的配置

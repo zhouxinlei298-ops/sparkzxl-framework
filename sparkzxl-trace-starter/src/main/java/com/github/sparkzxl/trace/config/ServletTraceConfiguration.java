@@ -1,6 +1,7 @@
 package com.github.sparkzxl.trace.config;
 
 import com.github.sparkzxl.trace.filter.ServletMdcFilter;
+import com.github.sparkzxl.trace.properties.TraceProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -12,9 +13,9 @@ import org.springframework.core.Ordered;
 class ServletTraceConfiguration {
 
     @Bean
-    public FilterRegistrationBean<ServletMdcFilter> servletMdcFilter() {
+    public FilterRegistrationBean<ServletMdcFilter> servletMdcFilter(TraceProperties traceProperties) {
         FilterRegistrationBean<ServletMdcFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new ServletMdcFilter());
+        registration.setFilter(new ServletMdcFilter(traceProperties));
         registration.addUrlPatterns("/*");
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         registration.setName("servletMdcFilter");
