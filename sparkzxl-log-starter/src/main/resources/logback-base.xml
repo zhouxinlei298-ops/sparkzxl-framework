@@ -40,6 +40,7 @@
     <include resource="logback-appender-aliyun.xml"/>
     <include resource="logback-appender-file.xml"/>
     <include resource="logback-appender-job.xml"/>
+    <include resource="logback-appender-opentelemetry.xml"/>
 
     <!-- Logger 级别配置 -->
     <include resource="logback-loggers.xml"/>
