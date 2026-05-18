@@ -30,7 +30,7 @@ public class ServletMdcFilter extends OncePerRequestFilter implements Ordered {
         try {
             RequestLocalContextHolder.set(BaseContextConstants.RPC_TYPE, RpcType.HTTP.getCode());
 
-            MDC.put("trace_id", TraceContextUtils.getTraceId());
+            MDC.put(BaseContextConstants.TRACE_ID, TraceContextUtils.getTraceId());
 
             List<String> propagateHeaders = traceProperties.getPropagateHeaders();
             for (String headerName : propagateHeaders) {

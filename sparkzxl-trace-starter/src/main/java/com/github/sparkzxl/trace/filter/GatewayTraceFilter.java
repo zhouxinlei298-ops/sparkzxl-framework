@@ -1,5 +1,6 @@
 package com.github.sparkzxl.trace.filter;
 
+import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.github.sparkzxl.trace.properties.TraceProperties;
 import org.slf4j.MDC;
@@ -23,7 +24,7 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String traceId = TraceContextUtils.getTraceId();
-        MDC.put("trace_id", traceId);
+        MDC.put(BaseContextConstants.TRACE_ID, traceId);
 
         List<String> propagateHeaders = traceProperties.getPropagateHeaders();
         ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate();
@@ -43,7 +44,7 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
 
         return chain.filter(mutatedExchange)
                 .contextWrite(ctx -> {
-                    ctx = ctx.put("trace_id", traceId);
+                    ctx = ctx.put(BaseContextConstants.TRACE_ID, traceId);
                     for (String headerName : propagateHeaders) {
                         List<String> values = exchange.getRequest().getHeaders().get(headerName);
                         if (values != null && !values.isEmpty()) {
@@ -53,8 +54,8 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
                     return ctx;
                 })
                 .doOnEach(signal -> {
-                    String signalTraceId = signal.getContextView().getOrDefault("trace_id", "N/A");
-                    MDC.put("trace_id", signalTraceId);
+                    String signalTraceId = signal.getContextView().getOrDefault(BaseContextConstants.TRACE_ID, "N/A");
+                    MDC.put(BaseContextConstants.TRACE_ID, signalTraceId);
                     for (String headerName : propagateHeaders) {
                         String val = signal.getContextView().getOrDefault(headerName, "");
                         if (val != null && !val.isEmpty()) {
