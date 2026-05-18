@@ -16,5 +16,10 @@
             <groupId>com.github.sparkzxl</groupId>
             <artifactId>sparkzxl-gateway-plugin-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.github.sparkzxl</groupId>
+            <artifactId>sparkzxl-trace-starter</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 </project>

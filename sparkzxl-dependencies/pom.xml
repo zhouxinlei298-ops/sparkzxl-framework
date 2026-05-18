@@ -41,7 +41,6 @@
         <druid.version>1.2.25</druid.version>
         <hikaricp.version>7.0.1</hikaricp.version>
         <p6spy.version>3.9.1</p6spy.version>
-        <logstash.version>8.1</logstash.version>
         <vavr.version>1.0.1</vavr.version>
 
         <!-- common组件-->
@@ -59,7 +58,7 @@
 
         <elasticsearch.version>7.17.1</elasticsearch.version>
         <lombok.version>1.18.38</lombok.version>
-        <apm-toolkit-trace.version>9.5.0</apm-toolkit-trace.version>
+        <opentelemetry.version>1.45.0</opentelemetry.version>
         <ip2region.version>2.6.5</ip2region.version>
         <caffeine.version>2.9.3</caffeine.version>
         <fastjson.version>1.2.83</fastjson.version>
@@ -306,11 +305,6 @@
                 <version>${mybatis.version}</version>
             </dependency>
             <dependency>
-                <groupId>net.logstash.logback</groupId>
-                <artifactId>logstash-logback-encoder</artifactId>
-                <version>${logstash.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-api</artifactId>
                 <version>${log4j.version}</version>
@@ -418,21 +412,11 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-            <!-- skywalking-apm-toolkit-logback-1.x -->
+            <!-- OpenTelemetry -->
             <dependency>
-                <groupId>org.apache.skywalking</groupId>
-                <artifactId>apm-toolkit-logback-1.x</artifactId>
-                <version>${apm-toolkit-trace.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.skywalking</groupId>
-                <artifactId>apm-toolkit-trace</artifactId>
-                <version>${apm-toolkit-trace.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.skywalking</groupId>
-                <artifactId>apm-toolkit-webflux</artifactId>
-                <version>${apm-toolkit-trace.version}</version>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-api</artifactId>
+                <version>${opentelemetry.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.lionsoul</groupId>
@@ -580,6 +564,11 @@
             <dependency>
                 <groupId>com.github.sparkzxl</groupId>
                 <artifactId>sparkzxl-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.sparkzxl</groupId>
+                <artifactId>sparkzxl-trace-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -17,6 +17,10 @@
         </dependency>
         <dependency>
             <groupId>com.github.sparkzxl</groupId>
+            <artifactId>sparkzxl-trace-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.sparkzxl</groupId>
             <artifactId>sparkzxl-mybatis-starter</artifactId>
         </dependency>
         <dependency>

@@ -28,38 +28,42 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Slf4j
 public class RestTemplateHeaderInterceptor implements ClientHttpRequestInterceptor {
 
-    public static final List<String> HEADER_NAME_LIST = Arrays.asList(
+    private static final Set<String> PROPAGATE_HEADERS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             BaseContextConstants.TENANT_ID,
             BaseContextConstants.JWT_KEY_USER_ID,
             BaseContextConstants.JWT_KEY_ACCOUNT,
             BaseContextConstants.JWT_KEY_NAME,
             BaseContextConstants.VERSION,
-            BaseContextConstants.TRACE_ID_HEADER,
-            BaseContextConstants.JWT_TOKEN_HEADER, "X-Real-IP",
-            com.google.common.net.HttpHeaders.X_FORWARDED_FOR
-    );
+            BaseContextConstants.JWT_TOKEN_HEADER,
+            "zone",
+            "X-Real-IP",
+            HttpHeaders.X_FORWARDED_FOR
+    )));
 
     @Override
     public ClientHttpResponse intercept(HttpRequest request, byte[] bytes,
-            ClientHttpRequestExecution execution) throws IOException {
-
-        HttpHeaders httpHeaders = request.getHeaders();
-
-        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        if (requestAttributes == null) {
-            HEADER_NAME_LIST.forEach((headerName) -> httpHeaders.add(headerName, RequestLocalContextHolder.get(headerName)));
+                                        ClientHttpRequestExecution execution) throws IOException {
+        HttpServletRequest servletRequest = RequestContextHelper.getHttpServletRequestOrNull();
+        if (servletRequest == null) {
+            PROPAGATE_HEADERS.forEach(headerName -> {
+                String headerValue = RequestLocalContextHolder.get(headerName);
+                if (StrUtil.isNotEmpty(headerValue)) {
+                    request.getHeaders().add(headerName, URLUtil.encode(headerValue, StandardCharsets.UTF_8));
+                }
+            });
             return execution.execute(request, bytes);
         }
-
-        HttpServletRequest httpServletRequest = ((ServletRequestAttributes) requestAttributes).getRequest();
-        if (httpServletRequest == null) {
-            log.warn("path={}, 在FeignClient API接口未配置FeignConfiguration类， 故而无法在远程调用时获取请求头中的参数!", request.getURI());
-            return execution.execute(request, bytes);
-        }
-        HEADER_NAME_LIST.forEach((headerName) -> {
-            String header = httpServletRequest.getHeader(headerName);
-            httpHeaders.add(headerName, StringUtils.isEmpty(header) ? RequestLocalContextHolder.get(headerName) : header);
-        });
+        PROPAGATE_HEADERS.forEach(headerName -> resolveAndEncodeHeader(servletRequest, request, headerName));
         return execution.execute(request, bytes);
+    }
+
+    private void resolveAndEncodeHeader(HttpServletRequest servletRequest, HttpRequest request, String headerName) {
+        String headerValue = HttpRequestUtils.getHeader(servletRequest, headerName);
+        if (StrUtil.isEmpty(headerValue)) {
+            headerValue = RequestLocalContextHolder.get(headerName);
+        }
+        if (StrUtil.isNotEmpty(headerValue)) {
+            request.getHeaders().add(headerName, URLUtil.encode(headerValue, StandardCharsets.UTF_8));
+        }
     }
 }

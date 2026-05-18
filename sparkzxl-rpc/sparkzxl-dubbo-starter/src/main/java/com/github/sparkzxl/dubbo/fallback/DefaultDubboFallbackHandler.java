@@ -3,6 +3,7 @@ package com.github.sparkzxl.dubbo.fallback;
 import com.github.sparkzxl.core.support.code.ExceptionErrorCode;
 import com.github.sparkzxl.dubbo.support.RpcFallbackException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.rpc.*;
 
 /**
@@ -31,30 +32,31 @@ public enum DefaultDubboFallbackHandler implements DubboFallbackHandler {
         String errorCode;
         String message;
 
-        switch (exception.getCode()) {
-            case RpcException.FORBIDDEN_EXCEPTION:
-                if (exception.getMessage() != null && exception.getMessage().contains("No provider available")) {
-                    errorCode = ExceptionErrorCode.OPEN_SERVICE_UNAVAILABLE.getErrorCode();
-                    message = "服务接口" + interfaceMethodName + "不可用";
-                    break;
-                }
-            case RpcException.TIMEOUT_EXCEPTION:
-                errorCode = ExceptionErrorCode.TIME_OUT_ERROR.getErrorCode();
-                message = "服务接口" + interfaceMethodName + "调用超时";
-                break;
-            case RpcException.NETWORK_EXCEPTION:
-                errorCode = ExceptionErrorCode.FAILURE.getErrorCode();
-                message = "服务接口" + interfaceMethodName + "网络异常";
-                break;
-            default:
+        if (exception.isTimeout()) {
+            errorCode = ExceptionErrorCode.TIME_OUT_ERROR.getErrorCode();
+            message = "服务接口" + interfaceMethodName + "调用超时";
+        } else if (exception.isNetwork()) {
+            errorCode = ExceptionErrorCode.FAILURE.getErrorCode();
+            message = "服务接口" + interfaceMethodName + "网络异常";
+        } else if (exception.isLimitExceed()) {
+            errorCode = ExceptionErrorCode.SYSTEM_BLOCK.getErrorCode();
+            message = "服务接口" + interfaceMethodName + "繁忙";
+        } else if (exception.isNoInvokerAvailableAfterFilter()) {
+            errorCode = ExceptionErrorCode.OPEN_SERVICE_UNAVAILABLE.getErrorCode();
+            message = "服务接口" + interfaceMethodName + "无可用提供者";
+        } else {
+            if (StringUtils.contains(exception.getMessage(),"No provider available")) {
+                errorCode = ExceptionErrorCode.OPEN_SERVICE_UNAVAILABLE.getErrorCode();
+                message = "服务接口" + interfaceMethodName + "不可用";
+            } else {
                 errorCode = ExceptionErrorCode.RPC_SERVICE_EXCEPTION.getErrorCode();
                 message = "服务接口" + interfaceMethodName + "调用异常";
+            }
         }
-
         log.error("[服务降级]  接口方法: {},  错误码: {}, 错误: {}",
                 interfaceMethodName, errorCode, exception.getMessage());
 
-        RpcFallbackException fallbackException = new RpcFallbackException(errorCode, message + "，请稍后重试");
+        RpcFallbackException fallbackException = new RpcFallbackException(errorCode, message);
         return AsyncRpcResult.newDefaultAsyncResult(null, fallbackException, invocation);
     }
 }

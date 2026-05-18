@@ -62,15 +62,16 @@ public class RestTemplateConfiguration {
     @Bean("lbRestTemplate")
     @LoadBalanced
     @ConditionalOnMissingBean(name = "lbRestTemplate")
-    public RestTemplate lbRestTemplate(RestTemplateHeaderInterceptor interceptor) {
+    public RestTemplate lbRestTemplate(List<ClientHttpRequestInterceptor> interceptors) {
         RestTemplate lbRestTemplate = new RestTemplate(httpClientComponentsClientHttpRequestFactory());
-        lbRestTemplate.setInterceptors(Collections.singletonList(interceptor));
+        lbRestTemplate.setInterceptors(interceptors);
         configMessageConverters(lbRestTemplate.getMessageConverters());
         return lbRestTemplate;
     }
 
     /**
-     * RestTemplate Header 拦截器
+     * RestTemplate
+     * 普通的 RestTemplate，不透传请求头，一般只做外部 http 调用
      */
     @Bean
     @ConditionalOnMissingBean(RestTemplateHeaderInterceptor.class)

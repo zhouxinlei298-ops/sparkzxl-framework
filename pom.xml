@@ -56,6 +56,7 @@
         <module>sparkzxl-mongodb-starter</module>
         <module>sparkzxl-patterns-starter</module>
         <module>sparkzxl-rpc</module>
+        <module>sparkzxl-trace-starter</module>
         <module>sparkzxl-sentinel-starter</module>
         <module>sparkzxl-sms-starter</module>
         <module>sparkzxl-spi</module>

@@ -5,6 +5,7 @@ import com.github.sparkzxl.core.context.RequestLocalContextHolder;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.util.AopUtil;
 import com.github.sparkzxl.core.util.ArgumentAssert;
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.github.sparkzxl.core.context.RequestContextHelper;
 import com.github.sparkzxl.core.util.NetworkUtil;
 import com.github.sparkzxl.log.annotation.OptLogRecord;
@@ -74,7 +75,7 @@ public class OptLogRecordInterceptor implements MethodInterceptor {
                 .setOperator(name)
                 .setStartTime(LocalDateTime.now())
                 .setTenantId(RequestLocalContextHolder.getTenantId())
-                .setTraceId(RequestLocalContextHolder.traceId());
+                .setTraceId(TraceContextUtils.getTraceId());
         Object proceed;
         try {
             proceed = invocation.proceed();

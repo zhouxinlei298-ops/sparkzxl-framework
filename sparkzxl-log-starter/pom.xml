@@ -20,24 +20,12 @@
             <artifactId>sparkzxl-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-logging</artifactId>
         </dependency>
         <dependency>
             <groupId>org.codehaus.janino</groupId>
             <artifactId>janino</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.skywalking</groupId>
-            <artifactId>apm-toolkit-logback-1.x</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.skywalking</groupId>
-            <artifactId>apm-toolkit-trace</artifactId>
         </dependency>
         <!-- logback-kafka-appender -->
         <dependency>
@@ -48,7 +36,7 @@
             <groupId>com.github.sparkzxl</groupId>
             <artifactId>sparkzxl-alarm-core</artifactId>
         </dependency>
-        <!-- 阿里云日志sls依赖-->
+        <!-- 阿里云日志sls依赖 -->
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>

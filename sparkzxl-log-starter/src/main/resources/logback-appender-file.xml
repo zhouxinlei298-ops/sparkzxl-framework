@@ -19,8 +19,7 @@
             <totalSizeCap>${totalSizeCap}</totalSizeCap>
         </rollingPolicy>
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
-            <layout class="com.github.sparkzxl.log.layout.ConditionalTraceLayout">
-                <traceType>${traceType}</traceType>
+            <layout class="ch.qos.logback.classic.PatternLayout">
                 <pattern>${FILE_PATTERN}</pattern>
             </layout>
             <charset>${CONSOLE_LOG_CHARSET}</charset>

@@ -3,7 +3,6 @@ package com.github.sparkzxl.gateway.plugin.autoconfigure;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.gateway.plugin.annotation.EnableExceptionJsonHandler;
 import com.github.sparkzxl.gateway.plugin.core.filter.GatewayContextFilter;
-import com.github.sparkzxl.gateway.plugin.core.filter.MDCFilter;
 import com.github.sparkzxl.gateway.plugin.core.resolver.ForwardedRemoteAddressResolver;
 import com.github.sparkzxl.gateway.plugin.jwt.JwtFilter;
 import com.github.sparkzxl.gateway.properties.GatewayPluginProperties;
@@ -27,11 +26,6 @@ import org.springframework.context.annotation.Import;
 @Import(SpringContextUtils.class)
 @EnableExceptionJsonHandler
 public class GatewayPluginAutoConfig {
-
-    @Bean(name = "mdcFilter")
-    public GlobalFilter mdcFilter() {
-        return new MDCFilter();
-    }
 
     @Bean
     @ConditionalOnMissingBean(RemoteAddressResolver.class)

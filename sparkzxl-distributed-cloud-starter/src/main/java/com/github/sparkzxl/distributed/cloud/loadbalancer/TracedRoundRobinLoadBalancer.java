@@ -22,14 +22,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
- * description: 改进负载均衡算法（移除CircuitBreaker相关逻辑）
+ * 基于请求链路追踪的负载均衡器，配合 {@link SameZoneOnlyServiceInstanceListSupplier} 实现同 Zone 智能路由。
  * <p>
- * 思路： 针对每次请求，记录：
- * 1. 本次请求已经调用过哪些实例 -> 请求调用过的实例缓存
- * 2. 随机将实例列表打乱，防止在指标相同时总是调用同一个实例
- * 3. 按照“未调用过的实例优先 -> 未调用过的网段优先”排序
- * 4. 取排序后的第一个实例作为本次负载均衡结果
+ * 核心思路：以 traceId 为维度追踪每个请求已调用的 IP 和网段，在重试场景下优先选择未调用过的实例，
+ * 实现同一请求的多次调用尽可能分散到不同机器和网段，提高容灾能力。
  * <p>
+ * 算法流程：
+ * 1. 从请求 Header 中提取 traceId，无则生成唯一标识
+ * 2. 随机打乱实例列表，避免固定顺序导致的热点问题
+ * 3. 按”未调用过的 IP 优先 → 未调用过的网段优先”两级排序
+ * 4. 选择排序后的第一个实例，并记录其 IP 和网段到 Caffeine 缓存（3 分钟 TTL）
+ * 5. 使用 traceId 级别的细粒度锁（{@link #traceLocks}），确保同一请求的排序+选择+记录是原子操作
  *
  * @author zhouxinlei
  * @since 2022-12-01 10:10:16
@@ -57,8 +60,13 @@ public class TracedRoundRobinLoadBalancer implements ReactorServiceInstanceLoadB
             .expireAfterAccess(3, TimeUnit.MINUTES)
             .build(k -> Sets.newConcurrentHashSet());
 
-    private ServiceInstanceListSupplier serviceInstanceListSupplier;
-    private String serviceId;
+    // 每个 traceId 的锁，确保同一请求的排序+选择+记录是原子操作
+    private final LoadingCache<String, Object> traceLocks = Caffeine.newBuilder()
+            .expireAfterAccess(3, TimeUnit.MINUTES)
+            .build(k -> new Object());
+
+    private final ServiceInstanceListSupplier serviceInstanceListSupplier;
+    private final String serviceId;
 
     public TracedRoundRobinLoadBalancer(
             ServiceInstanceListSupplier serviceInstanceListSupplier,
@@ -67,13 +75,6 @@ public class TracedRoundRobinLoadBalancer implements ReactorServiceInstanceLoadB
         this.serviceId = serviceId;
     }
 
-    public void setServiceInstanceListSupplier(ServiceInstanceListSupplier serviceInstanceListSupplier) {
-        this.serviceInstanceListSupplier = serviceInstanceListSupplier;
-    }
-
-    public void setServiceId(String serviceId) {
-        this.serviceId = serviceId;
-    }
 
     @Override
     public Mono<Response<ServiceInstance>> choose(Request request) {
@@ -83,7 +84,7 @@ public class TracedRoundRobinLoadBalancer implements ReactorServiceInstanceLoadB
 
     private Response<ServiceInstance> getInstanceResponse(List<ServiceInstance> serviceInstances, Request request) {
         if (serviceInstances.isEmpty()) {
-            log.warn("No servers available for service: " + this.serviceId);
+            log.warn("No servers available for service: {}", this.serviceId);
             return new EmptyResponse();
         }
         // 去重实例列表
@@ -96,8 +97,8 @@ public class TracedRoundRobinLoadBalancer implements ReactorServiceInstanceLoadB
     /**
      * 从请求中获取唯一标识traceId
      *
-     * @param request
-     * @return
+     * @param request request
+     * @return  String
      */
     private String getTraceIdFromRequest(Request request) {
         // 示例：若Request是HttpRequest，可从header获取；此处简化为UUID
@@ -108,50 +109,55 @@ public class TracedRoundRobinLoadBalancer implements ReactorServiceInstanceLoadB
 
         String traceId = context.getClientRequest().getHeaders().getFirst(BaseContextConstants.TRACE_ID_HEADER);
         if (StringUtils.isEmpty(traceId)) {
-            return traceId = IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
+            return IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
         }
         return traceId;
     }
 
     public Response<ServiceInstance> getInstanceResponseByRoundRobin(String traceId, List<ServiceInstance> serviceInstances) {
-        // 随机打乱实例列表，避免固定顺序
-        Collections.shuffle(serviceInstances);
+        // 使用 traceId 级别的锁，确保同一请求的排序+选择+记录是原子操作
+        // 不同 traceId 之间互不影响，不会成为全局瓶颈
+        Object lock = traceLocks.get(traceId);
+        synchronized (lock != null ? lock : new Object()) {
+            // 随机打乱实例列表，避免固定顺序
+            Collections.shuffle(serviceInstances);
 
-        // 缓存排序参数，避免比较器多次计算
-        Map<ServiceInstance, Integer> usedFlags = Maps.newHashMap();
+            // 缓存排序参数，避免比较器多次计算
+            Map<ServiceInstance, Integer> usedFlags = Maps.newHashMap();
 
-        // 排序逻辑：未调用过的IP优先 -> 未调用过的网段优先
-        List<ServiceInstance> sortedInstances = serviceInstances.stream()
-                .sorted(Comparator
-                        // 已调用过的IP排后面（0：未调用，1：已调用）
-                        .<ServiceInstance>comparingInt(instance ->
-                                usedFlags.computeIfAbsent(instance, k ->
-                                        calledIps.get(traceId).contains(instance.getHost()) ? 1 : 0))
-                        // 已调用过的网段排后面（0：未调用，1：已调用）
-                        .thenComparingInt(instance ->
-                                usedFlags.computeIfAbsent(instance, k -> {
-                                    String ipPrefix = getIpPrefix(instance.getHost());
-                                    return calledIpPrefixes.get(traceId).contains(ipPrefix) ? 1 : 0;
-                                }))
-                ).collect(Collectors.toList());
+            // 排序逻辑：未调用过的IP优先 -> 未调用过的网段优先
+            List<ServiceInstance> sortedInstances = serviceInstances.stream()
+                    .sorted(Comparator
+                            // 已调用过的IP排后面（0：未调用，1：已调用）
+                            .<ServiceInstance>comparingInt(instance ->
+                                    usedFlags.computeIfAbsent(instance, k ->
+                                            calledIps.get(traceId).contains(instance.getHost()) ? 1 : 0))
+                            // 已调用过的网段排后面（0：未调用，1：已调用）
+                            .thenComparingInt(instance ->
+                                    usedFlags.computeIfAbsent(instance, k -> {
+                                        String ipPrefix = getIpPrefix(instance.getHost());
+                                        return calledIpPrefixes.get(traceId).contains(ipPrefix) ? 1 : 0;
+                                    }))
+                    ).collect(Collectors.toList());
 
-        if (sortedInstances.isEmpty()) {
-            log.warn("No available instances for service: " + serviceId);
-            return new EmptyResponse();
+            if (sortedInstances.isEmpty()) {
+                log.warn("No available instances for service: " + serviceId);
+                return new EmptyResponse();
+            }
+
+            // 选择排序后的第一个实例
+            ServiceInstance selectedInstance = sortedInstances.get(0);
+            log.info("Selected instance for request [{}]: {}:{}", traceId, selectedInstance.getHost(), selectedInstance.getPort());
+
+            // 记录本次调用的IP和网段（用于后续请求排序）
+            calledIps.get(traceId).add(selectedInstance.getHost());
+            calledIpPrefixes.get(traceId).add(getIpPrefix(selectedInstance.getHost()));
+
+            // 兼容原有计数逻辑
+            positionCache.get(traceId).getAndIncrement();
+
+            return new DefaultResponse(selectedInstance);
         }
-
-        // 选择排序后的第一个实例
-        ServiceInstance selectedInstance = sortedInstances.get(0);
-        log.info("Selected instance for request [{}]: {}:{}", traceId, selectedInstance.getHost(), selectedInstance.getPort());
-
-        // 记录本次调用的IP和网段（用于后续请求排序）
-        calledIps.get(traceId).add(selectedInstance.getHost());
-        calledIpPrefixes.get(traceId).add(getIpPrefix(selectedInstance.getHost()));
-
-        // 兼容原有计数逻辑
-        positionCache.get(traceId).getAndIncrement();
-
-        return new DefaultResponse(selectedInstance);
     }
 
     /**
