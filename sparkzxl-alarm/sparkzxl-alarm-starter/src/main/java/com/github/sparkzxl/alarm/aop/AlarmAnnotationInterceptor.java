@@ -11,15 +11,16 @@ import com.github.sparkzxl.alarm.provider.AlarmTemplateProvider;
 import com.github.sparkzxl.alarm.send.AlarmClient;
 import com.github.sparkzxl.core.spring.SpringContextUtils;
 import com.github.sparkzxl.core.util.ArgumentAssert;
-import java.util.Map;
-import java.util.Objects;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.aop.framework.AopProxyUtils;
+
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * description: 告警AOP拦截器

@@ -14,7 +14,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dubbo.version>3.3.5</dubbo.version>
-        <javax.el.version>3.0.1-b12</javax.el.version>
         <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
         <validation-api.version>3.1.1</validation-api.version>
     </properties>
