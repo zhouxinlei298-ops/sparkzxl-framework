@@ -3,11 +3,10 @@ package com.github.sparkzxl.distributed.cloud.loadbalancer;
 import cn.hutool.core.util.IdUtil;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.sparkzxl.core.constant.BaseContextConstants;
+import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.*;
@@ -94,24 +93,12 @@ public class TracedRoundRobinLoadBalancer implements ReactorServiceInstanceLoadB
         return getInstanceResponseByRoundRobin(traceId, serviceInstances);
     }
 
-    /**
-     * 从请求中获取唯一标识traceId
-     *
-     * @param request request
-     * @return  String
-     */
     private String getTraceIdFromRequest(Request request) {
-        // 示例：若Request是HttpRequest，可从header获取；此处简化为UUID
-        RequestDataContext context = (RequestDataContext) request.getContext();
-        if (ObjectUtils.isEmpty(context)) {
-            return IdUtil.fastSimpleUUID();
+        String traceId = TraceContextUtils.getTraceId();
+        if (!"N/A".equals(traceId) && StringUtils.isNotEmpty(traceId)) {
+            return traceId;
         }
-
-        String traceId = context.getClientRequest().getHeaders().getFirst(BaseContextConstants.TRACE_ID_HEADER);
-        if (StringUtils.isEmpty(traceId)) {
-            return IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
-        }
-        return traceId;
+        return IdUtil.fastSimpleUUID() + "." + IdUtil.getSnowflakeNextId();
     }
 
     public Response<ServiceInstance> getInstanceResponseByRoundRobin(String traceId, List<ServiceInstance> serviceInstances) {

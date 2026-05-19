@@ -19,7 +19,7 @@ public class XxlJobLogEventConsumer implements Consumer<ILoggingEvent> {
     public void accept(ILoggingEvent event) {
         if (XxlJobContext.getXxlJobContext() != null) {
             // 1. 格式化日志信息
-            String traceId = event.getMDCPropertyMap().getOrDefault("trace_id", "N/A");
+            String traceId = event.getMDCPropertyMap().getOrDefault(BaseContextConstants.TRACE_ID, "N/A");
             String tenantId = event.getMDCPropertyMap().getOrDefault(BaseContextConstants.TENANT_ID, "N/A");
             String logInfo = String.format(
                     "[%s] [traceId:%s] [tenantId:%s] %s",
