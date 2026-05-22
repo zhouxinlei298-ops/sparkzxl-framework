@@ -18,7 +18,8 @@ import org.springframework.core.env.Environment;
 @Import({
         ServletTraceConfiguration.class,
         GatewayTraceConfiguration.class,
-        FeignTraceConfiguration.class
+        FeignTraceConfiguration.class,
+        WebClientTraceConfiguration.class
 })
 public class TraceAutoConfiguration implements SmartInitializingSingleton {
 

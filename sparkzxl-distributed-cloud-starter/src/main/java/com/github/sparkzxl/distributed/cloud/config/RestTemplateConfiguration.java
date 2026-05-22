@@ -17,7 +17,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
@@ -62,21 +61,11 @@ public class RestTemplateConfiguration {
     @Bean("lbRestTemplate")
     @LoadBalanced
     @ConditionalOnMissingBean(name = "lbRestTemplate")
-    public RestTemplate lbRestTemplate(List<ClientHttpRequestInterceptor> interceptors) {
+    public RestTemplate lbRestTemplate() {
         RestTemplate lbRestTemplate = new RestTemplate(httpClientComponentsClientHttpRequestFactory());
-        lbRestTemplate.setInterceptors(interceptors);
+        lbRestTemplate.getInterceptors().add(new RestTemplateHeaderInterceptor());
         configMessageConverters(lbRestTemplate.getMessageConverters());
         return lbRestTemplate;
-    }
-
-    /**
-     * RestTemplate
-     * 普通的 RestTemplate，不透传请求头，一般只做外部 http 调用
-     */
-    @Bean
-    @ConditionalOnMissingBean(RestTemplateHeaderInterceptor.class)
-    public RestTemplateHeaderInterceptor requestHeaderInterceptor() {
-        return new RestTemplateHeaderInterceptor();
     }
 
     /**

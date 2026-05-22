@@ -3,6 +3,7 @@ package com.github.sparkzxl.trace.filter;
 import com.github.sparkzxl.core.constant.BaseContextConstants;
 import com.github.sparkzxl.core.util.TraceContextUtils;
 import com.github.sparkzxl.trace.properties.TraceProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -13,6 +14,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+@Slf4j
 public class GatewayTraceFilter implements GlobalFilter, Ordered {
 
     private final TraceProperties traceProperties;
@@ -31,7 +33,7 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
         for (String headerName : propagateHeaders) {
             List<String> values = exchange.getRequest().getHeaders().get(headerName);
             if (values != null && !values.isEmpty()) {
-                String value = values.get(0);
+                String value = values.getFirst();
                 if (value != null && !value.isEmpty()) {
                     MDC.put(headerName, value);
                     requestBuilder.header(headerName, value);
@@ -44,18 +46,15 @@ public class GatewayTraceFilter implements GlobalFilter, Ordered {
 
         return chain.filter(mutatedExchange)
                 .contextWrite(ctx -> {
-                    ctx = ctx.put(BaseContextConstants.TRACE_ID, traceId);
                     for (String headerName : propagateHeaders) {
                         List<String> values = exchange.getRequest().getHeaders().get(headerName);
                         if (values != null && !values.isEmpty()) {
-                            ctx = ctx.put(headerName, values.get(0));
+                            ctx = ctx.put(headerName, values.getFirst());
                         }
                     }
                     return ctx;
                 })
                 .doOnEach(signal -> {
-                    String signalTraceId = signal.getContextView().getOrDefault(BaseContextConstants.TRACE_ID, "N/A");
-                    MDC.put(BaseContextConstants.TRACE_ID, signalTraceId);
                     for (String headerName : propagateHeaders) {
                         String val = signal.getContextView().getOrDefault(headerName, "");
                         if (val != null && !val.isEmpty()) {
