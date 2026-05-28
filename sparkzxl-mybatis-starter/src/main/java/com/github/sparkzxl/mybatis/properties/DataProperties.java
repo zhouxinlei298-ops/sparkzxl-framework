@@ -1,7 +1,5 @@
 package com.github.sparkzxl.mybatis.properties;
 
-import static com.github.sparkzxl.mybatis.properties.DataProperties.DATA_PREFIX;
-
 import com.baidu.fsg.uid.buffer.RejectedPutBufferHandler;
 import com.baidu.fsg.uid.buffer.RejectedTakeBufferHandler;
 import com.baidu.fsg.uid.buffer.RingBuffer;
@@ -9,13 +7,15 @@ import com.baomidou.mybatisplus.annotation.DbType;
 import com.github.sparkzxl.core.constant.enums.IdTypeEnum;
 import com.github.sparkzxl.core.constant.enums.MultiTenantType;
 import com.google.common.collect.Lists;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
+
+import java.util.List;
+
+import static com.github.sparkzxl.mybatis.properties.DataProperties.DATA_PREFIX;
 
 /**
  * description: CustomMybatisProperties配置属性类
