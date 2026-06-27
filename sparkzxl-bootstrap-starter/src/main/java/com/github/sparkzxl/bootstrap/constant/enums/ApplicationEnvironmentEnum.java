@@ -54,7 +54,7 @@ public enum ApplicationEnvironmentEnum {
     /**
      * Nacos 密码（使用 NACOS_PASSWORD 环境变量）
      */
-    NACOS_PASSWORD("NACOS_PASSWORD", "nacos.password", ""),
+    NACOS_PASSWORD("NACOS_PASSWORD", "nacos.password", "", true),
 
     /**
      * 负载均衡器区域
@@ -81,10 +81,20 @@ public enum ApplicationEnvironmentEnum {
      */
     private final String defaultValue;
 
+    /**
+     * 是否敏感配置
+     */
+    private final boolean sensitive;
+
     ApplicationEnvironmentEnum(String envName, String propertyName, String defaultValue) {
+        this(envName, propertyName, defaultValue, false);
+    }
+
+    ApplicationEnvironmentEnum(String envName, String propertyName, String defaultValue, boolean sensitive) {
         this.envName = envName;
         this.propertyName = propertyName;
         this.defaultValue = defaultValue;
+        this.sensitive = sensitive;
     }
 
     public String getEnvName() {
@@ -97,6 +107,10 @@ public enum ApplicationEnvironmentEnum {
 
     public String getDefaultValue() {
         return defaultValue;
+    }
+
+    public boolean isSensitive() {
+        return sensitive;
     }
 
     /**
