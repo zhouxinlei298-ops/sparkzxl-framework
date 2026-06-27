@@ -30,26 +30,28 @@ public class ApplicationEnvironmentPropertySourceLocator implements PropertySour
 
     private static final String PROPERTY_SOURCE_NAME = "applicationEnvironmentVariables";
 
+    private static final String LOG_CONTEXT_TITLE = "Application bootstrap environment context:";
+
     private static final Log log = LogFactory.getLog(ApplicationEnvironmentPropertySourceLocator.class);
 
     @Override
     public PropertySource<?> locate(Environment environment) {
         Map<String, ResolvedEnvironmentValue> defaultCandidates = new LinkedHashMap<>();
         Map<String, ResolvedEnvironmentValue> resolvedValues = new LinkedHashMap<>();
-        StringBuilder debugContext = new StringBuilder("sparkzxl bootstrap mapping context:");
+        StringBuilder logContext = new StringBuilder(LOG_CONTEXT_TITLE);
         for (ApplicationEnvironmentEnum mapping : ApplicationEnvironmentEnum.values()) {
             String propertyName = mapping.getPropertyName();
             if (mapping.hasEnvValue()) {
                 String envValue = mapping.getEnvValue();
                 if (StringUtils.hasText(envValue)) {
                     if (resolvedValues.containsKey(propertyName)) {
-                        appendLogContext(debugContext, propertyName, envValue, isSensitive(mapping), "ignored");
+                        appendLogContext(logContext, propertyName, envValue, isSensitive(mapping), "ignored");
                         continue;
                     }
                     boolean sensitive = isSensitive(mapping);
                     ResolvedEnvironmentValue resolvedValue = new ResolvedEnvironmentValue(envValue, sensitive);
                     resolvedValues.put(propertyName, resolvedValue);
-                    appendLogContext(debugContext, propertyName, envValue, sensitive, "loaded");
+                    appendLogContext(logContext, propertyName, envValue, sensitive, "loaded");
                 }
             }
             if (!resolvedValues.containsKey(propertyName)) {
@@ -68,18 +70,24 @@ public class ApplicationEnvironmentPropertySourceLocator implements PropertySour
             String propertyName = entry.getKey();
             ResolvedEnvironmentValue defaultValue = entry.getValue();
             if (environment.getProperty(propertyName) != null) {
-                appendLogContext(debugContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default ignored");
+                appendLogContext(logContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default ignored");
                 continue;
             }
             properties.put(propertyName, defaultValue.getValue());
-            appendLogContext(debugContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default loaded");
+            appendLogContext(logContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default loaded");
         }
 
+        if (hasLogContext(logContext)) {
+            log.info(logContext.toString());
+        }
         if (properties.isEmpty()) {
             return null;
         }
-        log.info("bootstrap context mapped:" + System.lineSeparator() + debugContext);
         return new MapPropertySource(PROPERTY_SOURCE_NAME, properties);
+    }
+
+    private static boolean hasLogContext(StringBuilder logContext) {
+        return logContext.length() > LOG_CONTEXT_TITLE.length();
     }
 
     private static boolean isSensitive(ApplicationEnvironmentEnum mapping) {
@@ -95,9 +103,8 @@ public class ApplicationEnvironmentPropertySourceLocator implements PropertySour
     private static void appendLogContext(StringBuilder debugContext, String propertyName,
                                          String value, boolean sensitive, String status) {
         debugContext.append(System.lineSeparator())
-                .append(" - ")
                 .append(propertyName)
-                .append(", value=")
+                .append("=")
                 .append(formatLogValue(value, sensitive))
                 .append(", status=")
                 .append(status);
