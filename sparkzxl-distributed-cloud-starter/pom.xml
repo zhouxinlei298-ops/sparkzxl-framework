@@ -11,8 +11,8 @@
     <artifactId>sparkzxl-distributed-cloud-starter</artifactId>
     <dependencies>
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+            <groupId>com.github.sparkzxl</groupId>
+            <artifactId>sparkzxl-bootstrap-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
