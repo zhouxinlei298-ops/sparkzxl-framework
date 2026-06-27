@@ -70,11 +70,11 @@ public class ApplicationEnvironmentPropertySourceLocator implements PropertySour
             String propertyName = entry.getKey();
             ResolvedEnvironmentValue defaultValue = entry.getValue();
             if (environment.getProperty(propertyName) != null) {
-                appendLogContext(logContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default ignored");
+                appendLogContext(logContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default_ignored");
                 continue;
             }
             properties.put(propertyName, defaultValue.getValue());
-            appendLogContext(logContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default loaded");
+            appendLogContext(logContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default_loaded");
         }
 
         if (hasLogContext(logContext)) {
