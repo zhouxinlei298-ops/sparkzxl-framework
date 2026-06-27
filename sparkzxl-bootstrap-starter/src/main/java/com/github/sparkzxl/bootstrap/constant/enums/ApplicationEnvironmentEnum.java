@@ -1,5 +1,7 @@
 package com.github.sparkzxl.bootstrap.constant.enums;
 
+import lombok.Getter;
+
 /**
  * Nacos 环境变量映射枚举
  * <p>
@@ -9,6 +11,7 @@ package com.github.sparkzxl.bootstrap.constant.enums;
  * @version 1.0
  * @since 2026-04-15
  */
+@Getter
 public enum ApplicationEnvironmentEnum {
 
     /**
@@ -95,22 +98,6 @@ public enum ApplicationEnvironmentEnum {
         this.propertyName = propertyName;
         this.defaultValue = defaultValue;
         this.sensitive = sensitive;
-    }
-
-    public String getEnvName() {
-        return envName;
-    }
-
-    public String getPropertyName() {
-        return propertyName;
-    }
-
-    public String getDefaultValue() {
-        return defaultValue;
-    }
-
-    public boolean isSensitive() {
-        return sensitive;
     }
 
     /**

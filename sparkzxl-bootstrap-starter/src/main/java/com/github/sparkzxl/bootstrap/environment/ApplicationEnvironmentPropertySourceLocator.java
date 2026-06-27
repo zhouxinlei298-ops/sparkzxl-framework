@@ -1,6 +1,8 @@
 package com.github.sparkzxl.bootstrap.environment;
 
 import com.github.sparkzxl.bootstrap.constant.enums.ApplicationEnvironmentEnum;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.bootstrap.config.PropertySourceLocator;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.MapPropertySource;
@@ -11,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -27,25 +30,32 @@ public class ApplicationEnvironmentPropertySourceLocator implements PropertySour
 
     private static final String PROPERTY_SOURCE_NAME = "applicationEnvironmentVariables";
 
+    private static final Log log = LogFactory.getLog(ApplicationEnvironmentPropertySourceLocator.class);
+
     @Override
     public PropertySource<?> locate(Environment environment) {
         Map<String, ResolvedEnvironmentValue> defaultCandidates = new LinkedHashMap<>();
-        Map<String, Boolean> resolvedFromEnv = new LinkedHashMap<>();
         Map<String, ResolvedEnvironmentValue> resolvedValues = new LinkedHashMap<>();
+        StringBuilder debugContext = new StringBuilder("sparkzxl bootstrap mapping context:");
         for (ApplicationEnvironmentEnum mapping : ApplicationEnvironmentEnum.values()) {
             String propertyName = mapping.getPropertyName();
-            if (!resolvedFromEnv.getOrDefault(propertyName, false) && mapping.hasEnvValue()) {
+            if (mapping.hasEnvValue()) {
                 String envValue = mapping.getEnvValue();
                 if (StringUtils.hasText(envValue)) {
-                    resolvedFromEnv.put(propertyName, true);
-                    resolvedValues.put(propertyName, new ResolvedEnvironmentValue(mapping.getEnvName(), envValue, mapping.isSensitive()));
-                    System.out.println("loaded environment variable: " + mapping.getEnvName() + " = " + formatLogValue(envValue, mapping.isSensitive()) + " -> " + propertyName);
+                    if (resolvedValues.containsKey(propertyName)) {
+                        appendLogContext(debugContext, propertyName, envValue, isSensitive(mapping), "ignored");
+                        continue;
+                    }
+                    boolean sensitive = isSensitive(mapping);
+                    ResolvedEnvironmentValue resolvedValue = new ResolvedEnvironmentValue(envValue, sensitive);
+                    resolvedValues.put(propertyName, resolvedValue);
+                    appendLogContext(debugContext, propertyName, envValue, sensitive, "loaded");
                 }
             }
-            if (!resolvedFromEnv.getOrDefault(propertyName, false)) {
+            if (!resolvedValues.containsKey(propertyName)) {
                 String defaultValue = mapping.getDefaultValue();
                 if (StringUtils.hasText(defaultValue)) {
-                    defaultCandidates.put(propertyName, new ResolvedEnvironmentValue(mapping.getEnvName(), defaultValue, mapping.isSensitive()));
+                    defaultCandidates.put(propertyName, new ResolvedEnvironmentValue(defaultValue, isSensitive(mapping)));
                 }
             }
         }
@@ -58,16 +68,39 @@ public class ApplicationEnvironmentPropertySourceLocator implements PropertySour
             String propertyName = entry.getKey();
             ResolvedEnvironmentValue defaultValue = entry.getValue();
             if (environment.getProperty(propertyName) != null) {
+                appendLogContext(debugContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default ignored");
                 continue;
             }
             properties.put(propertyName, defaultValue.getValue());
-            System.out.println("loaded default value: " + defaultValue.getSourceName() + " = " + formatLogValue(defaultValue.getValue(), defaultValue.isSensitive()) + " -> " + propertyName);
+            appendLogContext(debugContext, propertyName, defaultValue.getValue(), defaultValue.isSensitive(), "default loaded");
         }
 
         if (properties.isEmpty()) {
             return null;
         }
+        log.info("bootstrap context mapped:" + System.lineSeparator() + debugContext);
         return new MapPropertySource(PROPERTY_SOURCE_NAME, properties);
+    }
+
+    private static boolean isSensitive(ApplicationEnvironmentEnum mapping) {
+        return mapping.isSensitive() || containsSensitiveKeyword(mapping.getEnvName()) || containsSensitiveKeyword(mapping.getPropertyName());
+    }
+
+    private static boolean containsSensitiveKeyword(String name) {
+        String lowerName = name.toLowerCase(Locale.ROOT);
+        return lowerName.contains("password") || lowerName.contains("secret")
+                || lowerName.contains("token") || lowerName.contains("key");
+    }
+
+    private static void appendLogContext(StringBuilder debugContext, String propertyName,
+                                         String value, boolean sensitive, String status) {
+        debugContext.append(System.lineSeparator())
+                .append(" - ")
+                .append(propertyName)
+                .append(", value=")
+                .append(formatLogValue(value, sensitive))
+                .append(", status=")
+                .append(status);
     }
 
     private static String formatLogValue(String value, boolean sensitive) {
@@ -97,18 +130,12 @@ public class ApplicationEnvironmentPropertySourceLocator implements PropertySour
 
     private static class ResolvedEnvironmentValue {
 
-        private final String sourceName;
         private final String value;
         private final boolean sensitive;
 
-        ResolvedEnvironmentValue(String sourceName, String value, boolean sensitive) {
-            this.sourceName = sourceName;
+        ResolvedEnvironmentValue(String value, boolean sensitive) {
             this.value = value;
             this.sensitive = sensitive;
-        }
-
-        String getSourceName() {
-            return sourceName;
         }
 
         String getValue() {
