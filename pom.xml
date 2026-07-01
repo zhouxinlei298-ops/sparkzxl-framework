@@ -36,6 +36,7 @@
 
     <modules>
         <module>sparkzxl-alarm</module>
+        <module>sparkzxl-bootstrap-starter</module>
         <module>sparkzxl-boot-starter</module>
         <module>sparkzxl-cache-starter</module>
         <module>sparkzxl-core</module>

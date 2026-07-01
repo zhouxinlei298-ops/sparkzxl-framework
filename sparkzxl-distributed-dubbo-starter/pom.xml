@@ -12,6 +12,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.github.sparkzxl</groupId>
+            <artifactId>sparkzxl-bootstrap-starter</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
             <exclusions>
