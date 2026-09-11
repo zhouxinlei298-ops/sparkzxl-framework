@@ -138,14 +138,13 @@ public interface CacheKeyBuilder {
      */
     default String getKey(Object... suffix) {
         ArrayList<String> regionList = new ArrayList<>();
+        String prefix = this.getPrefix();
+        ArgumentAssert.notEmpty(prefix, "缓存前缀不能为空");
+        regionList.add(prefix);
         String tenant = this.getTenant();
         if (StrUtil.isNotEmpty(tenant)) {
             regionList.add(tenant);
         }
-        String prefix = this.getPrefix();
-        ArgumentAssert.notEmpty(prefix, "缓存前缀不能为空");
-        regionList.add(prefix);
-
         for (Object s : suffix) {
             if (ObjectUtil.isNotEmpty(s)) {
                 regionList.add(String.valueOf(s));

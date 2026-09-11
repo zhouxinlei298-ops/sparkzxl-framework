@@ -53,8 +53,7 @@ public class AlarmTask implements Task {
         if (alarmClient == null) {
             try {
                 alarmClient = SpringContextUtils.getBean(AlarmClient.class);
-            } catch (Exception e) {
-                log.warn("AlarmClient 未初始化，跳过告警消费");
+            } catch (Exception ignored) {
             }
         }
         return alarmClient;
