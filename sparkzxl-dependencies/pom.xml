@@ -25,6 +25,7 @@
         <spring-cloud-alibaba-dependencies.version>2021.1</spring-cloud-alibaba-dependencies.version>
         <resilience4j.version>1.7.0</resilience4j.version>
         <nacos.version>2.5.1</nacos.version>
+        <jackson-bom.version>2.22.3</jackson-bom.version>
 
         <servlet-api.version>4.0.1</servlet-api.version>
         <knife4j.version>2.0.9</knife4j.version>
@@ -125,6 +126,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
