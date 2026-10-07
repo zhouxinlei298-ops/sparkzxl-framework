@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * description: oss 执行器
+ * oss 执行器
  *
  * @author zhouxinlei
  * @since 2022-05-03 16:19:41
@@ -51,24 +51,26 @@ public interface OssExecutor {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param expires    过期时间 <=7
+     * @param expires 过期时间 <=7
      * @return url
      */
     String getObjectUrl(String bucketName, String objectName, Integer expires);
-
 
     /**
      * 获取文件访问路径
      *
      * @param bucketName bucket名称
      * @param objectName 文件名称
-     * @return String
+     * @return 按当前目标生成的字符串结果
      */
     default String getObjectUrl(String bucketName, String objectName) {
         Configuration configInfo = obtainConfigInfo();
         if (configInfo == null) {
             throw new ArgumentException(
-                    String.format("Cannot get object URL: OSS configuration not found for bucket [%s], object [%s]", bucketName, objectName));
+                    String.format(
+                            "Cannot get object URL: OSS configuration not found for bucket [%s],"
+                                    + " object [%s]",
+                            bucketName, objectName));
         }
         String domainName = configInfo.getDomain();
         if (StringUtils.isEmpty(domainName)) {
@@ -76,7 +78,10 @@ public interface OssExecutor {
         }
         if (StringUtils.isEmpty(domainName)) {
             throw new ArgumentException(
-                    String.format("Cannot get object URL: Both domain and endpoint are empty in configuration for bucket [%s]", bucketName));
+                    String.format(
+                            "Cannot get object URL: Both domain and endpoint are empty in"
+                                    + " configuration for bucket [%s]",
+                            bucketName));
         }
         // 优化：使用字符串连接代替 StringJoiner，避免重复创建对象
         // 确保 domainName 末尾没有 /，bucketName 和 objectName 开头没有 /
@@ -102,7 +107,7 @@ public interface OssExecutor {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @return OssMetadata
+     * @return 对象大小及供应商元信息
      */
     OssMetadata getOssMetadata(String bucketName, String objectName);
 
@@ -111,27 +116,28 @@ public interface OssExecutor {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @return boolean
+     * @return 本次操作是否成功
      */
     boolean exists(String bucketName, String objectName);
 
     /**
      * 上传文件
      *
-     * @param bucketName    bucket名称
-     * @param objectName    文件名称
+     * @param bucketName bucket名称
+     * @param objectName 文件名称
      * @param multipartFile 文件
-     * @return OssPushObjectResponse
+     * @return 包含实际对象位置与元信息的上传响应
      */
-    OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile);
+    OssPushObjectResponse putObject(
+            String bucketName, String objectName, MultipartFile multipartFile);
 
     /**
      * 上传文件
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param filePath   文件路径
-     * @return OssPushObjectResponse
+     * @param filePath 文件路径
+     * @return 包含实际对象位置与元信息的上传响应
      */
     OssPushObjectResponse putObject(String bucketName, String objectName, String filePath);
 
@@ -140,27 +146,28 @@ public interface OssExecutor {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param file   本地文件
-     * @param delete   上传成功是否删除文件
-     * @return OssPushObjectResponse
+     * @param file 本地文件
+     * @param delete 上传成功是否删除文件
+     * @return 包含实际对象位置与元信息的上传响应
      */
-    OssPushObjectResponse putObject(String bucketName, String objectName, File file, boolean delete);
+    OssPushObjectResponse putObject(
+            String bucketName, String objectName, File file, boolean delete);
 
     /**
      * 上传文件
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param url        文件地址
-     * @return OssPushObjectResponse
+     * @param url 文件地址
+     * @return 包含实际对象位置与元信息的上传响应
      */
     OssPushObjectResponse putObject(String bucketName, String objectName, URL url);
 
     /**
      * 分段上传
      *
-     * @param bucketName    bucket名称
-     * @param objectName    oss对象名称
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
      * @param multipartFile 上传文件
      */
     void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile);
@@ -169,19 +176,20 @@ public interface OssExecutor {
      * 初始化文件分片上传
      *
      * @param fileUploadInfo 文件上传信息
-     * @param bucketName     bucket名称
-     * @param objectName     oss对象名称
-     * @return UploadUrlsInfo
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @return 供应商上传标识及各分片的限时签名信息
      */
-    UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName);
+    UploadUrlsInfo initMultiPartUpload(
+            FileUploadInfo fileUploadInfo, String bucketName, String objectName);
 
     /**
      * 获取OSS中已经上传的分片文件
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param uploadId   上传标识ID
-     * @return List<PartData>
+     * @param uploadId 上传标识ID
+     * @return 包含真实分片编号、大小和 ETag 的清单
      */
     List<PartData> getListParts(String bucketName, String objectName, String uploadId);
 
@@ -190,16 +198,31 @@ public interface OssExecutor {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param uploadId   上传标识ID
+     * @param uploadId 上传标识ID
+     * @return 合并后回读得到的实际对象元信息
      */
     boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId);
+
+    /**
+     * 使用已经校验的真实分片集合完成，不再次列片或重新编号。
+     *
+     * @param bucketName Bucket 名称
+     * @param objectName 对象键
+     * @param uploadId   供应商分片上传标识
+     * @param parts      远端真实分片清单
+     */
+    default void completeMultipartUpload(
+            String bucketName, String objectName, String uploadId, List<PartData> parts) {
+        throw new UnsupportedOperationException("Validated multipart completion is unsupported");
+    }
 
     /**
      * 中止分片上传
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param uploadId   上传标识ID
+     * @param uploadId 上传标识ID
+     * @return 当前代际配置的防御性副本
      */
     boolean abortMultipartUpload(String bucketName, String objectName, String uploadId);
 
@@ -214,19 +237,20 @@ public interface OssExecutor {
     /**
      * 获取文件上传地址
      *
-     * @param bucketName  bucket名称
-     * @param objectName  oss对象名称
-     * @param contentType contentType
-     * @return UploadUrlsInfo
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param contentType 对象媒体类型
+     * @return 供应商上传标识及各分片的限时签名信息
      */
-    UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType);
+    UploadUrlsInfo getPresignedObjectUploadUrl(
+            String bucketName, String objectName, String contentType);
 
     /**
      * 下载文件
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param consumer   消费
+     * @param consumer 消费
      */
     void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer);
 
@@ -235,24 +259,28 @@ public interface OssExecutor {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param fileName   文件名
-     * @param request    HTTP请求
-     * @param response   HTTP响应
+     * @param fileName 文件名
+     * @param request HTTP请求
+     * @param response HTTP响应
      * @throws IOException IO异常
      */
-    void downloadMultipartFile(String bucketName,
-                               String objectName,
-                               String fileName,
-                               HttpServletRequest request,
-                               HttpServletResponse response) throws IOException;
+    void downloadMultipartFile(
+            String bucketName,
+            String objectName,
+            String fileName,
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException;
 
-    /**
-     * 销毁
-     */
+    /** 销毁 */
     void shutdown();
 
+    /**
+     * 读取当前执行器持有的配置副本。
+     *
+     * @return 当前代际配置的防御性副本
+     */
     default Configuration obtainConfigInfo() {
         return null;
     }
-
 }

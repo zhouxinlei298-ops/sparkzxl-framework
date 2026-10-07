@@ -1,9 +1,10 @@
 package com.github.sparkzxl.oss;
 
-import com.github.sparkzxl.oss.context.OssClientContextHolder;
 import com.github.sparkzxl.oss.entity.*;
 import com.github.sparkzxl.oss.executor.OssExecutor;
 import com.github.sparkzxl.oss.executor.OssExecutorFactoryContext;
+import com.github.sparkzxl.oss.operation.OssOperationContextManager;
+import com.github.sparkzxl.oss.operation.OssOperationContextScope;
 import com.github.sparkzxl.oss.properties.OssProperties;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,7 +23,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * description:  文件操作模板类
+ * 文件操作模板类
  *
  * @author zhouxinlei
  * @since 2022-05-03 16:17:36
@@ -33,7 +34,7 @@ public class OssTemplate implements InitializingBean {
 
     @Setter
     private OssProperties ossProperties;
-    private OssExecutor primaryExecutor;
+
     @Setter
     private OssExecutorFactoryContext ossExecutorFactoryContext;
 
@@ -62,7 +63,7 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param expires    过期时间 <=7
+     * @param expires 过期时间 <=7
      * @return url
      */
     public String getObjectUrl(String bucketName, String objectName, Integer expires) {
@@ -88,7 +89,8 @@ public class OssTemplate implements InitializingBean {
      * @param bucketName bucket名称
      * @param objectName oss对象名称
      * @return 二进制流
-     * @see <a href="http://docs.aws.amazon.com/goto/WebAPI/s3-2006-03-01/GetObject">API Documentation</a>
+     * @see <a href="http://docs.aws.amazon.com/goto/WebAPI/s3-2006-03-01/GetObject">API
+     *     Documentation</a>
      */
     public OssObject getObjectInfo(String bucketName, String objectName) {
         OssExecutor ossExecutor = obtainExecutor();
@@ -100,7 +102,7 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @return OssMetadata
+     * @return 对象大小及供应商元信息
      */
     public OssMetadata getOssMetadata(String bucketName, String objectName) {
         OssExecutor ossExecutor = obtainExecutor();
@@ -112,7 +114,7 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @return boolean
+     * @return 本次操作是否成功
      */
     public boolean exists(String bucketName, String objectName) {
         OssExecutor ossExecutor = obtainExecutor();
@@ -122,11 +124,13 @@ public class OssTemplate implements InitializingBean {
     /**
      * 上传文件
      *
-     * @param bucketName    bucket名称
-     * @param objectName    oss对象名称
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
      * @param multipartFile 文件
+     * @return 供应商上传响应
      */
-    public OssPushObjectResponse putObject(String bucketName, String objectName, MultipartFile multipartFile) {
+    public OssPushObjectResponse putObject(
+            String bucketName, String objectName, MultipartFile multipartFile) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.putObject(bucketName, objectName, multipartFile);
     }
@@ -136,7 +140,8 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param filePath   文件地址
+     * @param filePath 文件地址
+     * @return 供应商上传响应
      */
     public OssPushObjectResponse putObject(String bucketName, String objectName, String filePath) {
         OssExecutor ossExecutor = obtainExecutor();
@@ -148,11 +153,12 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param file       本地文件
-     * @param delete     上传成功是否删除文件
-     * @return OssPushObjectResponse
+     * @param file 本地文件
+     * @param delete 上传成功是否删除文件
+     * @return 包含实际对象位置与元信息的上传响应
      */
-    public OssPushObjectResponse putObject(String bucketName, String objectName, File file, boolean delete) {
+    public OssPushObjectResponse putObject(
+            String bucketName, String objectName, File file, boolean delete) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.putObject(bucketName, objectName, file, delete);
     }
@@ -162,7 +168,8 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param url        文件地址
+     * @param url 文件地址
+     * @return 供应商上传响应
      */
     public OssPushObjectResponse putObject(String bucketName, String objectName, URL url) {
         OssExecutor ossExecutor = obtainExecutor();
@@ -172,8 +179,8 @@ public class OssTemplate implements InitializingBean {
     /**
      * 分片上传
      *
-     * @param bucketName    bucket名称
-     * @param objectName    oss对象名称
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
      * @param multipartFile 上传文件
      */
     public void multipartUpload(String bucketName, String objectName, MultipartFile multipartFile) {
@@ -185,11 +192,12 @@ public class OssTemplate implements InitializingBean {
      * 初始化文件分片上传
      *
      * @param fileUploadInfo 文件上传信息
-     * @param bucketName     bucket名称
-     * @param objectName     oss对象名称
-     * @return UploadUrlsInfo
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @return 供应商上传标识及各分片的限时签名信息
      */
-    public UploadUrlsInfo initMultiPartUpload(FileUploadInfo fileUploadInfo, String bucketName, String objectName) {
+    public UploadUrlsInfo initMultiPartUpload(
+            FileUploadInfo fileUploadInfo, String bucketName, String objectName) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.initMultiPartUpload(fileUploadInfo, bucketName, objectName);
     }
@@ -199,8 +207,8 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param uploadId   上传标识ID
-     * @return List<Integer>
+     * @param uploadId 上传标识ID
+     * @return 供应商已接收的真实分片编号集合
      */
     public List<PartData> getListParts(String bucketName, String objectName, String uploadId) {
         OssExecutor ossExecutor = obtainExecutor();
@@ -211,7 +219,9 @@ public class OssTemplate implements InitializingBean {
      * 合并文件
      *
      * @param objectName oss对象名称
-     * @param uploadId   上传标识ID
+     * @param uploadId 上传标识ID
+     * @param bucketName Bucket 名称
+     * @return 此旧入口拒绝合并；必须改用带已验证分片清单的操作句柄
      */
     public boolean mergeMultipartUpload(String bucketName, String objectName, String uploadId) {
         OssExecutor ossExecutor = obtainExecutor();
@@ -222,13 +232,14 @@ public class OssTemplate implements InitializingBean {
      * 中止分片上传
      *
      * @param objectName oss对象名称
-     * @param uploadId   上传标识ID
+     * @param uploadId 上传标识ID
+     * @param bucketName Bucket 名称
+     * @return 取消成功返回 true
      */
     public boolean abortMultipartUpload(String bucketName, String objectName, String uploadId) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.abortMultipartUpload(bucketName, objectName, uploadId);
     }
-
 
     /**
      * 删除文件
@@ -244,16 +255,24 @@ public class OssTemplate implements InitializingBean {
     /**
      * 获取文件上传地址
      *
-     * @param bucketName  bucket名称
-     * @param objectName  oss对象名称
-     * @param contentType contentType
-     * @return UploadUrlsInfo
+     * @param bucketName bucket名称
+     * @param objectName oss对象名称
+     * @param contentType 对象媒体类型
+     * @return 供应商上传标识及各分片的限时签名信息
      */
-    public UploadUrlsInfo getPresignedObjectUploadUrl(String bucketName, String objectName, String contentType) {
+    public UploadUrlsInfo getPresignedObjectUploadUrl(
+            String bucketName, String objectName, String contentType) {
         OssExecutor ossExecutor = obtainExecutor();
         return ossExecutor.getPresignedObjectUploadUrl(bucketName, objectName, contentType);
     }
 
+    /**
+     * 在显式操作域内下载指定文件。
+     *
+     * @param bucketName Bucket 名称
+     * @param objectName 对象键
+     * @param consumer   同步读取回调，结束后关闭下载流
+     */
     public void downloadFile(String bucketName, String objectName, Consumer<InputStream> consumer) {
         OssExecutor ossExecutor = obtainExecutor();
         ossExecutor.downloadFile(bucketName, objectName, consumer);
@@ -264,32 +283,56 @@ public class OssTemplate implements InitializingBean {
      *
      * @param bucketName bucket名称
      * @param objectName oss对象名称
-     * @param fileName   文件名
-     * @param request    HTTP请求
-     * @param response   HTTP响应
+     * @param fileName 文件名
+     * @param request HTTP请求
+     * @param response HTTP响应
      * @throws IOException IO异常
      */
-    public void downloadMultipartFile(String bucketName, String objectName, String fileName, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void downloadMultipartFile(
+            String bucketName,
+            String objectName,
+            String fileName,
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
         log.info("下载文件的 object <{}>", objectName);
         OssExecutor ossExecutor = obtainExecutor();
         ossExecutor.downloadMultipartFile(bucketName, objectName, fileName, request, response);
     }
 
-    public OssExecutor obtainExecutor() {
-        String clientId = OssClientContextHolder.peek();
-        if (clientId == null) {
-            Assert.notNull(primaryExecutor, "Primary OssExecutor not initialized. Please check the OSS configuration.");
-            return primaryExecutor;
-        }
-        final OssExecutor ossExecutor = ossExecutorFactoryContext.create(clientId);
-        Assert.notNull(ossExecutor, String.format("Cannot get OssExecutor for clientId [%s]", clientId));
-        return ossExecutor;
+    /**
+     * 为显式客户端建立可关闭的操作域。
+     *
+     * @param clientId 固定客户端标识
+     * @return 固定显式目标的可关闭操作域
+     */
+    public OssOperationContextScope openOperation(String clientId) {
+        return OssOperationContextManager.open(ossExecutorFactoryContext, clientId);
     }
 
+    /**
+     * 为异步任务独立建立可关闭的操作域。
+     *
+     * @param clientId 固定客户端标识
+     * @return 独立解析目标的可关闭操作域
+     */
+    public OssOperationContextScope openIndependentOperation(String clientId) {
+        return OssOperationContextManager.openIndependent(ossExecutorFactoryContext, clientId);
+    }
+
+    /**
+     * 取得当前显式操作域的固定执行器。
+     *
+     * @return 当前操作域固定的执行器
+     */
+    public OssExecutor obtainExecutor() {
+        return OssOperationContextManager.requiredHandle().executor();
+    }
+
+    /** 校验启动配置并完成 OSS 组件初始化。 */
     @Override
     public void afterPropertiesSet() {
         Assert.notNull(ossProperties.getRegister(), "Register mode must be not null");
-        this.primaryExecutor = ossExecutorFactoryContext.create();
+        Assert.notNull(ossExecutorFactoryContext, "OSS executor factory is required");
     }
-
 }
