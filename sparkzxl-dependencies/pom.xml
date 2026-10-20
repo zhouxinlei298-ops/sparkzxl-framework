@@ -24,6 +24,7 @@
         <spring-cloud-dependencies.version>2025.0.2</spring-cloud-dependencies.version>
         <spring-cloud-alibaba-dependencies.version>2025.0.0.0</spring-cloud-alibaba-dependencies.version>
         <nacos.version>2.5.1</nacos.version>
+        <!-- 有意覆盖 Spring Boot BOM 的 Jackson 版本；升级前需全量验证序列化兼容性 -->
         <jackson-bom.version>2.22.3</jackson-bom.version>
 
         <knife4j.version>4.5.0</knife4j.version>
@@ -127,6 +128,7 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <!-- 先导入，确保该 BOM 覆盖 Spring Boot BOM 默认版本 -->
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
                 <version>${jackson-bom.version}</version>

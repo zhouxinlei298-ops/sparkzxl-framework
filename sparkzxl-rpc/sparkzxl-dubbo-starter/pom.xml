@@ -16,6 +16,7 @@
         <dubbo.version>3.3.5</dubbo.version>
         <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
         <validation-api.version>3.1.1</validation-api.version>
+        <!-- 有意覆盖父级/Boot BOM 的 Jackson 版本；升级前需全量验证序列化兼容性 -->
         <jackson-bom.version>2.22.3</jackson-bom.version>
         <javax.el.version>3.0.1-b12</javax.el.version>
     </properties>
@@ -23,6 +24,7 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <!-- 先导入，确保该 BOM 覆盖父级/Boot BOM 默认版本 -->
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
                 <version>${jackson-bom.version}</version>
