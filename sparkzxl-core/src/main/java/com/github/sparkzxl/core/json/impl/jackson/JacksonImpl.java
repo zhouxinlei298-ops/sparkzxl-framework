@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.type.CollectionType;
-import com.fasterxml.jackson.databind.type.MapType;
 import com.github.sparkzxl.core.json.impl.AbstractJSONImpl;
 import com.github.sparkzxl.core.support.JsonParseException;
 import com.github.sparkzxl.core.util.StrPool;

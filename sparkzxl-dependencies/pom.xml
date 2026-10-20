@@ -24,6 +24,7 @@
         <spring-cloud-dependencies.version>2025.0.2</spring-cloud-dependencies.version>
         <spring-cloud-alibaba-dependencies.version>2025.0.0.0</spring-cloud-alibaba-dependencies.version>
         <nacos.version>2.5.1</nacos.version>
+        <jackson-bom.version>2.22.3</jackson-bom.version>
 
         <knife4j.version>4.5.0</knife4j.version>
         <swagger-annotations.version>2.2.43</swagger-annotations.version>
@@ -33,11 +34,9 @@
         <!-- datasource-->
         <mybatis.version>3.5.19</mybatis.version>
         <mysql.version>8.0.33</mysql.version>
-        <mybatis-plus.version>3.5.3</mybatis-plus.version>
         <dynamic-datasource.version>4.3.1</dynamic-datasource.version>
         <druid.version>1.2.8</druid.version>
         <mybatis-plus.version>3.5.12</mybatis-plus.version>
-        <dynamic-datasource.version>4.3.1</dynamic-datasource.version>
         <druid.version>1.2.25</druid.version>
         <hikaricp.version>7.0.1</hikaricp.version>
         <p6spy.version>3.9.1</p6spy.version>
@@ -127,6 +126,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>

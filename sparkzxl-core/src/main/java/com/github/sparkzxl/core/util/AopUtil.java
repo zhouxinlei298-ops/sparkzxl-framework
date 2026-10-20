@@ -120,6 +120,9 @@ public class AopUtil {
                 final Annotation[][] parameterAnnotations = method.getParameterAnnotations();
                 for (int i = 0; i < parameterAnnotations.length; i++) {
                     final Object object = args[i];
+                    if (object == null) {
+                        continue;
+                    }
                     final Field[] fields = object.getClass().getDeclaredFields();
                     for (Field field : fields) {
                         boolean hasAnnotation = AnnotationUtil.hasAnnotation(field, annotation);

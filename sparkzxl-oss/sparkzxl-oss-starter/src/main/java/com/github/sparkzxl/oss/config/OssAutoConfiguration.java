@@ -10,6 +10,7 @@ import com.github.sparkzxl.oss.properties.OssProperties;
 import com.github.sparkzxl.oss.provider.FileOssConfigProvider;
 import com.github.sparkzxl.oss.provider.JdbcOssConfigProvider;
 import com.github.sparkzxl.oss.provider.OssConfigProvider;
+import com.github.sparkzxl.oss.provider.RejectingOssConfigProvider;
 import com.github.sparkzxl.oss.provider.YamlOssConfigProvider;
 import com.github.sparkzxl.oss.support.OssExceptionHandler;
 import com.google.common.collect.Lists;
@@ -70,6 +71,13 @@ public class OssAutoConfiguration {
     @ConditionalOnProperty(name = "oss.register", havingValue = "file")
     public OssConfigProvider fileOssConfigProvider() {
         return new FileOssConfigProvider(ossProperties.getPath());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(RejectingOssConfigProvider.class)
+    @ConditionalOnProperty(name = "oss.register", havingValue = "none")
+    public OssConfigProvider rejectingOssConfigProvider() {
+        return new RejectingOssConfigProvider();
     }
 
     @Bean

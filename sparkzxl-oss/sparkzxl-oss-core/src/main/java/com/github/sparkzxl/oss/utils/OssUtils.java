@@ -1,43 +1,45 @@
 package com.github.sparkzxl.oss.utils;
 
-import cn.hutool.core.net.url.UrlBuilder;
-import cn.hutool.core.util.URLUtil;
-import org.apache.commons.lang3.StringUtils;
-
+import java.net.URI;
 import java.net.URL;
-import java.nio.charset.Charset;
 
-/**
- * description: oss工具类
- *
- * @author zhouxinlei
- * @since 2022-05-03 17:29:36
- */
+/** OSS URL helpers. Raw path and query encoding must survive domain replacement. */
 public class OssUtils {
-
     public static String replaceHttpDomain(URL url, String accessDomain) {
-        String objectUrl = url.toString();
-        if (StringUtils.isNotEmpty(accessDomain)) {
-            String buildUrl = UrlBuilder.create()
-                    .setScheme(url.getProtocol())
-                    .setHost(url.getHost())
-                    .setPort(url.getPort()).build();
-            UrlBuilder urlBuilder = UrlBuilder.ofHttp(accessDomain, Charset.defaultCharset());
-            objectUrl = objectUrl.replace(buildUrl, urlBuilder.build());
-        }
-        return URLUtil.decode(objectUrl);
+        return replaceHttpDomain(url.toExternalForm(), accessDomain);
     }
 
     public static String replaceHttpDomain(String url, String accessDomain) {
-        UrlBuilder httpUrl = UrlBuilder.ofHttp(url);
-        if (StringUtils.isNotEmpty(accessDomain)) {
-            String buildUrl = UrlBuilder.create()
-                    .setScheme(httpUrl.getScheme())
-                    .setHost(httpUrl.getHost())
-                    .setPort(httpUrl.getPort()).build();
-            UrlBuilder urlBuilder = UrlBuilder.ofHttp(accessDomain, Charset.defaultCharset());
-            url = url.replace(buildUrl, urlBuilder.build());
+        if (accessDomain == null || accessDomain.isEmpty()) {
+            return url;
         }
-        return URLUtil.decode(url);
+        URI source = URI.create(url);
+        URI target = URI.create(accessDomain);
+        if (target.getRawAuthority() == null
+                || !("http".equalsIgnoreCase(target.getScheme())
+                        || "https".equalsIgnoreCase(target.getScheme()))
+                || target.getRawUserInfo() != null
+                || target.getRawQuery() != null
+                || target.getRawFragment() != null) {
+            throw new IllegalArgumentException("Invalid OSS access domain");
+        }
+        String prefix = target.getRawPath();
+        if (prefix == null) {
+            prefix = "";
+        }
+        while (prefix.endsWith("/")) {
+            prefix = prefix.substring(0, prefix.length() - 1);
+        }
+        String path = source.getRawPath();
+        if (path == null || path.isEmpty()) {
+            path = "/";
+        }
+        return target.getScheme()
+                + "://"
+                + target.getRawAuthority()
+                + prefix
+                + path
+                + (source.getRawQuery() == null ? "" : "?" + source.getRawQuery())
+                + (source.getRawFragment() == null ? "" : "#" + source.getRawFragment());
     }
 }
