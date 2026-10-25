@@ -1,11 +1,11 @@
 package com.github.sparkzxl.signature.utils;
 
+import cn.hutool.core.util.HexUtil;
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.excel.util.StringUtils;
 import com.github.sparkzxl.core.json.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.bouncycastle.pqc.legacy.math.linearalgebra.ByteUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -48,7 +48,7 @@ public class SM3SignUtil {
     public static boolean verify(String str, String hexString) {
         boolean flag = false;
         byte[] srcData = str.getBytes(StandardCharsets.UTF_8);
-        byte[] sm3Hash = ByteUtils.fromHexString(hexString);
+        byte[] sm3Hash = HexUtil.decodeHex(hexString);
         byte[] hash = SM3Util.hash(srcData);
         if (Arrays.equals(hash, sm3Hash)) {
             flag = true;
