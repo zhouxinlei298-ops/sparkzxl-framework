@@ -154,6 +154,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
             objectUrl =
                     minioClient.getPresignedObjectUrl(
                             GetPresignedObjectUrlArgs.builder()
+                                    .method(Method.GET)
                                     .bucket(bucketName)
                                     .object(objectName)
                                     .expiry(expire)
@@ -566,7 +567,7 @@ public class MinioExecutor extends AbstractOssExecutor<CustomMinioClient> {
                                 bucketName,
                                 null,
                                 objectName,
-                                10000,
+                                1000,
                                 partNumberMarker,
                                 uploadId,
                                 null,
