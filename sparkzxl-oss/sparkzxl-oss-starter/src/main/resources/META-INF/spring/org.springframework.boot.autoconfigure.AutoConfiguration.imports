@@ -1,2 +1,3 @@
 com.github.sparkzxl.oss.config.OssAutoConfiguration
 com.github.sparkzxl.oss.config.OssAspectAutoConfiguration
+com.github.sparkzxl.oss.config.AttachmentUrlAutoConfiguration
