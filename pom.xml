@@ -64,6 +64,7 @@
         <module>sparkzxl-oss</module>
         <module>sparkzxl-annotation</module>
         <module>sparkzxl-signature</module>
+        <module>sparkzxl-maven-archetype</module>
     </modules>
 
     <licenses>

@@ -9,3 +9,13 @@ pages:
       - public
   only:
     - master
+
+# 原型消费者契约验证：安装全量框架后，archetype 的集成测试会
+# 生成示例工程并执行 verify（编译 + ArchUnit 分层守护），
+# 框架 starter 任何破坏生成项目可编译性的变更都会在此红灯。
+archetype-verify:
+  stage: test
+  image: maven:3.8.6-jdk-8
+  script:
+    - mvn install -DskipTests -Dgpg.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -B
+  when: manual

@@ -1,0 +1,56 @@
+#set( $symbol_pound = '#' )
+#set( $symbol_dollar = '$' )
+#set( $symbol_escape = '\' )
+server:
+  shutdown: graceful
+  port: 8080
+  undertow:
+    buffer-size: 1024
+    direct-buffers: on
+    always-set-keep-alive: true
+    threads:
+      # IO线程数, 主要执行非阻塞任务, 负责多个连接
+      io: 4
+      # 阻塞任务线程池, 当执行类似servlet请求阻塞操作, undertow会从这个线程池中取得线程
+      worker: 160
+spring:
+  profiles:
+    active: dev
+    # 本地组件配置以 profile 形式引入：config/bootstrap-mybatis.yaml、config/bootstrap-knife4j.yaml
+    include: mybatis,knife4j
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: @application.name@
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  mvc:
+    pathmatch:
+      # 升级springboot2.6.6后临时处理，防止swagger报错
+      matching-strategy: ANT_PATH_MATCHER
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${nacos.url}
+        namespace: ${symbol_dollar}{nacos.namespace:}
+      config:
+        server-addr: ${nacos.url}
+        namespace: ${symbol_dollar}{nacos.namespace:}
+        file-extension: yaml
+        prefix: ${spring.application.name}
+        enable-remote-sync-config: true
+feign:
+  httpclient:
+    enabled: false
+  okhttp:
+    enabled: true
+  circuitbreaker:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  metrics:
+    tags:
+      application: ${spring.application.name}

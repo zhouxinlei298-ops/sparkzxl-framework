@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<archetype-descriptor
+        xsi:schemaLocation="http://maven.apache.org/plugins/maven-archetype-plugin/archetype-descriptor/1.0.0 http://maven.apache.org/xsd/archetype-descriptor-1.0.0.xsd"
+        name="sparkzxl-maven-archetype" xmlns="http://maven.apache.org/plugins/maven-archetype-plugin/archetype-descriptor/1.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <requiredProperties>
+        <requiredProperty key="nacosAddr">
+            <defaultValue>127.0.0.1:8848</defaultValue>
+        </requiredProperty>
+        <requiredProperty key="nacosNamespace">
+            <!-- none 表示使用 Nacos 公共命名空间（生成时省略 namespace 配置） -->
+            <defaultValue>none</defaultValue>
+        </requiredProperty>
+        <requiredProperty key="databaseAddress">
+            <defaultValue>127.0.0.1:3306</defaultValue>
+        </requiredProperty>
+        <requiredProperty key="databaseName">
+            <defaultValue>test</defaultValue>
+        </requiredProperty>
+        <requiredProperty key="databaseUsername">
+            <defaultValue>root</defaultValue>
+        </requiredProperty>
+        <requiredProperty key="databasePassword">
+            <defaultValue>123456</defaultValue>
+        </requiredProperty>
+        <!-- 生成项目引用的 sparkzxl-dependencies BOM 版本，可按需覆盖 -->
+        <requiredProperty key="sparkzxlDependenciesVersion">
+            <defaultValue>2.0.1-SNAPSHOT</defaultValue>
+        </requiredProperty>
+    </requiredProperties>
+    <fileSets>
+        <fileSet encoding="UTF-8">
+            <directory></directory>
+            <includes>
+                <include>.gitignore</include>
+            </includes>
+        </fileSet>
+        <fileSet filtered="true" encoding="UTF-8">
+            <directory></directory>
+            <includes>
+                <include>docker-compose.yml</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+    <modules>
+        <module id="code-generator" dir="code-generator" name="code-generator">
+            <fileSets>
+                <fileSet filtered="true" packaged="true" encoding="UTF-8">
+                    <directory>src/main/java</directory>
+                    <includes>
+                        <include>**/*.java</include>
+                    </includes>
+                </fileSet>
+                <fileSet encoding="UTF-8">
+                    <directory>src/main/resources</directory>
+                    <includes>
+                        <include>**/*.ftl</include>
+                    </includes>
+                </fileSet>
+            </fileSets>
+        </module>
+        <module id="${rootArtifactId}-server" dir="__rootArtifactId__-server" name="${rootArtifactId}-server">
+            <fileSets>
+                <fileSet filtered="true" packaged="true" encoding="UTF-8">
+                    <directory>src/main/java</directory>
+                    <includes>
+                        <include>**/*.java</include>
+                    </includes>
+                </fileSet>
+                <fileSet filtered="true" packaged="true" encoding="UTF-8">
+                    <directory>src/test/java</directory>
+                    <includes>
+                        <include>**/*.java</include>
+                    </includes>
+                </fileSet>
+                <fileSet filtered="true" encoding="UTF-8">
+                    <directory>src/main/resources</directory>
+                    <includes>
+                        <include>**/*.xml</include>
+                    </includes>
+                </fileSet>
+                <fileSet filtered="true" encoding="UTF-8">
+                    <directory>src/main/resources</directory>
+                    <includes>
+                        <include>**/*.yaml</include>
+                        <include>**/*.yml</include>
+                    </includes>
+                </fileSet>
+            </fileSets>
+        </module>
+    </modules>
+</archetype-descriptor>

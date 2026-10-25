@@ -1,0 +1,22 @@
+#set( $symbol_pound = '#' )
+#set( $symbol_dollar = '$' )
+#set( $symbol_escape = '\' )
+knife4j:
+  enable: true
+  base-package: ${package}.system.interfaces
+  description: 在线接口文档
+  group: 示例应用
+  title: 在线接口文档
+  terms-of-service-url: https://127.0.0.1
+  version: 1.0
+  contact:
+    name: demo
+    email: demo@163.com
+    url: https://127.0.0.1
+  setting:
+    enableReloadCacheParameter: true
+    enableVersion: true
+    enableDynamicParameter: true
+    enableFooter: false
+    enableFooterCustom: true
+    footerCustomContent: Apache License 2.0

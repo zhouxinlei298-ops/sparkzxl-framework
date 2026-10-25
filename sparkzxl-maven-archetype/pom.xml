@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.github.sparkzxl</groupId>
+        <artifactId>sparkzxl-framework</artifactId>
+        <version>2.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>sparkzxl-maven-archetype</artifactId>
+    <packaging>maven-archetype</packaging>
+    <name>sparkzxl-maven-archetype</name>
+    <description>基于 sparkzxl-framework 2.0.x（Spring Boot 2.7 / JDK 8）的 DDD 分层脚手架原型，
+        分层规范借鉴 spark-iam-server authorization-server 的实施经验，
+        并内置 ArchUnit 分层守护测试。集成测试（mvn install）会生成示例工程并执行 verify，
+        以此验证原型与框架版本始终兼容。</description>
+
+    <properties>
+        <maven.archetype.version>3.2.1</maven.archetype.version>
+    </properties>
+
+    <build>
+        <!-- plexus 默认排除规则会丢弃 archetype-resources/.gitignore（**/.gitignore 在默认排除列表），
+             此处关闭默认排除，让点文件进入 archetype jar -->
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <addDefaultExcludes>false</addDefaultExcludes>
+                </configuration>
+            </plugin>
+            <!-- archetype 打包用的 plexus-archiver 默认排除 **/.gitignore 且无配置入口，
+                 在 verify 阶段（archetype 集成测试之后、install 之前）把该文件补回 jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>patch-gitignore-into-archetype-jar</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <zip destfile="${project.build.directory}/${project.build.finalName}.jar"
+                                     update="true">
+                                    <fileset dir="${project.build.outputDirectory}" defaultexcludes="no">
+                                        <include name="archetype-resources/.gitignore"/>
+                                    </fileset>
+                                </zip>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <extensions>
+            <extension>
+                <groupId>org.apache.maven.archetype</groupId>
+                <artifactId>archetype-packaging</artifactId>
+                <version>${maven.archetype.version}</version>
+            </extension>
+        </extensions>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-archetype-plugin</artifactId>
+                    <version>${maven.archetype.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

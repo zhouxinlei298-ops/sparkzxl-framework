@@ -1,0 +1,8 @@
+#set( $symbol_pound = '#' )
+#set( $symbol_dollar = '$' )
+#set( $symbol_escape = '\' )
+nacos:
+  url: ${nacosAddr}
+#if($nacosNamespace && $nacosNamespace != "none")
+  namespace: ${nacosNamespace}
+#end
