@@ -40,8 +40,15 @@ public class RedissonLockExecutor extends AbstractLockExecutor<RLock> {
     public boolean releaseLock(String key, String value, RLock lockInstance) {
         if (lockInstance.isHeldByCurrentThread()) {
             try {
-                return lockInstance.forceUnlockAsync().get();
-            } catch (InterruptedException | ExecutionException e) {
+                // 必须用 unlock（校验持有者）而非 forceUnlock：本线程检查通过后锁可能恰好
+                // 过期并被他人持有，forceUnlock 会无校验强删对方的锁。
+                lockInstance.unlockAsync().get();
+                return true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Redisson releaseLock failed：", e);
+                return false;
+            } catch (ExecutionException e) {
                 log.error("Redisson releaseLock failed：", e);
                 return false;
             }
