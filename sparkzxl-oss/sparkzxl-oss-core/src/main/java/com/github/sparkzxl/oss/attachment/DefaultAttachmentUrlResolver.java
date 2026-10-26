@@ -1,5 +1,6 @@
 package com.github.sparkzxl.oss.attachment;
 
+import com.github.sparkzxl.core.entity.UploadFileModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

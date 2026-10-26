@@ -3,6 +3,7 @@ package com.github.sparkzxl.oss.attachment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import com.github.sparkzxl.core.entity.UploadFileModel;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;

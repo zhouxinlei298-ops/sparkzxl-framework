@@ -1,5 +1,7 @@
 package com.github.sparkzxl.oss.attachment;
 
+import com.github.sparkzxl.core.entity.UploadFileModel;
+
 import java.util.ArrayList;
 import java.util.List;
 
