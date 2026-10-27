@@ -28,6 +28,7 @@ public class LogProperties implements Serializable {
 
     private String filePattern;
 
+
     private FileProperties file = new FileProperties();
 
     private KafkaProperties kafka = new KafkaProperties();
