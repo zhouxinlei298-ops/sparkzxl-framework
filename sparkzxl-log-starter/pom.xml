@@ -27,11 +27,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-logging</artifactId>
         </dependency>
-        <!-- JUL→SLF4J 桥：框架协议错误出口日志使用 JUL，显式声明并由此 starter 统一安装，进入文件/Kafka/logstash 管道 -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.apache.skywalking</groupId>
             <artifactId>apm-toolkit-logback-1.x</artifactId>
@@ -76,5 +71,5 @@
             <version>3.0.2</version>
             <scope>compile</scope>
         </dependency>
-        </dependencies>
+    </dependencies>
 </project>
