@@ -113,17 +113,6 @@
         <connection>https://github.com/zhouxinlei828/sparkzxl-dependencies.git</connection>
     </scm>
 
-    <distributionManagement>
-        <repository>
-            <id>hznexus-releases</id>
-            <url>http://t.cngongbao.com:10003/repository/maven-releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>hznexus-snapshots</id>
-            <url>http://t.cngongbao.com:10003/repository/maven-snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
