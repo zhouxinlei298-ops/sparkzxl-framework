@@ -3,7 +3,7 @@ package com.github.sparkzxl.core.util;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.read.builder.ExcelReaderBuilder;
 import com.alibaba.excel.util.MapUtils;
-import com.alibaba.fastjson.JSON;
+import com.github.sparkzxl.core.json.JsonUtils;
 import com.github.sparkzxl.core.service.ExcelBaseService;
 import com.github.sparkzxl.core.service.ExcelListener;
 import com.github.sparkzxl.core.support.ArgumentException;
@@ -106,7 +106,7 @@ public class ExcelUtils {
             map.put("status", "failure");
             map.put("message", "下载文件失败" + e.getMessage());
             try {
-                response.getWriter().println(JSON.toJSONString(map));
+                response.getWriter().println(JsonUtils.getJson().toJson(map));
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
