@@ -11,7 +11,7 @@ import com.github.sparkzxl.feign.properties.FeignProperties;
 import com.google.common.net.HttpHeaders;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
-import io.seata.core.context.RootContext;
+import org.apache.seata.core.context.RootContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 

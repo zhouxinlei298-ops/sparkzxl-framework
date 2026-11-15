@@ -12,7 +12,7 @@ import com.netflix.hystrix.strategy.executionhook.HystrixCommandExecutionHook;
 import com.netflix.hystrix.strategy.metrics.HystrixMetricsPublisher;
 import com.netflix.hystrix.strategy.properties.HystrixPropertiesStrategy;
 import com.netflix.hystrix.strategy.properties.HystrixProperty;
-import io.seata.core.context.RootContext;
+import org.apache.seata.core.context.RootContext;
 import org.slf4j.MDC;
 
 import java.util.Map;

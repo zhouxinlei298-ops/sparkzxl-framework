@@ -24,7 +24,7 @@
         <spring-cloud-dependencies.version>2021.0.9</spring-cloud-dependencies.version>
         <spring-cloud-alibaba-dependencies.version>2021.1</spring-cloud-alibaba-dependencies.version>
         <resilience4j.version>1.7.0</resilience4j.version>
-        <nacos.version>2.5.1</nacos.version>
+        <nacos.version>2.5.4</nacos.version>
         <jackson-bom.version>2.22.3</jackson-bom.version>
 
         <servlet-api.version>4.0.1</servlet-api.version>
@@ -68,7 +68,7 @@
         <xxl-job.version>2.3.1</xxl-job.version>
         <javax.el.version>3.0.1-b11</javax.el.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
-        <seata.version>1.8.1-SNAPSHOT</seata.version>
+        <seata.version>2.5.0</seata.version>
         <protobuf-java.version>3.20.3</protobuf-java.version>
         <janino.version>3.1.12</janino.version>
         <drools-version>7.69.0.Final</drools-version>
@@ -254,12 +254,12 @@
                 <version>${p6spy.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.seata</groupId>
+                <groupId>org.apache.seata</groupId>
                 <artifactId>seata-spring-boot-starter</artifactId>
                 <version>${seata.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.seata</groupId>
+                <groupId>org.apache.seata</groupId>
                 <artifactId>seata-all</artifactId>
                 <version>${seata.version}</version>
             </dependency>

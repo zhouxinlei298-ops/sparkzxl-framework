@@ -29,7 +29,7 @@
             <artifactId>sparkzxl-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.seata</groupId>
+            <groupId>org.apache.seata</groupId>
             <artifactId>seata-all</artifactId>
         </dependency>
         <!-- 自定义的元数据依赖 -->
